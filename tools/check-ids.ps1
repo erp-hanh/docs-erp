@@ -1,0 +1,100 @@
+#Requires -Version 5.1
+<#
+  Kiểm tính toàn vẹn của mạng lưới ID trong docs-erp.
+  Fail khi: (a) một ID được tham chiếu nhưng không tồn tại,
+            (b) một Rule thiếu trường Decisions hoặc Principles.
+  Exit 0 nếu sạch, exit 1 nếu có lỗi.
+#>
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$root = Split-Path -Parent $PSScriptRoot
+$errors = New-Object System.Collections.Generic.List[string]
+
+function Add-Err([string]$msg) { $script:errors.Add($msg) }
+
+# ---------- 1. Thu thập ID được ĐỊNH NGHĨA ----------
+$defined = New-Object System.Collections.Generic.HashSet[string]
+
+$rulesFile = Join-Path $root '01-rules\RULES.md'
+if (-not (Test-Path $rulesFile)) {
+    Add-Err "Thiếu file 01-rules/RULES.md"
+} else {
+    Select-String -Path $rulesFile -Pattern '^###\s+(R-\d{2})\s' |
+        ForEach-Object { [void]$defined.Add($_.Matches[0].Groups[1].Value) }
+}
+
+Get-ChildItem -Path (Join-Path $root '02-principles') -Filter 'P-*.md' -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        if ($_.BaseName -match '^(P-[A-Z]+)-') { [void]$defined.Add($Matches[1]) }
+    }
+
+Get-ChildItem -Path (Join-Path $root '03-decisions') -Filter 'ADR-*.md' -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        if ($_.BaseName -match '^(ADR-\d{4})-') { [void]$defined.Add($Matches[1]) }
+    }
+
+Get-ChildItem -Path (Join-Path $root '04-conventions') -Filter 'C-*.md' -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Select-String -Path $_.FullName -Pattern '^###\s+(C-[A-Z]+-\d{2})\s' |
+            ForEach-Object { [void]$defined.Add($_.Matches[0].Groups[1].Value) }
+    }
+
+Get-ChildItem -Path (Join-Path $root '06-checklists') -Filter 'CL-*.md' -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Select-String -Path $_.FullName -Pattern '(CL-[A-Z]+-\d{2})\s' |
+            ForEach-Object { [void]$defined.Add($_.Matches[0].Groups[1].Value) }
+    }
+
+# ---------- 2. Thu thập ID được THAM CHIẾU ----------
+$fields = 'Principles|Decisions|Rules|Constrains|Implements|Verifies'
+$idPattern = '(R-\d{2}|P-[A-Z]+|ADR-\d{4}|C-[A-Z]+-\d{2}|CL-[A-Z]+-\d{2})'
+
+# Không neo vào đầu dòng: checklist viết "(Verifies: R-02, C-GO-05)" ở GIỮA dòng.
+# Neo đầu dòng sẽ bỏ sót toàn bộ checklist và script báo xanh giả.
+$refPattern = "\*{0,2}($fields)\*{0,2}\s*:\s*([^\r\n)]*)"
+
+Get-ChildItem -Path $root -Filter '*.md' -Recurse |
+    Where-Object { $_.FullName -notmatch '\\05-templates\\' } |
+    ForEach-Object {
+        $file = $_.FullName.Substring($root.Length + 1)
+        Select-String -Path $_.FullName -Pattern $refPattern -AllMatches |
+            ForEach-Object {
+                foreach ($m in $_.Matches) {
+                    $val = $m.Groups[2].Value
+                    if ($val.Trim() -eq '—' -or $val.Trim() -eq '-' -or $val.Trim() -eq '') { continue }
+                    foreach ($idm in [regex]::Matches($val, $idPattern)) {
+                        $id = $idm.Groups[1].Value
+                        if (-not $defined.Contains($id)) {
+                            Add-Err "$file : tham chiếu '$id' nhưng không có nơi nào định nghĩa"
+                        }
+                    }
+                }
+            }
+    }
+
+# ---------- 3. Rule phải có đủ trường link ngược ----------
+if (Test-Path $rulesFile) {
+    $content = Get-Content -Path $rulesFile -Raw -Encoding UTF8
+    $blocks = [regex]::Split($content, '(?m)^###\s+') | Select-Object -Skip 1
+    foreach ($b in $blocks) {
+        if ($b -match '^(R-\d{2})') {
+            $rid = $Matches[1]
+            if ($b -notmatch '(?m)^\s*\*{0,2}Decisions\*{0,2}\s*:')  { Add-Err "RULES.md : $rid thiếu trường 'Decisions:'" }
+            if ($b -notmatch '(?m)^\s*\*{0,2}Principles\*{0,2}\s*:') { Add-Err "RULES.md : $rid thiếu trường 'Principles:'" }
+        }
+    }
+    $expected = 1..19 | ForEach-Object { 'R-{0:d2}' -f $_ }
+    foreach ($e in $expected) {
+        if (-not $defined.Contains($e)) { Add-Err "RULES.md : thiếu rule $e" }
+    }
+}
+
+# ---------- 4. Kết quả ----------
+if ($errors.Count -gt 0) {
+    Write-Host "check-ids: THAT BAI - $($errors.Count) loi" -ForegroundColor Red
+    $errors | ForEach-Object { Write-Host "  - $_" }
+    exit 1
+}
+Write-Host "check-ids: OK - $($defined.Count) ID, khong co tham chieu treo" -ForegroundColor Green
+exit 0
