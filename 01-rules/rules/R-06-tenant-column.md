@@ -27,7 +27,18 @@ Vì vậy điều kiện `company_id = $n` không phải một optimization có 
 nó phải có mặt ở **mọi** câu SQL đọc/sửa/xóa bảng nghiệp vụ, ngay từ dòng code đầu
 tiên, bất kể lúc viết ra hệ thống có bao nhiêu tenant.
 
+Nhưng có điều kiện lọc thôi chưa đủ. Một câu SQL viết đúng đến mấy cũng vô nghĩa nếu
+**giá trị** đưa vào `company_id = $1` là do client gửi lên: kẻ tấn công chỉ cần đổi
+một field trong JSON body hoặc một tham số trên URL là đọc được dữ liệu công ty khác,
+trong khi mọi lệnh grep tìm `company_id =` đều báo xanh. Vì thế giá trị đó bắt buộc
+lấy từ actor đã xác thực trong `ctx` — thứ do `shared/middleware/auth` gắn vào sau
+khi verify token (R-14) và client không có đường nào tác động tới. DTO request có
+field `company_id` là dấu hiệu vi phạm ngay cả khi nó chưa được dùng ở đâu, vì nó mở
+sẵn đường cho lỗi đó xuất hiện ở lần sửa sau.
+
 ## Ví dụ SAI
+
+### Thiếu điều kiện lọc
 
 ```go
 package repository
@@ -52,9 +63,74 @@ func (r *orderRepo) GetByID(ctx context.Context, dbtx db.DBTX, id string) (*Orde
 	}
 	return &o, nil
 }
+
+// SAI nặng hơn: không có mệnh đề WHERE nào cả. Câu này trả về đơn hàng của TẤT CẢ
+// các công ty; ở chế độ single-tenant nó vẫn trả đúng kết quả nên không ai để ý.
+func (r *orderRepo) ListAll(ctx context.Context, dbtx db.DBTX) ([]Order, error) {
+	var out []Order
+	query := `SELECT id, company_id, customer_id, total_amount, status, created_at
+	          FROM orders
+	          ORDER BY created_at DESC`
+	if err := dbtx.SelectContext(ctx, &out, query); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+```
+
+### `company_id` đến từ client
+
+```go
+package handler
+
+import (
+	"github.com/gin-gonic/gin"
+
+	"erp/modules/order/internal/service"
+	"erp/shared/response"
+)
+
+type OrderHandler struct {
+	svc *service.OrderService
+}
+
+// SAI: DTO request cho phép client tự khai company_id.
+type ListOrdersQuery struct {
+	CompanyID string `form:"company_id"`
+	Page      int    `form:"page"`
+	PageSize  int    `form:"page_size"`
+	Sort      string `form:"sort"`
+}
+
+func (h *OrderHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var q ListOrdersQuery
+	if err := c.ShouldBindQuery(&q); err != nil {
+		response.ValidationFailed(c, err)
+		return
+	}
+
+	companyID := q.CompanyID
+	if companyID == "" {
+		companyID = c.Query("company_id") // SAI: cùng một lỗi, viết theo kiểu khác
+	}
+
+	// SAI: giá trị do client kiểm soát đi thẳng xuống repository. Câu SQL bên dưới
+	// vẫn có "company_id = $1" đầy đủ và mọi lệnh grep vẫn báo xanh — chỉ là tham số
+	// truyền vào do kẻ tấn công chọn. Đổi ?company_id=<uuid công ty khác> là xong.
+	items, total, err := h.svc.ListOrders(ctx, companyID, q.Page, q.PageSize, q.Sort)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.List(c, items, total, q.Page, q.PageSize)
+}
 ```
 
 ## Ví dụ ĐÚNG
+
+### Điều kiện lọc trong mọi câu SQL
 
 ```go
 package repository
@@ -81,26 +157,149 @@ func (r *orderRepo) GetByID(ctx context.Context, dbtx db.DBTX, companyID, id str
 }
 ```
 
-`companyID` ở đây phải đến từ actor đã xác thực (`auth.FromContext(ctx)` ở tầng
-service theo R-14/R-15), không bao giờ được đọc từ tham số do client tự gửi lên —
-nếu không, cùng một điều kiện `company_id = $1` vẫn có thể bị client thao túng để
-truyền `company_id` của công ty khác.
+### `company_id` lấy từ actor trong `ctx`
+
+```go
+package handler
+
+import (
+	"github.com/gin-gonic/gin"
+
+	"erp/modules/order/internal/service"
+	"erp/shared/response"
+)
+
+type OrderHandler struct {
+	svc *service.OrderService
+}
+
+// ĐÚNG: DTO không có chỗ nào cho company_id — client không được hỏi về nó.
+type ListOrdersQuery struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Sort     string `form:"sort"`
+}
+
+func (h *OrderHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var q ListOrdersQuery
+	if err := c.ShouldBindQuery(&q); err != nil {
+		response.ValidationFailed(c, err)
+		return
+	}
+
+	items, total, err := h.svc.ListOrders(ctx, service.ListOrdersInput{
+		Page:     q.Page,
+		PageSize: q.PageSize,
+		Sort:     q.Sort,
+	})
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.List(c, items, total, q.Page, q.PageSize)
+}
+```
+
+```go
+package service
+
+import (
+	"context"
+
+	"github.com/jmoiron/sqlx"
+
+	"erp/modules/order/internal/model"
+	"erp/modules/order/internal/repository"
+	"erp/shared/auth"
+	"erp/shared/authz"
+)
+
+const PermOrderRead = "order.read"
+
+type OrderService struct {
+	db        *sqlx.DB
+	authz     authz.Checker
+	orderRepo repository.OrderRepository
+}
+
+type ListOrdersInput struct {
+	Page     int
+	PageSize int
+	Sort     string
+}
+
+// ĐÚNG: company_id đến từ actor đã xác thực trong ctx, do shared/middleware/auth gắn
+// vào sau khi verify token (R-14). Không có tham số nào của method này mang giá trị
+// company_id, nên không có đường cho client chèn giá trị của công ty khác vào.
+func (s *OrderService) ListOrders(ctx context.Context, in ListOrdersInput) ([]model.Order, int, error) {
+	if err := s.authz.Can(ctx, auth.FromContext(ctx), PermOrderRead); err != nil {
+		return nil, 0, err
+	}
+
+	actor := auth.FromContext(ctx)
+	return s.orderRepo.List(ctx, s.db, actor.CompanyID, in.Page, in.PageSize, in.Sort)
+}
+```
 
 ## Cách kiểm
 
 ```powershell
+# 1) Tung cau SQL trong repository: thieu company_id trong WHERE, hoac SELECT khong co WHERE
+$systemTables = @('schema_migrations', 'companies')
+
 Get-ChildItem -Path modules -Recurse -Filter *_repository*.go | ForEach-Object {
-    $text = Get-Content -Path $_.FullName -Raw
-    $stmts = [regex]::Matches($text, '(?is)(SELECT|UPDATE|DELETE)\b.*?\bWHERE\b[^;`"]*')
-    foreach ($m in $stmts) {
-        if ($m.Value -notmatch 'company_id\s*=') {
-            Write-Host ("{0}: thieu company_id trong WHERE -> {1}" -f $_.FullName, ($m.Value -replace '\s+',' '))
+    $file = $_.FullName
+    $text = Get-Content -Path $file -Raw
+    if (-not $text) { return }
+
+    # Tach TUNG chuoi SQL truoc (Go raw string khong chua duoc backtick nen dau
+    # backtick la ranh gioi tin cay), roi kiem tung cau doc lap.
+    foreach ($lit in [regex]::Matches($text, '(?s)`([^`]*)`')) {
+        $sql = ($lit.Groups[1].Value -replace '\s+', ' ').Trim()
+        if ($sql -notmatch '(?i)\b(SELECT|UPDATE|DELETE)\b') { continue }
+
+        # Bo qua cau chi dung tren system_tables
+        $tables = @([regex]::Matches($sql, '(?i)\b(?:FROM|JOIN|UPDATE)\s+([a-z_][a-z0-9_]*)') |
+                    ForEach-Object { $_.Groups[1].Value.ToLower() })
+        if ($tables.Count -gt 0) {
+            $business = @($tables | Where-Object { $systemTables -notcontains $_ })
+            if ($business.Count -eq 0) { continue }
+        }
+
+        if ($sql -notmatch '(?i)\bWHERE\b') {
+            if ($sql -match '(?i)^SELECT\b') {
+                Write-Host ("{0}: SELECT bang nghiep vu KHONG co WHERE -> {1}" -f $file, $sql)
+            }
+            continue
+        }
+        if ($sql -notmatch 'company_id\s*=') {
+            Write-Host ("{0}: thieu company_id trong WHERE -> {1}" -f $file, $sql)
         }
     }
 }
+
+# 2) company_id den tu client: DTO request hoac handler doc thang tu request
+Get-ChildItem -Path modules -Recurse -Include *.go |
+    Select-String -Pattern '(json|form|uri):"company_id"', 'c\.(Query|Param|PostForm)\("company_id"\)' |
+    ForEach-Object { "{0}:{1}: company_id den tu client -> {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim() }
 ```
 
-Lệnh trên trích mọi câu `SELECT`/`UPDATE`/`DELETE` có `WHERE` trong file
-`*_repository.go` (kể cả khi câu SQL viết trên nhiều dòng bằng backtick) rồi báo ra
-những câu không chứa `company_id =`. Mỗi dòng in ra là một ứng viên rò rỉ dữ liệu
-cần soát thủ công ngay, không đợi review theo lịch thường.
+Lệnh (1) tách từng chuỗi SQL **trước**, rồi kiểm từng chuỗi độc lập. Đây là điểm
+khác biệt quan trọng so với cách quét cả file bằng một regex `(?s)...WHERE...`: với
+`(?s)` thì dấu `.` khớp cả xuống dòng, nên nếu câu SQL đầu tiên trong file không có
+`WHERE` — tức là đọc toàn bảng, kịch bản rò rỉ tệ nhất — phần `.*?` sẽ nuốt qua nó để
+tìm tới `WHERE` của câu kế tiếp; nếu câu kế tiếp có `company_id` thì script báo "không
+vi phạm", và câu thứ hai cũng đã bị tiêu thụ nên không bao giờ được kiểm riêng. Hai
+câu SQL, một lần kiểm, cả hai lọt.
+
+Vì vậy lệnh (1) báo riêng hai loại: `SELECT` trên bảng nghiệp vụ **không có mệnh đề
+`WHERE`** (nguy hiểm nhất, đọc sạch mọi công ty), và câu có `WHERE` nhưng thiếu
+`company_id =`. Câu SQL chỉ đụng tới bảng trong `system_tables` (`schema_migrations`,
+`companies` — nguồn sự thật ở `03-decisions/ADR-0003-multi-tenant-ready.md`) được bỏ
+qua để không báo oan.
+
+Lệnh (2) bắt vế nguồn của giá trị: mỗi dòng in ra là một chỗ `company_id` do client
+gửi lên. Loại này lệnh (1) không thấy được, vì câu SQL tương ứng vẫn có đủ
+`company_id = $1`.
