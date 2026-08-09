@@ -20,6 +20,8 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 **Principles:** —
 **Decisions:** ADR-0001
 
+Chi tiết và ví dụ code: [rules/R-01-module-boundary.md](rules/R-01-module-boundary.md)
+
 ### R-02 — No Cross-Module DB Access
 
 **Mệnh đề bắt buộc:** Repository của module A chỉ được query bảng nằm trong danh sách `tables` khai báo ở `module.yaml` của A. Cấm JOIN sang bảng thuộc module khác.
@@ -65,6 +67,8 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 > Relay là **at-least-once**. Vì vậy `P-IDEM` không phải tùy chọn mà là điều kiện để
 > ADR-0006 đứng vững: mọi event handler phải idempotent theo `event_id`.
 
+Chi tiết và ví dụ code: [rules/R-05-events-for-decoupling.md](rules/R-05-events-for-decoupling.md)
+
 ## Nhóm B — Database
 
 ### R-06 — Tenant Column Everywhere
@@ -82,6 +86,8 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 > được miễn `company_id`, `deleted_at` và các cột audit của R-17.
 > Bảng `outbox` **không** thuộc `system_tables`: nó có `company_id`, nhưng được miễn
 > `deleted_at` vì event hết hạn lưu thì xóa cứng.
+
+Chi tiết và ví dụ code: [rules/R-06-tenant-column.md](rules/R-06-tenant-column.md)
 
 ### R-07 — Migration Only
 
@@ -109,6 +115,8 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 **Ngoại lệ:** Bảng dưới 1000 dòng và không tham gia JOIN được miễn, nhưng phải ghi lý do ngay trong file migration.
 **Principles:** P-CONC
 **Decisions:** —
+
+Chi tiết và ví dụ code: [rules/R-09-index-by-design.md](rules/R-09-index-by-design.md)
 
 ## Nhóm C — API
 
@@ -192,6 +200,8 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 > nào, lúc nào, qua request nào; phục vụ người dùng cuối và kiểm toán. P-OBS lo
 > **sức khỏe hệ thống** — latency, error rate, span; phục vụ người vận hành.
 > Điểm giao duy nhất là `request_id`/`trace_id`: R-17 sở hữu nó, P-OBS chỉ tiêu thụ.
+
+Chi tiết và ví dụ code: [rules/R-17-traceability.md](rules/R-17-traceability.md)
 
 ### R-18 — Soft Delete by Default
 
