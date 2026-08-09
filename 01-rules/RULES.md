@@ -144,7 +144,7 @@ Khi hai Rule mâu thuẫn nhau: dừng lại, hỏi người. Không tự chọn
 **Mệnh đề bắt buộc:** Mọi route nằm dưới `/api/v1`. Xóa field, đổi kiểu dữ liệu, hoặc đổi ý nghĩa của field là breaking change và bắt buộc sang `/api/v2`.
 **Dấu hiệu vi phạm:** Route đăng ký thẳng trên router gốc hoặc trên một group không có tiền tố `/api/v1` (ví dụ `r.GET("/orders", ...)` thay vì đăng ký trong `router.Group("/api/v1")`). Diff xóa field JSON khỏi struct DTO response, đổi kiểu Go của field đó (ví dụ `Amount int` thành `Amount string`), hoặc đổi tên tag `json:"..."`, trong khi route vẫn còn nằm dưới `/api/v1` và không có route `/api/v2` song song được tạo thêm.
 **Cách sửa:** Đăng ký mọi route qua `router.Group("/api/v1")`. Khi cần breaking change, tạo `router.Group("/api/v2")` với handler/DTO mới, giữ nguyên handler và DTO của `/api/v1` cho tới khi client migrate xong.
-**Ngoại lệ:** Không có ngoại lệ.
+**Ngoại lệ:** Endpoint hạ tầng không thuộc API nghiệp vụ — `/health`, `/ready`, `/metrics` — nằm ngoài `/api/v1`. Đây là danh sách đóng; thêm endpoint mới vào đó phải sửa `04-conventions/C-API-http.md`.
 **Principles:** —
 **Decisions:** —
 
