@@ -58,7 +58,7 @@ Chi tiết và ví dụ code: [rules/R-01-module-boundary.md](rules/R-01-module-
 3. Service ghi event vào bảng `outbox` **trong cùng transaction** với dữ liệu nghiệp vụ.
 4. Service cấm gọi `bus.Publish` ở **bất kỳ vị trí nào** — trong transaction, sau `tx.Commit()`, hay qua `defer`. Chỉ relay, là package nằm ngoài `modules/`, được publish ra bus sau khi đọc `outbox`.
 
-**Dấu hiệu vi phạm:** Bất kỳ dòng nào khớp `.Publish(` trong `modules/**` là vi phạm, không cần xét vị trí của dòng đó so với transaction. Import module không có trong `allowed_deps`.
+**Dấu hiệu vi phạm:** Bất kỳ dòng nào khớp `.Publish(` trong `modules/**` là vi phạm, không cần xét vị trí của dòng đó so với transaction. Lời gọi `outboxRepo.Append(` xuất hiện trong file `*_handler.go` hoặc `*_repository.go` — chỉ service được ghi outbox. Import module không có trong `allowed_deps`.
 **Cách sửa:** Thay lời gọi bus bằng `outboxRepo.Append(ctx, tx, event)`. Để relay lo việc publish.
 **Ngoại lệ:** Không có ngoại lệ.
 **Principles:** P-EVT, P-IDEM, P-TXN
@@ -137,7 +137,7 @@ Chi tiết và ví dụ code: [rules/R-09-index-by-design.md](rules/R-09-index-b
 ### R-10 — RESTful Resource
 
 **Mệnh đề bắt buộc:** Path chỉ chứa danh từ số nhiều và id, cấm động từ trong path (`/getUser`, `/createOrder`). POST tạo mới trả 201; DELETE trả 204; lỗi validate trả 422.
-**Dấu hiệu vi phạm:** Đăng ký route trong `router.go`/`routes.go` có path khớp danh sách động từ đóng `(?i)(get|create|update|delete|list|fetch|save|send|check|do)` (ví dụ `.POST("/api/v1/createOrder"`, `.GET("/api/v1/getUser"`) hoặc danh từ số ít (`.GET("/api/v1/order/:id"`). Handler tạo mới (POST) kết thúc bằng `c.JSON(http.StatusOK, ...)` thay vì `http.StatusCreated`. Handler xóa gọi `c.JSON(http.StatusOK, ...)` hoặc `c.Status(http.StatusOK)` thay vì `http.StatusNoContent`. Handler validate thất bại trả `http.StatusBadRequest` thay vì `http.StatusUnprocessableEntity`.
+**Dấu hiệu vi phạm:** Đăng ký route trong `router.go`/`routes.go` có **một segment nguyên vẹn** của path khớp danh sách động từ đóng `^(?i)(get|create|update|delete|list|fetch|save|send|check|do)([A-Z_-]\w*)?$` (ví dụ `.POST("/api/v1/createOrder"`, `.GET("/api/v1/getUser"`) hoặc danh từ số ít (`.GET("/api/v1/order/:id"`). Phải khớp theo segment chứ không phải chuỗi con: `/documents`, `/checklists`, `/price-lists` là hợp lệ dù chứa `do`, `check`, `list`. Handler tạo mới (POST) kết thúc bằng `c.JSON(http.StatusOK, ...)` thay vì `http.StatusCreated`. Handler xóa gọi `c.JSON(http.StatusOK, ...)` hoặc `c.Status(http.StatusOK)` thay vì `http.StatusNoContent`. Handler validate thất bại trả `http.StatusBadRequest` thay vì `http.StatusUnprocessableEntity`.
 **Cách sửa:** Đổi path về dạng `/<danh-từ-số-nhiều>/:id`; nếu là hành động không map được vào CRUD, dời sang `/orders/:id/actions/<verb>`. Đổi status code: tạo mới dùng `c.JSON(http.StatusCreated, ...)`, xóa dùng `c.Status(http.StatusNoContent)`, lỗi validate dùng `c.JSON(http.StatusUnprocessableEntity, ...)`.
 **Ngoại lệ:** Endpoint hành động không map được vào CRUD dùng dạng `POST /orders/{id}/actions/approve`, và phải được ghi vào `04-conventions/C-API-http.md`. Ba endpoint hạ tầng nêu ở R-13 — `/health`, `/ready`, `/metrics` — nằm ngoài phạm vi rule này. Nhóm `/api/v1/auth/*` được dùng path không theo dạng tài nguyên (ví dụ `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/logout`).
 **Principles:** —
@@ -187,6 +187,8 @@ Chi tiết và ví dụ code: [rules/R-09-index-by-design.md](rules/R-09-index-b
 **Dấu hiệu vi phạm:** Trong file `*_service.go`, hàm khớp `^func \(s \*\w+Service\) [A-Z]` mà tên không mang tiền tố `Internal` và dòng lệnh đầu tiên của thân hàm không khớp `^\tif err := s\.authz\.(Can|Require)\(`. File `*_handler.go` chứa so sánh role/permission trực tiếp (`if user.Role == "admin"`, `if !user.HasPermission(...)`).
 **Cách sửa:** Thêm lời gọi kiểm quyền làm câu lệnh đầu tiên của method service (`if err := s.authz.Can(ctx, actor, PermissionX); err != nil { return err }`); chuyển mọi so sánh role/permission ra khỏi handler xuống service.
 **Ngoại lệ:** Method public dùng nội bộ giữa các service phải mang tiền tố `Internal`, phải có tên trong trường `internal_methods` của `module.yaml`, và cấm xuất hiện trong bất kỳ interface nào thuộc `modules/*/api/`. Method `Internal*` vẫn phải nhận actor làm tham số và vẫn phải tự ghi bản ghi audit theo R-17.
+
+Ngoại lệ thứ hai: method phục vụ luồng cấp token — `Login`, `Refresh`, `Logout` của `AuthService` — chạy khi chưa có actor nên không kiểm quyền được. Đây là danh sách đóng, thêm method vào đó phải sửa chính rule này. Mọi method khác của `AuthService` vẫn phải kiểm quyền.
 **Principles:** —
 **Decisions:** ADR-0009
 
