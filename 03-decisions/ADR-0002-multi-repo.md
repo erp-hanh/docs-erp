@@ -1,4 +1,4 @@
-# ADR-0002: Bốn repo git độc lập — docs-erp, backend, frontend, infra
+# ADR-0002: Bốn repo git độc lập — docs-erp, backend-erp, frontend-erp, infra-erp
 
 **Status:** Accepted (2026-08-10)
 
@@ -15,8 +15,8 @@ Ba ràng buộc có thật lúc đó:
   từng hệ sinh thái: `go build`, `npm`, không có lớp điều phối riêng ở giữa.
 - Ba stack không cùng nhịp phát hành: backend deploy theo tuần, frontend có thể vài
   lần một ngày, còn hạ tầng thì thỉnh thoảng và luôn cần người duyệt.
-- Quyền truy cập khác nhau. Repo `infra` chứa cấu trúc môi trường sản xuất và tên các
-  secret; nó không nên mở cho cùng một nhóm người như repo frontend.
+- Quyền truy cập khác nhau. Repo `infra-erp` chứa cấu trúc môi trường sản xuất và tên
+  các secret; nó không nên mở cho cùng một nhóm người như repo `frontend-erp`.
 
 Và ràng buộc thứ tư, riêng cho tài liệu: bộ Rule trong `docs-erp` ràng buộc **cả ba**
 repo code, không phải chỉ backend. R-19 nói về frontend, R-07 nói về migration, quy
@@ -24,8 +24,9 @@ repo code, không phải chỉ backend. R-19 nói về frontend, R-07 nói về 
 
 ## Decision
 
-Bốn repo git độc lập — `docs-erp`, `backend`, `frontend`, `infra` — mỗi repo một vòng
-đời, một quy trình review, một bộ quyền riêng.
+Bốn repo git độc lập — `docs-erp`, `backend-erp`, `frontend-erp`, `infra-erp` — mỗi
+repo một vòng đời, một quy trình review, một bộ quyền riêng. Hậu tố `-erp` để mỗi repo
+tự mô tả được khi nó bị clone ra đứng một mình.
 
 `docs-erp` là repo tài liệu duy nhất ở tầng dùng chung; tài liệu của từng module nằm
 trong repo code của module đó theo [ADR-0005](ADR-0005-documentation-follows-code.md).
@@ -39,22 +40,24 @@ loạn, và một cách phân vùng pipeline theo thư mục. Ba thứ đó cầ
 thường xuyên, mà đội hiện tại không có người đó. Không có chúng thì monorepo chỉ còn
 lại phần dở: mọi PR chạy mọi thứ, và quyền truy cập là tất-cả-hoặc-không.
 
-**Hai repo: một cho code, một cho docs** — loại. Nó gộp backend, frontend và infra vào
-chung một chỗ, tức là gộp đúng ba thứ khác nhau nhất về nhịp phát hành và về quyền.
+**Hai repo: một cho code, một cho docs** — loại. Nó gộp `backend-erp`, `frontend-erp`
+và `infra-erp` vào chung một chỗ, tức là gộp đúng ba thứ khác nhau nhất về nhịp phát
+hành và về quyền.
 
-**Đặt `docs-erp` bên trong repo backend** — loại, và đây là phương án được tranh luận
-nhiều nhất vì backend là nơi phần lớn Rule được kiểm. Loại vì frontend và infra cũng
-chịu ràng buộc của **cùng một bộ rule**; để docs trong backend là đặt một repo lên
-trên hai repo kia. Hệ quả rất cụ thể: một thay đổi Rule ảnh hưởng frontend sẽ phải mở
-PR ở repo backend, và người review sẽ là người backend. Tài liệu dùng chung phải đứng
-ngang hàng với mọi repo dùng nó, không đứng bên trong một repo trong số đó.
+**Đặt `docs-erp` bên trong repo `backend-erp`** — loại, và đây là phương án được tranh
+luận nhiều nhất vì backend là nơi phần lớn Rule được kiểm. Loại vì `frontend-erp` và
+`infra-erp` cũng chịu ràng buộc của **cùng một bộ rule**; để docs trong `backend-erp`
+là đặt một repo lên trên hai repo kia. Hệ quả rất cụ thể: một thay đổi Rule ảnh hưởng
+frontend sẽ phải mở PR ở repo `backend-erp`, và người review sẽ là người backend. Tài
+liệu dùng chung phải đứng ngang hàng với mọi repo dùng nó, không đứng bên trong một
+repo trong số đó.
 
 ## Consequences
 
 **Được:**
 
 - Mỗi repo có vòng đời, CI và quyền riêng. Sửa một dòng trong `docs-erp` không kích
-  hoạt pipeline của backend.
+  hoạt pipeline của `backend-erp`.
 - `docs-erp` đứng ngang hàng với cả ba repo code, nên không repo nào là "chủ" của bộ
   Rule. Điều này giữ được thẩm quyền của tầng Rule khi có tranh chấp.
 - Lịch sử git của mỗi repo đọc được: log của `docs-erp` là lịch sử quyết định kiến

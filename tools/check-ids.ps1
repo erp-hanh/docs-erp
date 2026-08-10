@@ -55,7 +55,7 @@ $idPattern = '(R-\d{2}|P-[A-Z]+|ADR-\d{4}|C-[A-Z]+-\d{2}|CL-[A-Z]+-\d{2})'
 $refPattern = "\*{0,2}($fields)\*{0,2}\s*:\s*([^\r\n)]*)"
 
 Get-ChildItem -Path $root -Filter '*.md' -Recurse |
-    Where-Object { $_.FullName -notmatch '\\05-templates\\' } |
+    Where-Object { $_.FullName -notmatch '\\(05-templates|99-meta\\specs)\\' } |
     ForEach-Object {
         $file = $_.FullName.Substring($root.Length + 1)
         Select-String -Path $_.FullName -Pattern $refPattern -AllMatches |
@@ -161,7 +161,7 @@ Get-ChildItem -Path (Join-Path $root '02-principles') -Filter 'P-*.md' -ErrorAct
 
 # ---------- 3c. Link markdown nội bộ không được chết ----------
 Get-ChildItem -Path $root -Filter '*.md' -Recurse |
-    Where-Object { $_.FullName -notmatch '\\05-templates\\' } |
+    Where-Object { $_.FullName -notmatch '\\(05-templates|99-meta\\specs)\\' } |
     ForEach-Object {
         $file = $_.FullName.Substring($root.Length + 1)
         $dir  = $_.DirectoryName

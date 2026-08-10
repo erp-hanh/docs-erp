@@ -38,7 +38,7 @@ Khuôn của bốn file nằm ở `05-templates/module-docs/`.
 
 **Gom hết tài liệu module vào `docs-erp`** — loại. Nó cho một chỗ đọc duy nhất, nhưng
 trả bằng đúng nguyên nhân đã nhận diện ở mục Context: docs xa code thì không ai cập
-nhật. Cụ thể, sửa schema là một PR ở repo `backend`, còn cập nhật `Database.md` là một
+nhật. Cụ thể, sửa schema là một PR ở repo `backend-erp`, còn cập nhật `Database.md` là một
 PR ở repo khác — và PR thứ hai không bao giờ được viết, vì không có gì trong lần review
 thứ nhất cho thấy nó còn thiếu.
 

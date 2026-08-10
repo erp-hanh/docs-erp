@@ -1,6 +1,6 @@
 # CLAUDE.md — `<ten-repo>`
 
-> **Khung `CLAUDE.md` cho ba repo code: `backend`, `frontend`, `infra`.**
+> **Khung `CLAUDE.md` cho ba repo code: `backend-erp`, `frontend-erp`, `infra-erp`.**
 > Copy file này vào gốc repo, đổi tên thành `CLAUDE.md`, điền phần `<...>` của riêng
 > repo đó, rồi xóa mọi dòng trích dẫn `>` như dòng này.
 

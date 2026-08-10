@@ -26,7 +26,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
 | ADR-0001 | Modular Monolith thay vì microservices | Accepted (2026-08-10) | R-01, R-02, R-03, R-04 | [ADR-0001-modular-monolith.md](ADR-0001-modular-monolith.md) |
-| ADR-0002 | Bốn repo git độc lập: docs-erp / backend / frontend / infra | Accepted (2026-08-10) | — | [ADR-0002-multi-repo.md](ADR-0002-multi-repo.md) |
+| ADR-0002 | Bốn repo git độc lập: docs-erp / backend-erp / frontend-erp / infra-erp | Accepted (2026-08-10) | — | [ADR-0002-multi-repo.md](ADR-0002-multi-repo.md) |
 | ADR-0003 | Multi-tenant-ready bằng shared database và cột `company_id` | Accepted (2026-08-10) | R-06 | [ADR-0003-multi-tenant-ready.md](ADR-0003-multi-tenant-ready.md) |
 | ADR-0004 | Không tích hợp IoT/PLC — Machine và Kalmar là module CRUD | Accepted (2026-08-10) | — | [ADR-0004-khong-tich-hop-iot-plc.md](ADR-0004-khong-tich-hop-iot-plc.md) |
 | ADR-0005 | Documentation follows Code — tài liệu module ở repo code | Accepted (2026-08-10) | — | [ADR-0005-documentation-follows-code.md](ADR-0005-documentation-follows-code.md) |
