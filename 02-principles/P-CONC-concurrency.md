@@ -217,6 +217,9 @@ func (s *DocumentService) Issue(ctx context.Context, actor auth.Actor, in IssueI
 	if err != nil {
 		return nil, err
 	}
+	if err := s.auditRepo.Record(ctx, tx, s.issueEntry(ctx, actor, doc.ID)); err != nil {
+		return nil, err
+	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, err

@@ -211,12 +211,15 @@ atomic qua hai module. Không có transaction phân tán ở đây, và cũng kh
 
 Ba đường đi, chọn theo *nghiệp vụ*, không theo cái nào dễ code hơn:
 
-- **Inventory có tên trong `allowed_deps` của Order** → gọi đồng bộ. Nhưng chú ý: gọi
-  service của module khác nghĩa là module đó tự mở transaction của nó, nên bạn có hai
-  transaction chứ không phải một. Muốn thật sự atomic thì lời gọi phải là method
-  `Internal*` nhận chính `DBTX` đang mở — và điều đó chỉ hợp lệ khi hai module dùng
-  chung một database, có tên trong `allowed_deps`, và method đó được khai báo trong
-  `internal_methods` của `module.yaml` (R-15).
+- **Inventory có tên trong `allowed_deps` của Order** → gọi đồng bộ được. Nhưng chú ý:
+  gọi service của module khác nghĩa là module đó tự mở transaction của nó, nên bạn có
+  **hai** transaction chứ không phải một, và "atomic" là ảo tưởng. Muốn thật sự atomic
+  thì lời gọi phải nhận chính `DBTX` đang mở — và ở đây bộ Rule hiện tại chưa có đường
+  đi hợp lệ nào: R-01 nói module khác chỉ được import `modules/<A>/api/`, còn ngoại lệ
+  của R-15 nói method `Internal*` cấm xuất hiện trong bất kỳ interface nào thuộc
+  `api/`. Hai vế đó cộng lại thì một lời gọi liên module chia sẻ `DBTX` không có chỗ
+  đứng. **Gặp ca này thì dừng lại và hỏi người** theo `00-START-HERE.md`, đừng tự chọn
+  bên — cần một ADR mở đường tường minh trước khi viết dòng code đầu tiên.
 - **Không có tên trong `allowed_deps`** → đây không còn là chuyện chọn transaction hay
   event. Nghiệp vụ đang đòi một ràng buộc atomic mà ranh giới module hiện tại không đỡ
   được. Sửa bằng ADR đổi ranh giới, **không** sửa bằng cách "tạm dùng event cho xong"

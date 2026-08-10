@@ -223,7 +223,14 @@ kết quả đó phải được ghi trong cùng transaction với hiệu ứng 
 có cửa sổ mà khóa đã tồn tại còn kết quả thì chưa, và lần retry rơi vào đó sẽ nhận
 được một response rỗng.
 
-Ba câu hỏi phải trả lời khi thiết kế bảng này, và trả lời trong ADR chứ không trong
-code review: giữ khóa bao lâu (24 giờ là mốc khởi đầu hợp lý), dọn bằng cách nào (job
-xóa theo `created_at`), và xử lý thế nào khi cùng khóa nhưng **payload khác** — đó là
-lỗi phía client, trả `422` với mã riêng chứ không âm thầm trả lại kết quả cũ.
+Bốn câu hỏi phải trả lời khi thiết kế bảng này, và trả lời trong ADR chứ không trong
+code review: giữ khóa bao lâu (24 giờ là mốc khởi đầu hợp lý), dọn bằng cách nào, xử lý
+thế nào khi cùng khóa nhưng **payload khác** (đó là lỗi phía client — trả `422` với mã
+riêng chứ không âm thầm trả lại kết quả cũ), và **`idempotency_keys` thuộc nhóm bảng
+nào**. Câu cuối không phải chi tiết vụn: theo phân loại hiện hành, bảng không có tên
+trong ba danh sách của `03-decisions/ADR-0003-multi-tenant-ready.md` mặc định là bảng
+nghiệp vụ, nên nó phải có `updated_by`, `deleted_at`, phải sinh bản ghi audit cho mỗi
+lần claim (R-17), và **không được hard delete nếu không có ADR** (R-18) — tức là job dọn
+theo hạn giữ liệu sẽ vi phạm. Bảng này chỉ ghi thêm rồi hết hạn thì bị xóa, đúng hình
+dạng của `append_only_tables`; đưa nó vào danh sách đó là việc của một ADR, phải làm
+**trước** khi viết migration.

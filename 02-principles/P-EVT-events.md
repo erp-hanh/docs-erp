@@ -169,8 +169,10 @@ là chỗ phải hỏi, và câu trả lời **không nằm trong code**:
 
 - Nghiệp vụ nói *"duyệt xong mà không đủ hàng thì không được duyệt"* → đây là **điều
   kiện**, phải đồng bộ. Kéo theo: Inventory phải có tên trong `allowed_deps` của Order
-  (R-05), và muốn thật sự atomic thì lời gọi phải là method `Internal*` nhận chính
-  `DBTX` đang mở ([P-TXN-transaction-boundary.md](P-TXN-transaction-boundary.md)).
+  (R-05); và nếu còn đòi atomic thật sự thì phải chia sẻ `DBTX` giữa hai module, thứ mà
+  bộ Rule hiện tại chưa mở đường —
+  [P-TXN-transaction-boundary.md](P-TXN-transaction-boundary.md) ca khó số 3 nói rõ chỗ
+  vướng và kết luận là dừng lại hỏi người.
 - Nghiệp vụ nói *"duyệt trước, thiếu hàng thì mua bổ sung"* → **phụ**, dùng event, và
   bài toán tan biến.
 
