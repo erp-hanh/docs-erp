@@ -127,7 +127,17 @@ naming_exempt:
     reason: ket thuc bang x, khong khop regex cua R-08
 ```
 
-**Nghĩa của trường `adr`:** ADR **biện minh cho việc bảng này được miễn trừ**, không phải ADR lập ra nhóm. `outbox` trỏ ADR-0006 vì chính ADR đó quyết định nó là bảng chỉ ghi thêm; `audit_logs` trỏ ADR-0007 vì lý do tương tự. Bảng nào không có ADR riêng biện minh thì trỏ ADR-0003 — nơi lập các nhóm. Định nghĩa này phải viết ngay trong `C-DB` cạnh registry, nếu không mỗi người điền một kiểu và trường `adr` mất tác dụng.
+**Nghĩa của trường `adr`, viết ngay trong `C-DB` cạnh registry:**
+
+> `adr` là ADR giải thích **lý do kiến trúc khiến entry được xếp vào nhóm hiện tại**. Nó **không** có nghĩa "ADR gần nhất từng nhắc tới bảng này".
+>
+> **Invariant:** `adr` phải trỏ tới một ADR ở trạng thái `Accepted` và ADR đó phải **biện minh tường minh** cho phân loại hoặc miễn trừ này.
+
+Ví dụ đúng: `outbox` trỏ ADR-0006 vì chính ADR đó quyết định nó là bảng chỉ ghi thêm. `idempotency_keys` trỏ ADR-0003 vì ADR-0003 là nơi xếp nó vào `append_only_tables` — không phải vì ADR-0003 có nhắc tới multi-tenancy.
+
+`check-ids.ps1` kiểm được vế "ADR tồn tại và ở trạng thái Accepted". Vế "biện minh tường minh" thì không — đó là việc của reviewer, và `CL-PR` cần một dòng cho nó.
+
+**Cảnh báo một lỗi đã suýt lọt hai lần:** `outbox` thuộc `append_only_tables`, **không** thuộc `system_tables`. Xếp nhầm thì `outbox` mất `company_id` (vì `system_tables` miễn cột đó), R-06 sẽ không đòi nó, và bug chỉ lộ ra khi có khách hàng thứ hai — relay không lọc được theo tenant.
 
 Phân vai: **ADR giữ *why*, `C-DB` giữ *current policy*.** Thêm một bảng = viết ADR mới + thêm một dòng registry. Không ai sửa ADR cũ, và cũng không ai âm thầm mở rộng miễn trừ bằng một PR Convention.
 
@@ -274,7 +284,36 @@ Checker phải tự loại trừ `arch/`, nếu không nó báo chính nó vi ph
 | R-18 Soft Delete | SQL + SCAN | **FULL** ⁽¹⁾ | — (nhờ `C-GO-07`) |
 | R-19 Business Rules in UI | — | **N/A** | Thuộc `frontend-erp` |
 
-⁽¹⁾ Bốn rule này FULL **chỉ khi** `C-GO-07` được enforce trước — checker `C-GO-07` phải chạy và xanh thì kết quả của chúng mới đáng tin. Nếu `C-GO-07` bị tắt, cả bốn tụt về PARTIAL. Ghi rõ ràng buộc này trong `arch/README.md`.
+⁽¹⁾ Bốn rule này FULL **chỉ khi** `C-GO-07` được enforce trước — checker `C-GO-07` phải chạy và xanh thì kết quả của chúng mới đáng tin.
+
+### Dependency là dữ liệu, không phải prose
+
+Ghi *"R-02 FULL có điều kiện C-GO-07"* thành câu văn thì sáu tháng nữa bảng và code sẽ lệch nhau. Dependency khai thành dữ liệu ngay trong checker:
+
+```go
+type Level int // FULL | PARTIAL | NA
+
+type Rule struct {
+    ID           string
+    Level        Level
+    DependsOn    []string // checker/convention phải xanh thì Level mới đáng tin
+    Unverifiable string   // vế không kiểm được, rỗng nếu FULL
+    Check        CheckFunc
+}
+
+var rules = []Rule{
+    {ID: "R-02", Level: FULL, DependsOn: []string{"C-GO-07"}, Check: checkR02},
+    {ID: "R-17", Level: PARTIAL, Unverifiable: "audit bọc qua helper hoặc transaction wrapper"},
+}
+```
+
+Ba hệ quả bắt buộc:
+
+1. **Invariant tự động hạ mức.** Nếu một prerequisite không được enforce, mức thực tế của mọi rule phụ thuộc nó **tự động** tụt xuống PARTIAL. Đây là code, không phải quy ước — engine đọc `DependsOn` và tính lại mức trước khi báo cáo.
+
+2. **`arch/README.md` sinh bằng `go generate`** từ chính `rules`, không viết tay. Bảng viết tay lệch khỏi code ngay lần sửa checker thứ hai.
+
+3. **Self-test chứng minh dependency, không chỉ khai báo nó.** `TestDependencyDowngrade` dựng fixture có SQL nối chuỗi (tức `C-GO-07` fail), chạy checker R-02 trên đó, rồi assert R-02 trả về **"không kết luận được"** chứ không phải PASS. Không có test này thì dòng `DependsOn` cũng chỉ là prose, chỉ khác chỗ nó nằm trong file `.go`.
 
 ### R-02 — luồng kiểm cụ thể
 
@@ -359,15 +398,42 @@ Seed công ty đầu tiên dùng `SYSTEM_ACTOR_ID`. Đây là bootstrap, đượ
 
 ## 8. Test harness
 
-### Phương án: mặc định testcontainers, override bằng `TEST_DATABASE_URL`
+### Nguyên tắc nền
+
+> **Test infrastructure owns infrastructure lifecycle. Test packages consume infrastructure; they do not create or destroy it.**
+
+Câu này khóa **ai được sở hữu vòng đời**, chứ không khóa một con số như "một container mỗi test run". Nhờ vậy nó vẫn đúng khi sau này đổi testcontainers sang thứ khác, và nó chặn được cả những cách lách chưa nghĩ ra.
+
+Hệ quả trực tiếp: không test package nào được dựng hay dọn hạ tầng. Chúng chỉ đọc DSN và tự lo cách ly ở mức database hoặc transaction.
+
+### Hai đường, và vì sao phải tách vai
+
+`TEST_DATABASE_URL` dễ bị gánh hai vai khác nhau — *override do người chọn* và *cơ chế harness truyền DSN xuống process con*. Nhập hai vai vào một biến sinh ra mâu thuẫn: CI không set biến để exercise đường mặc định, nhưng package cũng không được tự dựng, nên không ai dựng cả.
+
+Tách rõ:
 
 ```
-testutil.Postgres(t)
-   ├── TEST_DATABASE_URL có giá trị? → kết nối tới đó
-   └── không?                        → dựng testcontainers
+make test                       →  harness dựng đúng 1 container
+                                   → harness export TEST_DATABASE_URL
+                                   → go test ./...   (package chỉ ĐỌC biến)
+                                   → harness dọn container
+
+TEST_DATABASE_URL=... go test   →  dùng Postgres có sẵn, harness không chạy
 ```
 
-Quy tắc quyết định chuyện nó lành hay mục: **đường được CI chạy mỗi PR phải là đường mặc định.** CI chạy testcontainers; `TEST_DATABASE_URL` chỉ là lối tắt cho phát triển. Nếu làm ngược lại, đường testcontainers sẽ hỏng âm thầm và không ai biết cho tới lúc cần.
+CI gọi `make test` và **không** tự set `TEST_DATABASE_URL`. Đường mặc định — harness tự dựng — là đường được chạy mỗi PR, nên nó không mục. Việc "mỗi package một container" không xảy ra được về mặt cấu trúc, không phải nhờ kỷ luật.
+
+Vòng đời container nằm ở `internal/testharness`, gọi từ `Makefile`. Package test chỉ có `testutil.Connect(t)` đọc biến và trả `*sqlx.DB`; nếu biến rỗng thì fail ngay với thông báo *"chạy `make test`, hoặc set `TEST_DATABASE_URL`"* — không im lặng tự xoay xở.
+
+### Ba hard rule enforce nguyên tắc trên
+
+| Hard rule | Cách enforce | Mức |
+|---|---|---|
+| Không package nào gọi `testcontainers.GenericContainer()` | Checker AST: cấm import `testcontainers` ngoài `internal/testharness` | FULL |
+| Không package nào dựng hạ tầng bằng đường vòng | Checker AST: cấm `exec.Command` với đối số chứa `"docker"` trong `*_test.go` | FULL |
+| CI không set `TEST_DATABASE_URL` | Checker đọc `.github/workflows/ci.yml`: job `test` không được có biến đó trong `env` | FULL |
+
+Hai checker đầu chặn ngay lúc review, không đợi chạy — mạnh hơn và rẻ hơn một assertion runtime đếm số container. Chúng cũng nằm trong `arch/` nên chịu đúng quy tắc fixture hai chiều như mọi checker khác.
 
 ### Vì sao không dùng `Reuse: true`
 
@@ -423,7 +489,10 @@ Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"*
 - [ ] `go test ./arch/...` chạy xanh **khi Docker đã tắt**
 - [ ] **Mỗi checker đã implement có ≥1 fixture MUST-FAIL và ≥1 fixture MUST-PASS.** Không có fixture thì checker coi như chưa implement. Áp cho 18 rule backend; R-19 là N/A nên không có checker và không cần fixture
 - [ ] Không rule nào đánh dấu FULL chỉ vì chạy xanh trên tập rỗng
-- [ ] `arch/README.md` có bảng 19 rule với mức FULL/PARTIAL/N-A, vế nào không kiểm được, và ràng buộc `C-GO-07`
+- [ ] `arch/README.md` **sinh bằng `go generate`** từ `rules`, không viết tay; có cột `Enforce` và cột `Dependency`
+- [ ] `TestDependencyDowngrade` chứng minh R-02 tụt xuống "không kết luận được" khi `C-GO-07` fail
+- [ ] Ba checker của test infrastructure xanh: cấm `testcontainers` ngoài `internal/testharness`, cấm `exec.Command` với `"docker"` trong `*_test.go`, và job `test` trong CI không có `TEST_DATABASE_URL` trong `env`
+- [ ] Không package test nào dựng hay dọn hạ tầng — kiểm bằng chính ba checker trên
 - [ ] CI ba job chạy trên PR; job `arch` không cần Docker
 - [ ] `make clean-test-db` dọn tài nguyên test
 
@@ -435,8 +504,10 @@ Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"*
 |---|---|
 | Checker xanh giả vì chạy trên tập rỗng | Fixture hai chiều bắt buộc; không fixture thì coi như chưa implement |
 | Checker bắt oan code hợp lệ | Fixture MUST-PASS bắt buộc — chính là lỗi đã gặp ở R-10 |
-| Bốn rule FULL phụ thuộc `C-GO-07` bị tắt lặng lẽ | Ghi ràng buộc trong `arch/README.md`; checker `C-GO-07` chạy trước trong cùng job |
-| Đường testcontainers mục vì dev toàn dùng `TEST_DATABASE_URL` | CI chạy đường mặc định mỗi PR |
+| Bốn rule FULL phụ thuộc `C-GO-07` bị tắt lặng lẽ | `DependsOn` là dữ liệu; engine tự hạ mức; `TestDependencyDowngrade` chứng minh cơ chế hạ mức hoạt động |
+| Đường testcontainers mục vì dev toàn dùng `TEST_DATABASE_URL` | CI gọi `make test` và không set biến, nên đường mặc định chạy mỗi PR |
+| Một package test tự dựng container, quay lại "mỗi package một container" | Nguyên tắc *test infrastructure owns lifecycle* + hai checker AST chặn tĩnh |
+| `arch/README.md` lệch khỏi code | Sinh bằng `go generate`, không viết tay |
 | `SYSTEM_ACTOR_ID` lệch giữa bốn nơi | Checker kiểm khớp với registry |
 | Registry ở Convention bị mở rộng lặng lẽ | Trường `adr` bắt buộc; `check-ids.ps1` kiểm ADR tồn tại |
 | Engine `arch/` phình thành framework | Giới hạn bốn việc: nạp AST, import graph, quét chuỗi, đọc YAML |
