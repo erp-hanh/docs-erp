@@ -27,7 +27,7 @@ Chi tiết và ví dụ code: [rules/R-01-module-boundary.md](rules/R-01-module-
 **Mệnh đề bắt buộc:** Repository của module A chỉ được query bảng nằm trong danh sách `tables` khai báo ở `module.yaml` của A. Cấm JOIN sang bảng thuộc module khác.
 **Dấu hiệu vi phạm:** Chuỗi SQL trong `modules/A/**/repository` có tên bảng không nằm trong `tables` của `modules/A/module.yaml`.
 **Cách sửa:** Gọi service của module sở hữu bảng đó qua `api/` của nó. Nếu cần dữ liệu để lọc hoặc hiển thị, nhận qua tham số hoặc qua event.
-**Ngoại lệ:** Bảng trong `system_tables` và bảng trong `reference_tables` (hai danh sách ở `03-decisions/ADR-0003-multi-tenant-ready.md`) được đọc bởi mọi module.
+**Ngoại lệ:** Bảng trong `system_tables`, bảng trong `tenant_root`, và bảng trong `reference_tables` được đọc bởi mọi module. `tenant_root` chỉ chứa `companies`, chốt ở blockquote "Năm nhóm bảng" dưới R-06; hai danh sách còn lại ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
 **Principles:** —
 **Decisions:** ADR-0001
 
@@ -73,18 +73,19 @@ Chi tiết và ví dụ code: [rules/R-05-events-for-decoupling.md](rules/R-05-e
 
 ### R-06 — Tenant Column Everywhere
 
-**Mệnh đề bắt buộc:** Mọi bảng **trừ** `system_tables` và `reference_tables` có `company_id UUID NOT NULL` — bao gồm cả `append_only_tables`; mọi query trong repository có `company_id = $n` trong mệnh đề WHERE. Giá trị truyền vào `company_id` phải lấy từ `actor.CompanyID` — actor mà service nhận qua tham số thứ hai theo R-15 — cấm nhận từ request của client. Handler là nơi duy nhất được đọc actor ra khỏi `ctx` (`auth.FromContext(ctx)`) rồi truyền xuống service. Bảng được miễn phải liệt kê tường minh trong danh sách `system_tables` hoặc `reference_tables` ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
-**Dấu hiệu vi phạm:** Migration có `CREATE TABLE <tên>` nhưng không có dòng `company_id UUID NOT NULL`, và `<tên>` không có trong `system_tables` lẫn `reference_tables`. File `*_repository.go` có câu SQL `SELECT`/`UPDATE`/`DELETE` trên bảng nghiệp vụ nhưng không chứa chuỗi `company_id = $` trong mệnh đề `WHERE`. Câu SQL `SELECT` trên bảng nghiệp vụ trong `*_repository.go` không có mệnh đề `WHERE` nào. Struct DTO request có field gắn tag `json:"company_id"` hoặc `form:"company_id"`. Chuỗi `c.Param("company_id")` hoặc `c.Query("company_id")` xuất hiện trong file `*_handler.go`.
+**Mệnh đề bắt buộc:** Mọi bảng **trừ** `system_tables`, `tenant_root` và `reference_tables` có `company_id UUID NOT NULL` — bao gồm cả `append_only_tables`; mọi query trong repository có `company_id = $n` trong mệnh đề WHERE. Giá trị truyền vào `company_id` phải lấy từ `actor.CompanyID` — actor mà service nhận qua tham số thứ hai theo R-15 — cấm nhận từ request của client. Handler là nơi duy nhất được đọc actor ra khỏi `ctx` (`auth.FromContext(ctx)`) rồi truyền xuống service. Bảng được miễn phải liệt kê tường minh trong một trong ba nhóm đó: `tenant_root` chỉ chứa `companies` và được chốt ở blockquote dưới rule này; `system_tables` và `reference_tables` liệt kê ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
+**Dấu hiệu vi phạm:** Migration có `CREATE TABLE <tên>` nhưng không có dòng `company_id UUID NOT NULL`, và `<tên>` không có trong `system_tables`, `tenant_root` lẫn `reference_tables`. File `*_repository.go` có câu SQL `SELECT`/`UPDATE`/`DELETE` trên bảng nghiệp vụ nhưng không chứa chuỗi `company_id = $` trong mệnh đề `WHERE`. Câu SQL `SELECT` trên bảng nghiệp vụ trong `*_repository.go` không có mệnh đề `WHERE` nào. Struct DTO request có field gắn tag `json:"company_id"` hoặc `form:"company_id"`. Chuỗi `c.Param("company_id")` hoặc `c.Query("company_id")` xuất hiện trong file `*_handler.go`.
 **Cách sửa:** Thêm cột `company_id UUID NOT NULL REFERENCES companies(id)` vào migration; bổ sung điều kiện `company_id = $n` vào `WHERE` của câu SQL đang thiếu trong repository; xóa field `company_id` khỏi DTO request, để handler lấy actor từ `ctx` (`auth.FromContext(ctx)`) và truyền vào service làm tham số thứ hai, rồi service dùng `actor.CompanyID` truyền xuống repository.
-**Ngoại lệ:** Bảng trong `system_tables` và bảng trong `reference_tables` — cả hai nhóm đều không thuộc tenant nào nên không có `company_id`. Hai danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
+**Ngoại lệ:** Bảng trong `system_tables`, bảng trong `tenant_root` và bảng trong `reference_tables` đều không có `company_id`. `system_tables` và `reference_tables` không thuộc tenant nào; `tenant_root` thì **là** tenant, nên nó không thể mang khóa trỏ tới chính khái niệm nó định nghĩa. `tenant_root` chỉ chứa `companies`; hai danh sách còn lại nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
 **Principles:** —
 **Decisions:** ADR-0003
 
-> **Bốn nhóm bảng — dùng chung cho R-02, R-06, R-08, R-09, R-17, R-18:**
+> **Năm nhóm bảng — dùng chung cho R-02, R-06, R-08, R-09, R-17, R-18:**
 >
 > | Nhóm | `company_id` | Cột thời gian | Cột audit | Sinh bản ghi audit khi ghi | Soft delete | Mọi module đọc được |
 > |---|---|---|---|---|---|---|
 > | `system_tables` | Không | Không | Không | Không | Không | Có |
+> | `tenant_root` | Không | Có đủ | Có đủ | Có | Có | Có |
 > | `reference_tables` | Không | Có đủ | Có đủ | Có | Có | Có |
 > | `append_only_tables` | Có | Chỉ `created_at` | Chỉ `created_by` | Không | Không — hard delete theo lịch giữ liệu | Không |
 > | Bảng nghiệp vụ | Có | Có đủ | Có đủ | Có | Có | Không |
@@ -95,7 +96,13 @@ Chi tiết và ví dụ code: [rules/R-05-events-for-decoupling.md](rules/R-05-e
 > thứ đó đều không áp lên nó.
 >
 > - **`system_tables`** — bảng hạ tầng, không thuộc tenant nào. Khởi đầu gồm
->   `schema_migrations` và `companies`.
+>   `schema_migrations`.
+> - **`tenant_root`** — bảng gốc của cơ chế multi-tenant. Chỉ chứa `companies`.
+>   Không có `company_id` vì nó **là** tenant, không thuộc tenant nào. Ngoài điểm đó,
+>   nó chịu mọi thứ như bảng nghiệp vụ: đủ ba cột thời gian, đủ cột audit, vẫn sinh
+>   bản ghi audit, vẫn soft delete. Nó không nằm trong `system_tables` vì nhóm đó
+>   miễn cả audit lẫn soft delete — tạo hay sửa một công ty mà không để lại dấu vết
+>   là sai về nghiệp vụ.
 > - **`reference_tables`** — danh mục dùng chung toàn hệ thống, không thuộc tenant
 >   nào. Khởi đầu gồm `currencies`, `units`, `provinces`. Giống bảng nghiệp vụ ở mọi
 >   điểm **trừ hai**: không có `company_id`, và mọi module được đọc. Người ta vẫn sửa
@@ -103,16 +110,22 @@ Chi tiết và ví dụ code: [rules/R-05-events-for-decoupling.md](rules/R-05-e
 >   nhóm đó miễn cả audit lẫn soft delete.
 > - **`append_only_tables`** — bảng chỉ ghi thêm, không bao giờ sửa. Khởi đầu gồm
 >   `outbox` và `audit_logs`.
-> - **Bảng nghiệp vụ** — mọi bảng còn lại, tức là bảng không có tên trong ba danh
+> - **Bảng nghiệp vụ** — mọi bảng còn lại, tức là bảng không có tên trong bốn danh
 >   sách trên. Không được miễn thứ gì.
 >
-> **Nguồn sự thật của cả ba danh sách `system_tables`, `reference_tables` và
+> **Nguồn sự thật của ba danh sách `system_tables`, `reference_tables` và
 > `append_only_tables` là `03-decisions/ADR-0003-multi-tenant-ready.md`**, không phải
 > `04-conventions/C-DB-database.md` — `C-DB` chỉ được sao chép lại danh sách, không
 > phải nơi quyết định. Thêm một tên vào bất kỳ danh sách nào trong ba danh sách đó
-> bắt buộc viết ADR mới. Lý do: ba danh sách này là công tắc miễn trừ cùng lúc
+> bắt buộc viết ADR mới. Lý do: các danh sách này là công tắc miễn trừ cùng lúc
 > nhiều Rule; để chúng ở tầng Convention nghĩa là một PR sửa Convention vô hiệu hóa
 > được Rule, trái thứ tự ưu tiên `Rules > Principles > Conventions`.
+>
+> `tenant_root` là danh sách thứ tư và là **danh sách đóng: chỉ `companies`** — thêm
+> tên vào nó cũng bắt buộc viết ADR mới. Lưu ý một chỗ chưa khớp cần đóng lại:
+> `ADR-0003` hiện vẫn xếp `companies` vào `system_tables`, mà ADR là bất biến, nên
+> việc chuyển `companies` sang `tenant_root` **còn thiếu một ADR mới ghi nhận**. Cho
+> tới khi ADR đó tồn tại, phân nhóm áp dụng là phân nhóm ở bảng trên.
 
 Chi tiết và ví dụ code: [rules/R-06-tenant-column.md](rules/R-06-tenant-column.md)
 
@@ -127,10 +140,10 @@ Chi tiết và ví dụ code: [rules/R-06-tenant-column.md](rules/R-06-tenant-co
 
 ### R-08 — Naming Convention
 
-**Mệnh đề bắt buộc:** Tên bảng khớp regex `^[a-z][a-z0-9_]*s$`; tên không kết thúc bằng `s` phải nằm trong danh sách miễn đặt tên khai báo ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Khóa chính `id UUID`; khóa ngoại `<singular>_id`; mọi **bảng nghiệp vụ** và mọi bảng trong `reference_tables` có `created_at`, `updated_at`, `deleted_at`.
-**Dấu hiệu vi phạm:** `CREATE TABLE` đặt tên bảng không khớp `^[a-z][a-z0-9_]*s$` (ví dụ `order`, `OrderItem`, `inventory`) và tên đó không có trong danh sách miễn đặt tên ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Cột khóa chính khai báo khác `id UUID` (ví dụ `id SERIAL`, `id BIGINT`). Cột khóa ngoại không theo dạng `<singular>_id` (ví dụ cột trỏ tới `companies.id` nhưng đặt tên `company`). Migration tạo bảng nghiệp vụ hoặc bảng có tên trong `reference_tables` thiếu cột `created_at`, `updated_at`, hoặc `deleted_at`. Migration tạo bảng có tên trong `append_only_tables` thiếu cột `created_at`.
+**Mệnh đề bắt buộc:** Tên bảng khớp regex `^[a-z][a-z0-9_]*s$`; tên không kết thúc bằng `s` phải nằm trong danh sách miễn đặt tên khai báo ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Khóa chính `id UUID`; khóa ngoại `<singular>_id`; mọi **bảng nghiệp vụ**, mọi bảng trong `tenant_root` và mọi bảng trong `reference_tables` có `created_at`, `updated_at`, `deleted_at`.
+**Dấu hiệu vi phạm:** `CREATE TABLE` đặt tên bảng không khớp `^[a-z][a-z0-9_]*s$` (ví dụ `order`, `OrderItem`, `inventory`) và tên đó không có trong danh sách miễn đặt tên ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Cột khóa chính khai báo khác `id UUID` (ví dụ `id SERIAL`, `id BIGINT`). Cột khóa ngoại không theo dạng `<singular>_id` (ví dụ cột trỏ tới `companies.id` nhưng đặt tên `company`). Migration tạo bảng nghiệp vụ, bảng có tên trong `tenant_root`, hoặc bảng có tên trong `reference_tables` mà thiếu cột `created_at`, `updated_at`, hoặc `deleted_at`. Migration tạo bảng có tên trong `append_only_tables` thiếu cột `created_at`.
 **Cách sửa:** Sửa tên bảng hoặc cột trong migration cho khớp quy ước trước khi merge; nếu bảng đã merge và có dữ liệu, viết migration mới dùng `RENAME COLUMN` / `RENAME TO` hoặc `ADD COLUMN` để bổ sung. Nếu tên bảng không thể chuyển sang dạng kết thúc bằng `s` (ví dụ `inventory`, `equipment`, `machinery`), viết ADR bổ sung tên đó vào danh sách miễn đặt tên trước khi merge migration.
-**Ngoại lệ:** Bảng trong `system_tables` miễn toàn bộ vế cột. Bảng trong `append_only_tables` chỉ có `created_at`, miễn `updated_at` và `deleted_at`. Bảng trong `reference_tables` **không** được miễn vế cột — nó có đủ ba cột thời gian như bảng nghiệp vụ, chỗ duy nhất nó khác là thiếu `company_id`, mà `company_id` không phải việc của rule này. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
+**Ngoại lệ:** Bảng trong `system_tables` miễn toàn bộ vế cột. Bảng trong `append_only_tables` chỉ có `created_at`, miễn `updated_at` và `deleted_at`. Bảng trong `tenant_root` và bảng trong `reference_tables` **không** được miễn vế cột — cả hai nhóm có đủ ba cột thời gian như bảng nghiệp vụ, chỗ duy nhất chúng khác là thiếu `company_id`, mà `company_id` không phải việc của rule này. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
 **Principles:** —
 **Decisions:** —
 
@@ -218,10 +231,10 @@ Ngoại lệ thứ hai: method phục vụ luồng cấp token — `Login`, `Ref
 
 ### R-17 — Traceability
 
-**Mệnh đề bắt buộc:** Mọi **bảng nghiệp vụ** và mọi bảng trong `reference_tables` có `created_by` và `updated_by`; mọi thao tác ghi lên hai nhóm bảng đó sinh bản ghi audit trong cùng transaction với thao tác đó; `ctx` truyền xuyên suốt handler → service → repository; `request_id` có mặt trong log và trong response. `request_id` đi qua header `X-Request-Id` cho **mọi** response — bản sao trong envelope chỉ là tiện ích cho client, không thay thế header, để endpoint trả file (ngoại lệ của R-11) vẫn có chỗ mang `request_id`.
-**Dấu hiệu vi phạm:** Migration `CREATE TABLE` cho bảng nghiệp vụ hoặc cho bảng có tên trong `reference_tables` thiếu cột `created_by UUID` hoặc `updated_by UUID`. Method trong `*_service.go` gọi `<repo>.Insert(`, `<repo>.Update(`, hoặc `<repo>.Delete(` với tham số `tx` nhưng trong cùng method không có lời gọi `auditRepo.Record(ctx, tx,`. Method của service hoặc của repository có tham số đầu tiên khác `ctx context.Context`, hoặc dùng `context.Background()`/`context.TODO()` thay vì `ctx` được truyền vào. Handler gọi method service mà không truyền `c.Request.Context()` làm tham số đầu. File `*_handler.go` gọi logger toàn cục (`log.Info(`, `logger.Info(`, `slog.Info(`) thay vì logger dẫn xuất từ `ctx`.
+**Mệnh đề bắt buộc:** Mọi **bảng nghiệp vụ**, mọi bảng trong `tenant_root` và mọi bảng trong `reference_tables` có `created_by` và `updated_by`; mọi thao tác ghi lên ba nhóm bảng đó sinh bản ghi audit trong cùng transaction với thao tác đó; `ctx` truyền xuyên suốt handler → service → repository; `request_id` có mặt trong log và trong response. `request_id` đi qua header `X-Request-Id` cho **mọi** response — bản sao trong envelope chỉ là tiện ích cho client, không thay thế header, để endpoint trả file (ngoại lệ của R-11) vẫn có chỗ mang `request_id`.
+**Dấu hiệu vi phạm:** Migration `CREATE TABLE` cho bảng nghiệp vụ, cho bảng có tên trong `tenant_root`, hoặc cho bảng có tên trong `reference_tables` mà thiếu cột `created_by UUID` hoặc `updated_by UUID`. Method trong `*_service.go` gọi `<repo>.Insert(`, `<repo>.Update(`, hoặc `<repo>.Delete(` với tham số `tx` nhưng trong cùng method không có lời gọi `auditRepo.Record(ctx, tx,`. Method của service hoặc của repository có tham số đầu tiên khác `ctx context.Context`, hoặc dùng `context.Background()`/`context.TODO()` thay vì `ctx` được truyền vào. Handler gọi method service mà không truyền `c.Request.Context()` làm tham số đầu. File `*_handler.go` gọi logger toàn cục (`log.Info(`, `logger.Info(`, `slog.Info(`) thay vì logger dẫn xuất từ `ctx`.
 **Cách sửa:** Thêm cột `created_by UUID`, `updated_by UUID` vào migration; thêm lời gọi `auditRepo.Record(ctx, tx, ...)` vào chính method service đang mở transaction, ngay cạnh thao tác ghi; sửa signature method service/repository để nhận `ctx context.Context` làm tham số đầu, và ở handler truyền `c.Request.Context()` xuống thay vì tạo context mới; gắn `request_id` vào `ctx` ở middleware, set header `X-Request-Id` cho mọi response, và trong handler lấy logger dẫn xuất từ `ctx` (ví dụ `log.FromContext(ctx).Info(...)`) thay vì gọi logger toàn cục.
-**Ngoại lệ:** Bảng trong `system_tables` miễn toàn bộ. Bảng trong `append_only_tables` có `created_by` nhưng miễn `updated_by`, và thao tác ghi vào bảng đó miễn sinh bản ghi audit. Bảng trong `reference_tables` **không** được miễn gì ở rule này: có đủ `created_by`, `updated_by`, và mọi thao tác ghi lên nó vẫn sinh bản ghi audit — bản ghi audit đó mang `company_id` của actor đã sửa, vì `audit_logs` luôn có `company_id` dù bảng bị sửa thì không. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
+**Ngoại lệ:** Bảng trong `system_tables` miễn toàn bộ. Bảng trong `append_only_tables` có `created_by` nhưng miễn `updated_by`, và thao tác ghi vào bảng đó miễn sinh bản ghi audit. Bảng trong `tenant_root` và bảng trong `reference_tables` **không** được miễn gì ở rule này: có đủ `created_by`, `updated_by`, và mọi thao tác ghi lên chúng vẫn sinh bản ghi audit — bản ghi audit đó mang `company_id` của actor đã ghi, vì `audit_logs` luôn có `company_id` dù bảng bị ghi thì không. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`.
 **Principles:** P-OBS, P-IDEM
 **Decisions:** ADR-0007
 
@@ -234,10 +247,10 @@ Chi tiết và ví dụ code: [rules/R-17-traceability.md](rules/R-17-traceabili
 
 ### R-18 — Soft Delete by Default
 
-**Mệnh đề bắt buộc:** DELETE nghiệp vụ là set `deleted_at`, không xóa vật lý. Mọi query đọc **bảng nghiệp vụ** hoặc bảng trong `reference_tables` có `deleted_at IS NULL`. Hard delete hai nhóm bảng đó phải có ADR riêng.
-**Dấu hiệu vi phạm:** Method repository tên `Delete`/`Remove` trên bảng nghiệp vụ hoặc trên bảng trong `reference_tables` chứa câu SQL `DELETE FROM <table>` thay vì `UPDATE <table> SET deleted_at = `. Câu SQL `SELECT` trong `*_repository.go` đọc hai nhóm bảng đó nhưng mệnh đề `WHERE` không chứa `deleted_at IS NULL`. Có `DELETE FROM` nhắm vào hai nhóm bảng đó trong migration hoặc repository mà không kèm comment theo mẫu `-- hard-delete: ADR-00xx` ngay tại chỗ.
-**Cách sửa:** Đổi câu lệnh xóa thành `UPDATE <table> SET deleted_at = now(), updated_by = $n WHERE id = $m AND deleted_at IS NULL`; thêm `AND deleted_at IS NULL` vào mọi câu `SELECT` đọc bảng nghiệp vụ hoặc bảng trong `reference_tables`; nếu bắt buộc phải hard delete, viết ADR mới xin phép trước khi thêm `DELETE FROM`. Bảng có ràng buộc duy nhất trên cột nghiệp vụ phải dùng partial unique index `CREATE UNIQUE INDEX ... ON <table>(company_id, <cột>) WHERE deleted_at IS NULL` thay vì `UNIQUE` thường — nếu không, sau khi xóa mềm sẽ không tạo lại được bản ghi cùng mã; bảng trong `reference_tables` không có `company_id` nên dùng `ON <table>(<cột>) WHERE deleted_at IS NULL`.
-**Ngoại lệ:** Bảng trong `system_tables` và bảng trong `append_only_tables` không có cột `deleted_at` nên nằm ngoài phạm vi rule này; riêng `append_only_tables` được hard delete theo lịch giữ liệu, không cần ADR. Bảng trong `reference_tables` **không** được miễn: nó có `deleted_at` và chịu soft delete y như bảng nghiệp vụ. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Hard delete bảng nghiệp vụ hoặc bảng trong `reference_tables` chỉ được phép khi có ADR riêng cho phép, comment tại chỗ xóa theo mẫu `-- hard-delete: ADR-00xx`, và ADR được trỏ tới phải có mục liệt kê đúng tên bảng được phép hard delete.
+**Mệnh đề bắt buộc:** DELETE nghiệp vụ là set `deleted_at`, không xóa vật lý. Mọi query đọc **bảng nghiệp vụ**, bảng trong `tenant_root`, hoặc bảng trong `reference_tables` có `deleted_at IS NULL`. Hard delete ba nhóm bảng đó phải có ADR riêng.
+**Dấu hiệu vi phạm:** Method repository tên `Delete`/`Remove` trên bảng nghiệp vụ, trên bảng trong `tenant_root`, hoặc trên bảng trong `reference_tables` chứa câu SQL `DELETE FROM <table>` thay vì `UPDATE <table> SET deleted_at = `. Câu SQL `SELECT` trong `*_repository.go` đọc ba nhóm bảng đó nhưng mệnh đề `WHERE` không chứa `deleted_at IS NULL`. Có `DELETE FROM` nhắm vào ba nhóm bảng đó trong migration hoặc repository mà không kèm comment theo mẫu `-- hard-delete: ADR-00xx` ngay tại chỗ.
+**Cách sửa:** Đổi câu lệnh xóa thành `UPDATE <table> SET deleted_at = now(), updated_by = $n WHERE id = $m AND deleted_at IS NULL`; thêm `AND deleted_at IS NULL` vào mọi câu `SELECT` đọc bảng nghiệp vụ, bảng trong `tenant_root`, hoặc bảng trong `reference_tables`; nếu bắt buộc phải hard delete, viết ADR mới xin phép trước khi thêm `DELETE FROM`. Bảng có ràng buộc duy nhất trên cột nghiệp vụ phải dùng partial unique index `CREATE UNIQUE INDEX ... ON <table>(company_id, <cột>) WHERE deleted_at IS NULL` thay vì `UNIQUE` thường — nếu không, sau khi xóa mềm sẽ không tạo lại được bản ghi cùng mã; bảng trong `tenant_root` và bảng trong `reference_tables` không có `company_id` nên dùng `ON <table>(<cột>) WHERE deleted_at IS NULL`.
+**Ngoại lệ:** Bảng trong `system_tables` và bảng trong `append_only_tables` không có cột `deleted_at` nên nằm ngoài phạm vi rule này; riêng `append_only_tables` được hard delete theo lịch giữ liệu, không cần ADR. Bảng trong `tenant_root` và bảng trong `reference_tables` **không** được miễn: cả hai nhóm có `deleted_at` và chịu soft delete y như bảng nghiệp vụ. Các danh sách nằm ở `03-decisions/ADR-0003-multi-tenant-ready.md`. Hard delete bảng nghiệp vụ, bảng trong `tenant_root`, hoặc bảng trong `reference_tables` chỉ được phép khi có ADR riêng cho phép, comment tại chỗ xóa theo mẫu `-- hard-delete: ADR-00xx`, và ADR được trỏ tới phải có mục liệt kê đúng tên bảng được phép hard delete.
 **Principles:** —
 **Decisions:** ADR-0008
 
