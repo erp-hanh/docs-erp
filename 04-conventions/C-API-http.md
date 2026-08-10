@@ -341,7 +341,7 @@ func FieldErrors(err error) []FieldError {
 func Error(c *gin.Context, err error) {
 	var appErr *apperr.Error
 	if errors.As(err, &appErr) {
-		write(c, appErr.Status, Envelope{Error: &ErrorBody{
+		write(c, appErr.HTTPStatus, Envelope{Error: &ErrorBody{
 			Code:    appErr.Code,
 			Message: appErr.Message,
 		}})
