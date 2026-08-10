@@ -2,6 +2,16 @@
 
 **Status:** Accepted (2026-08-10)
 
+> **Sửa đổi trong ngày (2026-08-10):** ba repo code ban đầu mang tên `backend`,
+> `frontend`, `infra`; chúng được đổi thành `backend-erp`, `frontend-erp`, `infra-erp`
+> ngay trong ngày ADR này được viết, trước khi có bất kỳ code nào dựa vào tên cũ. Tên
+> trong tài liệu này đã cập nhật theo, và một câu về lý do đặt hậu tố được thêm vào mục
+> Decision.
+>
+> Ghi lại ở đây vì quy tắc bất biến của ADR nói rằng ADR đã `Accepted` thì không sửa nội
+> dung. Ngoại lệ này chỉ hợp lệ vì nó xảy ra cùng ngày và chưa ai dựa vào bản cũ. Lần
+> sau, một thay đổi như thế này phải là một ADR mới đánh dấu `Superseded by`.
+
 ## Context
 
 Dự án gồm bốn thứ có vòng đời khác nhau: tài liệu kiến trúc, backend Go, frontend
