@@ -9,12 +9,19 @@ quyết. Chỗ nào file này nhắc lại một quyết định, nó nhắc l�
 Khi file này lệch với [../01-rules/RULES.md](../01-rules/RULES.md) hoặc với một ADR,
 bản gốc thắng và file này là thứ phải sửa.
 
+**Ngoại lệ đúng một chỗ: mục `C-DB-04`.** Registry nhóm bảng ở đó là **bản gốc**, không
+phải bản sao — vì danh sách bảng là *current policy* tiến hóa theo thời gian, còn ADR
+thì bất biến. Mỗi entry mang một trường `adr` trỏ về ADR biện minh cho phân loại của
+nó, nên phần bảo vệ của tầng Decision vẫn còn nguyên: thêm một bảng vẫn đòi một ADR
+mới. Lý do đầy đủ nằm ở khối ghi chú sửa đổi đầu
+[../03-decisions/ADR-0003-multi-tenant-ready.md](../03-decisions/ADR-0003-multi-tenant-ready.md).
+
 | Mục | Nội dung | Neo về |
 |---|---|---|
 | C-DB-01 | Đặt tên bảng, cột, constraint, index | R-08 |
 | C-DB-02 | Kiểu dữ liệu chuẩn | R-08 |
 | C-DB-03 | Bộ cột bắt buộc theo từng nhóm bảng | R-06, R-08, R-17, R-18 |
-| C-DB-04 | Bốn nhóm bảng — bản sao chép từ ADR-0003 | R-06 |
+| C-DB-04 | Registry nhóm bảng — canonical | R-06 |
 | C-DB-05 | Quy tắc index | R-09 |
 | C-DB-06 | Cách viết migration | R-07 |
 | C-DB-07 | Schema bảng `outbox` | R-05 |
@@ -298,67 +305,66 @@ những index đó (C-DB-06).
 
 ---
 
-### C-DB-04 — Bốn nhóm bảng — bản sao chép từ ADR-0003
+### C-DB-04 — Registry nhóm bảng
 
 **Implements:** R-06
 
-> **Mục này là bản sao chép cho tiện tra cứu. Nguồn sự thật của cả bốn danh sách là
-> [../03-decisions/ADR-0003-multi-tenant-ready.md](../03-decisions/ADR-0003-multi-tenant-ready.md).
-> Thêm một tên vào bất kỳ danh sách nào dưới đây bắt buộc viết một ADR mới — không sửa
-> file này, và cũng không sửa tại chỗ ADR-0003.**
->
-> Lý do vế trên không phải thủ tục: ba danh sách miễn trừ là **công tắc tắt cùng lúc nhiều
-> Rule**. Một cái tên nằm trong `system_tables` là một cái tên nằm ngoài R-06, ngoài vế cột
-> của R-08, ngoài R-17 và ngoài R-18. Nếu sửa được chúng bằng một PR chạm vào tầng
-> Convention thì một PR hợp lệ về hình thức vô hiệu hóa được bốn Rule cùng lúc, trái thứ tự
-> ưu tiên `Rules > Principles > Conventions`. Khi bản sao dưới đây lệch với ADR-0003, **bản
-> ở ADR-0003 đúng** và bản này là thứ phải sửa.
+Đây là **canonical registry** — nguồn sự thật cho việc bảng nào thuộc nhóm nào. Cả
+người lẫn checker `arch/` của `backend-erp` đọc từ đây.
 
-Phân loại tổng quát (bản gốc là blockquote "Bốn nhóm bảng" dưới R-06 trong
-[../01-rules/RULES.md](../01-rules/RULES.md)):
+**Nghĩa của trường `adr`:** ADR giải thích **lý do kiến trúc khiến entry được xếp vào
+nhóm hiện tại**. Nó **không** có nghĩa "ADR gần nhất từng nhắc tới bảng này".
 
-| Nhóm | `company_id` | Cột thời gian | Cột audit | Sinh bản ghi audit khi ghi | Soft delete | Mọi module đọc được |
-|---|---|---|---|---|---|---|
-| `system_tables` | Không | Không | Không | Không | Không | Có |
-| `reference_tables` | Không | Có đủ | Có đủ | Có | Có | Có |
-| `append_only_tables` | Có | Chỉ `created_at` | Chỉ `created_by` | Không | Không — hard delete theo lịch giữ liệu | Không |
-| Bảng nghiệp vụ | Có | Có đủ | Có đủ | Có | Có | Không |
+**Invariant:** `adr` phải trỏ tới một ADR ở trạng thái `Accepted`, và ADR đó phải biện
+minh tường minh cho phân loại hoặc miễn trừ này. Thêm một bảng vào bất kỳ nhóm nào đòi
+một ADR mới — không sửa ADR cũ, và cũng không thêm lặng lẽ bằng một PR Convention.
 
-Bốn danh sách tên cụ thể, sao chép từ ADR-0003:
+```yaml
+system_actor_id: 00000000-0000-4000-8000-000000000001
 
-**1. `system_tables`** — bảng hạ tầng, không thuộc tenant nào:
+tenant_root:
+  - table: companies
+    adr: ADR-0003
 
-- `schema_migrations`
-- `companies`
+reference_tables:
+  - table: currencies
+    adr: ADR-0003
+  - table: units
+    adr: ADR-0003
+  - table: provinces
+    adr: ADR-0003
 
-**2. `reference_tables`** — danh mục dùng chung toàn hệ thống:
+append_only_tables:
+  - table: outbox
+    adr: ADR-0006
+  - table: audit_logs
+    adr: ADR-0007
+  - table: idempotency_keys
+    adr: ADR-0003
 
-- `currencies`
-- `units`
-- `provinces`
+system_tables:
+  - table: schema_migrations
+    adr: ADR-0003
 
-Điều kiện để một tên được vào nhóm này: dữ liệu **giống nhau với mọi tenant** và không
-tenant nào được sửa riêng phần của mình. Danh mục mà mỗi công ty muốn một bản khác nhau
-(nhóm khách hàng, loại chi phí) là **bảng nghiệp vụ**.
+naming_exempt:
+  - table: outbox
+    adr: ADR-0003
+    reason: ket thuc bang x, khong khop regex cua R-08
+```
 
-**3. `append_only_tables`** — bảng chỉ ghi thêm:
+> **`outbox` thuộc `append_only_tables`, KHÔNG thuộc `system_tables`.** Xếp nhầm thì
+> `outbox` mất `company_id` (vì `system_tables` miễn cột đó), R-06 không đòi nó nữa,
+> và bug chỉ lộ ra khi có khách hàng thứ hai — relay không lọc được theo tenant.
 
-- `outbox`
-- `audit_logs`
-- `idempotency_keys`
+**`system_actor_id`** là actor dùng cho thao tác ghi không do người dùng khởi xướng:
+seed lúc bootstrap, job nền, relay. Giá trị này xuất hiện ở bốn nơi và phải khớp nhau —
+registry này (canonical), migration bootstrap, hằng trong `shared/auth`, và test
+fixture. Có checker kiểm khớp; không hard-code thêm ở bất kỳ đâu khác.
 
-**4. Danh sách miễn quy tắc đặt tên** — tên không khớp `^[a-z][a-z0-9_]*s$`:
-
-- `outbox`
-
-**Bảng nghiệp vụ** là mọi bảng còn lại, tức là mọi bảng **không** có tên trong ba danh
-sách đầu. Không được miễn thứ gì. `document_counters` hiện là bảng nghiệp vụ vì nó chưa có
-tên trong danh sách nào; câu hỏi phân nhóm cho nó còn mở và cần một ADR riêng khi module
-đầu tiên cần cấp số chứng từ (ADR-0003).
-
-Hệ quả thực dụng khi viết migration cho một bảng mới: có đúng hai lựa chọn — hoặc bảng đó
-là bảng nghiệp vụ và mang đủ bộ cột ở C-DB-03, hoặc dừng lại viết ADR. Không có đường thứ
-ba, và độ ma sát đó là có chủ đích.
+Không dùng nil UUID (`00000000-0000-0000-0000-000000000000`) vì hai lý do: nó là zero
+value của `uuid.UUID` trong Go nên "system actor" không phân biệt được với "quên gán";
+và version nibble lẫn variant bits đều bằng 0 nên nó không phải UUIDv4 hợp lệ về hình
+thức, thư viện validate chặt sẽ từ chối.
 
 ---
 

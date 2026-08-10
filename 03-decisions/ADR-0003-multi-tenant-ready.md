@@ -2,6 +2,20 @@
 
 **Status:** Accepted (2026-08-10)
 
+> **Sửa đổi (2026-08-10):** danh sách cụ thể các nhóm bảng ban đầu nằm trong chính ADR
+> này; chúng được chuyển sang `04-conventions/C-DB-database.md` mục `C-DB-04` làm
+> canonical registry. Lý do: ADR bất biến còn danh sách thì tiến hóa — thêm một bảng mà
+> phải sửa ADR đã `Accepted` là tự mâu thuẫn với chính quy tắc ADR. Quyết định kiến
+> trúc trong ADR này **không đổi**; chỉ chỗ giữ danh sách đổi.
+>
+> Cùng đợt này, `companies` chuyển từ `system_tables` sang nhóm mới `tenant_root`.
+> Lý do: `system_tables` miễn cả audit lẫn soft delete, mà tạo hay sửa một công ty
+> không để lại dấu vết là sai về nghiệp vụ.
+>
+> Ba gạch đầu dòng trỏ tới chỗ giữ danh sách cũng được sửa theo cho khỏi trỏ vào chỗ
+> trống — một ở mục Phạm vi của `Decision`, hai ở `Consequences`. Nội dung quyết định
+> và nội dung hệ quả không đổi, chỉ đổi chỗ được trỏ tới.
+
 ## Context
 
 Ở thời điểm quyết, hệ thống có **đúng một** khách hàng: doanh nghiệp cơ khí và cảng
@@ -35,8 +49,9 @@ Phạm vi:
   triển khai riêng cho hai khách hàng vẫn đúng với ADR này.
 - Cách ly giữa tenant nằm ở **tầng ứng dụng** — mọi query mang `company_id = $n` —
   chứ không ở tầng database. Row Level Security chưa được bật.
-- Ba nhóm bảng miễn trừ và danh sách miễn quy tắc đặt tên được liệt kê ngay trong ADR
-  này, ở mục dưới.
+- Các nhóm bảng miễn trừ và danh sách miễn quy tắc đặt tên là **current policy**, giữ ở
+  `04-conventions/C-DB-database.md` mục `C-DB-04`, không liệt kê trong ADR này (xem mục
+  dưới).
 
 ## Alternatives
 
@@ -59,117 +74,16 @@ nay và là khoản nợ đắt nhất đã nhận diện được ở mục Con
 hệ thống đã có dữ liệu là việc đắt và rủi ro, và nó rơi vào đúng lúc dự án đang gấp vì
 vừa có khách hàng mới.
 
-## Bốn danh sách miễn trừ
+## Nơi giữ danh sách nhóm bảng
 
-Bốn danh sách dưới đây là **nguồn sự thật** cho R-02, R-06, R-08, R-09, R-17 và R-18.
-`04-conventions/C-DB-database.md` chỉ được **sao chép lại** chúng, không phải nơi quyết
-định. Phân loại tổng quát nằm ở blockquote "Bốn nhóm bảng" dưới R-06 trong
-[../01-rules/RULES.md](../01-rules/RULES.md); ở đây là danh sách tên cụ thể.
+Danh sách cụ thể bảng nào thuộc nhóm nào là **current policy**, không phải quyết định
+bất biến — nó dài ra theo thời gian khi hệ thống có thêm danh mục dùng chung hay bảng
+chỉ ghi thêm. Vì vậy nó sống ở `04-conventions/C-DB-database.md` mục `C-DB-04` dưới
+dạng registry máy đọc được, không nằm trong ADR này.
 
-### 1. `system_tables` — bảng hạ tầng, không thuộc tenant nào
-
-Khởi đầu gồm:
-
-- `schema_migrations`
-- `companies`
-
-Được miễn: `company_id`, mọi cột thời gian (`created_at`, `updated_at`, `deleted_at`),
-mọi cột audit (`created_by`, `updated_by`), soft delete, và cả việc sinh bản ghi audit
-khi ghi. Mọi module được đọc.
-
-Lý do miễn triệt để: `schema_migrations` do `golang-migrate` sở hữu, không phải do ứng
-dụng; còn `companies` là bảng **định nghĩa** tenant nên nó không thể mang khóa trỏ tới
-chính khái niệm nó định nghĩa. Nhóm này phải giữ nhỏ nhất có thể — mỗi tên thêm vào
-đây là một bảng nằm ngoài toàn bộ cơ chế truy vết.
-
-### 2. `reference_tables` — danh mục dùng chung toàn hệ thống
-
-Khởi đầu gồm:
-
-- `currencies`
-- `units`
-- `provinces`
-
-Không có `company_id`, và mọi module được đọc. Ngoài hai điểm đó thì **giống hệt bảng
-nghiệp vụ**: có đủ `created_at`, `updated_at`, `deleted_at`, có `created_by`,
-`updated_by`, mọi thao tác ghi lên nó vẫn sinh bản ghi audit, và vẫn chịu soft delete.
-
-Lý do không gộp vào `system_tables`: danh mục **có người sửa**, và sửa một danh mục
-dùng chung thì ảnh hưởng tới mọi công ty cùng lúc — đó là chỗ cần truy vết nhất chứ
-không phải chỗ được miễn. Bản ghi audit sinh ra mang `company_id` của actor đã sửa, vì
-`audit_logs` luôn có `company_id` dù bảng bị sửa thì không.
-
-Điều kiện để một tên được đưa vào nhóm này: dữ liệu **giống nhau với mọi tenant** và
-không tenant nào được sửa riêng phần của mình. Danh mục mà mỗi công ty muốn một bản
-khác nhau (nhóm khách hàng, loại chi phí) là **bảng nghiệp vụ**, không phải danh mục
-dùng chung.
-
-### 3. `append_only_tables` — bảng chỉ ghi thêm
-
-Khởi đầu gồm:
-
-- `outbox`
-- `audit_logs`
-- `idempotency_keys`
-
-Có `company_id`, có `created_at` và `created_by`. Được miễn: `updated_at`,
-`updated_by`, `deleted_at`, và miễn sinh bản ghi audit khi ghi. Được **hard delete
-theo lịch giữ liệu mà không cần ADR riêng** — đây là ngoại lệ tường minh của R-18, và
-nó chỉ hợp lệ vì bản ghi trong nhóm này không phải dữ liệu nghiệp vụ mà là dấu vết kỹ
-thuật có hạn dùng.
-
-Không phải mọi module đọc được: bảng trong nhóm này thuộc về hạ tầng chung, và module
-chạm tới chúng qua package dùng chung (`shared/outbox`, repository audit), không phải
-bằng câu SQL viết trong module mình.
-
-Ba lý do cụ thể:
-
-- `outbox` được ghi rồi được đánh dấu đã publish rồi bị dọn; không ai sửa nội dung một
-  event đã ghi, vì sửa nó nghĩa là sửa một sự việc đã xảy ra.
-- `audit_logs` mà sửa được thì không còn là audit. Miễn "sinh bản ghi audit khi ghi"
-  không phải nới lỏng mà là chặn đệ quy vô hạn.
-- `idempotency_keys` được ghi một lần cùng transaction với hiệu ứng nó bảo vệ, rồi hết
-  hạn thì bị dọn — đúng hình dạng của nhóm này.
-  [P-IDEM-idempotency.md](../02-principles/P-IDEM-idempotency.md) đã nêu rằng việc
-  phân nhóm bảng này phải quyết bằng một ADR **trước** khi viết migration; đây là chỗ
-  quyết. Hệ quả cài đặt phải chấp nhận: vì bảng không có `updated_at`, khóa và **kết
-  quả** phải được ghi trong cùng một lần ghi, không phải claim trước rồi `UPDATE` kết
-  quả sau.
-
-### 4. Danh sách miễn quy tắc đặt tên
-
-R-08 đòi tên bảng khớp `^[a-z][a-z0-9_]*s$`. Những tên dưới đây được miễn:
-
-- `outbox` — kết thúc bằng `x`, và `outboxes` là một cái tên không ai gọi.
-
-Danh sách này khởi đầu chỉ có một tên, nhưng nó sẽ dài ra và chỗ dài ra đã đoán trước
-được: **tên tiếng Anh không đếm được hoặc bất quy tắc** — `inventory`, `equipment`,
-`machinery` là ba ca gần nhất sẽ gặp. Mỗi tên như vậy **phải được thêm vào đây bằng
-một ADR mới trước khi merge migration tạo bảng**, không phải bằng một ngoại lệ ghi
-trong chính migration đó, và cũng không bằng cách ép thành `inventorys`.
-
-Lý do bắt buộc ADR cho một việc nhỏ như đặt tên: quyết định "bảng này gọi là
-`inventory` chứ không phải `inventory_items`" thực chất là quyết định về **mô hình dữ
-liệu** — nó nói rằng ở đây có một khối không đếm được chứ không phải một tập các dòng.
-Đó là thứ đáng ghi lại lý do, và cũng là thứ mà việc phải viết một ADR sẽ buộc người
-ta nghĩ thêm một lần trước khi chọn.
-
-## Quy tắc quản trị bốn danh sách
-
-**Thêm một tên vào bất kỳ danh sách nào ở trên bắt buộc viết một ADR mới.** Không sửa
-tại chỗ ADR này — ADR là bất biến; ADR mới nêu tên được thêm, lý do, và trỏ ngược về
-đây.
-
-Lý do không để các danh sách này ở tầng Convention: chúng là **công tắc miễn trừ cùng
-lúc nhiều Rule**. Một cái tên nằm trong `system_tables` là một cái tên nằm ngoài R-06,
-ngoài vế cột của R-08, ngoài R-17 và ngoài R-18. Nếu danh sách nằm ở tầng Convention
-thì một PR sửa Convention vô hiệu hóa được bốn Rule cùng lúc mà vẫn hợp lệ về hình
-thức — trái thứ tự ưu tiên `Rules > Principles > Conventions`, và trái nó theo cách
-không ai nhìn ra trong lúc review.
-
-Hệ quả thực dụng: người viết migration cho một bảng mới có đúng hai lựa chọn — hoặc
-bảng đó là bảng nghiệp vụ và không được miễn gì, hoặc dừng lại viết ADR. Không có
-đường thứ ba, và độ ma sát đó là có chủ đích.
+Phân vai: **ADR giữ *why*, `C-DB` giữ *current policy*.** Mỗi entry trong registry mang
+một trường `adr` trỏ ngược về ADR biện minh cho phân loại của nó — nên thêm một bảng vẫn
+đòi một ADR mới, chứ không phải một PR sửa Convention.
 
 ## Bảng hạ tầng chưa phân loại — câu hỏi còn mở
 
@@ -205,8 +119,8 @@ không được miễn gì.
   "rà lại toàn bộ repository" — giai đoạn mà mọi lần bỏ sót đều là rò dữ liệu.
 - Một database, một lần migration, một lịch backup. Vận hành đúng bằng vận hành một hệ
   single-tenant.
-- Ba danh sách miễn trừ nằm ở tầng Decision nên mọi lần nới lỏng đều để lại dấu vết và
-  đều có người duyệt.
+- Mỗi entry trong registry mang một trường `adr` bắt buộc, nên mọi lần nới lỏng đều để
+  lại dấu vết và đều có người duyệt.
 
 **Mất:**
 
@@ -228,8 +142,8 @@ không được miễn gì.
   connection được thiết lập.
 - Chưa có cách tách dữ liệu một tenant ra khỏi database chung khi khách hàng rời đi
   hoặc đòi hạ tầng riêng.
-- Bốn danh sách ở trên sẽ dài ra, và mỗi lần dài ra là một ADR. Nếu nhịp đó trở nên
-  phiền tới mức người ta tìm cách lách, đó là tín hiệu cần một ADR xem lại chính cơ
-  chế này — không phải lý do để bỏ qua nó lặng lẽ.
+- Các danh sách trong registry sẽ dài ra, và mỗi lần dài ra là một ADR. Nếu nhịp đó
+  trở nên phiền tới mức người ta tìm cách lách, đó là tín hiệu cần một ADR xem lại
+  chính cơ chế này — không phải lý do để bỏ qua nó lặng lẽ.
 
 **Constrains:** R-06
