@@ -178,6 +178,24 @@ Get-ChildItem -Path $root -Filter '*.md' -Recurse |
         }
     }
 
+# ---------- 3d. Registry trong C-DB: moi adr phai tro ADR co that va da Accepted ----
+$cdbFile = Join-Path $root '04-conventions\C-DB-database.md'
+if (Test-Path $cdbFile) {
+    $cdbText = Get-Content -Path $cdbFile -Raw -Encoding UTF8
+    foreach ($m in [regex]::Matches($cdbText, '(?m)^\s*adr:\s*(ADR-\d{4})\s*$')) {
+        $aid = $m.Groups[1].Value
+        $adrFile = Get-ChildItem -Path (Join-Path $root '03-decisions') -Filter "$aid-*.md" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $adrFile) {
+            Add-Err "C-DB-database.md : registry tro '$aid' nhung khong co file ADR do"
+            continue
+        }
+        $adrText = Get-Content -Path $adrFile.FullName -Raw -Encoding UTF8
+        if ($adrText -notmatch '(?m)^\*\*Status:\*\*\s*Accepted') {
+            Add-Err "C-DB-database.md : registry tro '$aid' nhung ADR do khong o trang thai Accepted"
+        }
+    }
+}
+
 # ---------- 4. Kết quả ----------
 if ($errors.Count -gt 0) {
     Write-Host "check-ids: THAT BAI - $($errors.Count) loi" -ForegroundColor Red

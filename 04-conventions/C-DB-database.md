@@ -171,18 +171,18 @@ theo bảng ở trên.
 **Implements:** R-06, R-08, R-17, R-18
 
 Bộ cột bắt buộc **khác nhau theo nhóm bảng**, nên việc đầu tiên khi viết migration là xác
-định bảng mới thuộc nhóm nào (C-DB-04). Mặc định của một bảng không có tên trong ba danh
-sách miễn trừ là **bảng nghiệp vụ**, và bảng nghiệp vụ không được miễn thứ gì.
+định bảng mới thuộc nhóm nào (C-DB-04). Mặc định của một bảng không có tên trong bốn nhóm
+khai ở registry là **bảng nghiệp vụ**, và bảng nghiệp vụ không được miễn thứ gì.
 
-| Cột | Bảng nghiệp vụ | `reference_tables` | `append_only_tables` | `system_tables` |
-|---|---|---|---|---|
-| `id UUID PRIMARY KEY` | Có | Có | Có | Không bắt buộc |
-| `company_id UUID NOT NULL` | Có | **Không** | Có | **Không** |
-| `created_at TIMESTAMPTZ NOT NULL` | Có | Có | Có | Không bắt buộc |
-| `updated_at TIMESTAMPTZ NOT NULL` | Có | Có | **Không** | Không bắt buộc |
-| `deleted_at TIMESTAMPTZ` | Có | Có | **Không** | Không bắt buộc |
-| `created_by UUID NOT NULL` | Có | Có | Có | Không bắt buộc |
-| `updated_by UUID NOT NULL` | Có | Có | **Không** | Không bắt buộc |
+| Cột | Bảng nghiệp vụ | `tenant_root` | `reference_tables` | `append_only_tables` | `system_tables` |
+|---|---|---|---|---|---|
+| `id UUID PRIMARY KEY` | Có | Có | Có | Có | Không bắt buộc |
+| `company_id UUID NOT NULL` | Có | **Không** | **Không** | Có | **Không** |
+| `created_at TIMESTAMPTZ NOT NULL` | Có | Có | Có | Có | Không bắt buộc |
+| `updated_at TIMESTAMPTZ NOT NULL` | Có | Có | Có | **Không** | Không bắt buộc |
+| `deleted_at TIMESTAMPTZ` | Có | Có | Có | **Không** | Không bắt buộc |
+| `created_by UUID NOT NULL` | Có | Có | Có | Có | Không bắt buộc |
+| `updated_by UUID NOT NULL` | Có | Có | Có | **Không** | Không bắt buộc |
 
 Ô "Không" là **miễn trừ**, không phải "tùy chọn": bảng thuộc nhóm đó **không được có** cột
 tương ứng. Thêm `deleted_at` vào một bảng trong `append_only_tables` là mâu thuẫn với chính
@@ -210,7 +210,27 @@ câu hỏi "ai sửa gần nhất", và câu trả lời "chưa ai sửa" đã �
 
 `deleted_at` là cột duy nhất cho `NULL` — `NULL` chính là nghĩa "chưa xóa" (R-18).
 
-#### 2. `reference_tables` — giống hệt trên, trừ `company_id`
+#### 2. `tenant_root` — giống bảng nghiệp vụ, trừ `company_id`
+
+```sql
+id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+deleted_at   TIMESTAMPTZ,
+created_by   UUID        NOT NULL,
+updated_by   UUID        NOT NULL
+```
+
+Chỗ khác duy nhất về cột so với bảng nghiệp vụ là **không có `company_id`**: `companies`
+là bảng **định nghĩa** tenant nên không thể mang khóa trỏ tới chính khái niệm nó định
+nghĩa. Mọi thứ còn lại giữ nguyên — đủ ba cột thời gian (R-08), đủ cột audit, **vẫn sinh
+bản ghi audit khi ghi** (R-17), **vẫn xóa mềm** (R-18).
+
+Bộ cột của nhóm này trùng với bộ cột của `reference_tables`; hai nhóm vẫn tách rời vì lý
+do tồn tại khác nhau — `tenant_root` định nghĩa tenant, `reference_tables` là danh mục
+dùng chung giữa các tenant.
+
+#### 3. `reference_tables` — giống hệt trên, trừ `company_id`
 
 ```sql
 id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -226,7 +246,7 @@ nào. Mọi thứ còn lại giữ nguyên: có đủ ba cột thời gian (R-08
 sinh bản ghi audit khi ghi** (R-17), **vẫn xóa mềm** (R-18). Danh mục có người sửa, và sửa
 một danh mục dùng chung thì ảnh hưởng mọi công ty cùng lúc — đó là chỗ cần truy vết nhất.
 
-#### 3. `append_only_tables` — chỉ ghi thêm
+#### 4. `append_only_tables` — chỉ ghi thêm
 
 ```sql
 id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -244,11 +264,11 @@ Hệ quả cài đặt phải chấp nhận, đã nêu ở ADR-0003: vì không 
 ghi phải được ghi trong **một lần ghi duy nhất** — không có mẫu "claim trước rồi `UPDATE`
 kết quả sau".
 
-#### 4. `system_tables` — không bắt buộc cột nào
+#### 5. `system_tables` — không bắt buộc cột nào
 
 Miễn toàn bộ: `company_id`, mọi cột thời gian, mọi cột audit, soft delete, và cả việc sinh
-bản ghi audit. `schema_migrations` do `golang-migrate` sở hữu; `companies` là bảng **định
-nghĩa** tenant nên không thể mang khóa trỏ tới chính khái niệm nó định nghĩa.
+bản ghi audit. `schema_migrations` do `golang-migrate` sở hữu. `companies` **không** thuộc
+nhóm này — nó nằm ở `tenant_root` (C-DB-04) và không được miễn thứ gì ngoài `company_id`.
 
 Nhóm này phải giữ nhỏ nhất có thể: mỗi tên thêm vào đây là một bảng nằm ngoài toàn bộ cơ
 chế truy vết.
@@ -303,6 +323,19 @@ DROP TABLE IF EXISTS orders;
 lại chúng. Ngược lại, migration chỉ thêm index thì phần `down` phải `DROP INDEX` đúng
 những index đó (C-DB-06).
 
+#### `created_by` và `updated_by` không mang khóa ngoại
+
+**`created_by` và `updated_by` không bao giờ mang khóa ngoại**, dù R-08 bắt mọi cột
+dạng `<singular>_id` là khóa ngoại. Đây là ngoại lệ có lý do: audit phải giữ được dấu
+vết kể cả khi user bị xóa, nên ràng buộc cứng tới `users` sai về nghiệp vụ chứ không
+chỉ bất tiện.
+
+Khai tường minh ở đây vì nếu không, checker R-09 sẽ đi tìm index cho một khóa ngoại
+không tồn tại.
+
+Giá trị của hai cột này khi thao tác **không do người dùng khởi xướng** — seed lúc
+bootstrap, job nền, relay — là `system_actor_id` khai ở `C-DB-04`.
+
 ---
 
 ### C-DB-04 — Registry nhóm bảng
@@ -315,9 +348,24 @@ người lẫn checker `arch/` của `backend-erp` đọc từ đây.
 **Nghĩa của trường `adr`:** ADR giải thích **lý do kiến trúc khiến entry được xếp vào
 nhóm hiện tại**. Nó **không** có nghĩa "ADR gần nhất từng nhắc tới bảng này".
 
-**Invariant:** `adr` phải trỏ tới một ADR ở trạng thái `Accepted`, và ADR đó phải biện
-minh tường minh cho phân loại hoặc miễn trừ này. Thêm một bảng vào bất kỳ nhóm nào đòi
-một ADR mới — không sửa ADR cũ, và cũng không thêm lặng lẽ bằng một PR Convention.
+**Invariant:** `adr` phải trỏ tới một ADR ở trạng thái `Accepted`, và ADR đó phải hoặc
+**định nghĩa tiêu chí của nhóm** mà entry được xếp vào, hoặc **biện minh riêng cho chính
+bảng đó**.
+
+Hai ví dụ cho hai vế:
+
+- `idempotency_keys` trỏ `ADR-0003` vì ADR đó đặt ra tiêu chí của `append_only_tables`
+  — *bảng chỉ ghi thêm, không bao giờ sửa* — và bảng này thỏa tiêu chí. ADR-0003 không
+  cần gọi đích danh nó.
+- `outbox` trỏ `ADR-0006` vì chính ADR đó quyết định nó tồn tại và quyết định nó chỉ
+  ghi thêm.
+
+Thêm một bảng vào bất kỳ nhóm nào vẫn đòi một ADR — hoặc một ADR mới biện minh riêng,
+hoặc một ADR có sẵn mà bảng đó thỏa tiêu chí. Không sửa ADR cũ, và không thêm lặng lẽ
+bằng một PR Convention.
+
+`check-ids.ps1` kiểm được vế "ADR tồn tại và ở trạng thái Accepted". Vế "thỏa tiêu chí"
+thì không — đó là việc của reviewer.
 
 ```yaml
 system_actor_id: 00000000-0000-4000-8000-000000000001

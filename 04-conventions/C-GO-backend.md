@@ -22,6 +22,7 @@ mỹ — đặt tên khác là làm mù bộ kiểm, và mọi Rule dựa vào n
 | C-GO-04 | Wrap error và ánh xạ sang mã lỗi | R-11 |
 | C-GO-05 | Nội dung `module.yaml` | R-02, R-05, R-15 |
 | C-GO-06 | Chữ ký method service, actor và kiểm quyền | R-15, R-17 |
+| C-GO-07 | SQL phải là một hằng chuỗi đơn | R-02, R-06, R-09, R-18 |
 
 ---
 
@@ -1388,3 +1389,53 @@ func (m *Module) Register(r gin.IRouter) {
 | Không có `bus.Publish` trong `modules/**` (R-05) | Không xuất hiện dòng nào; relay lo việc đó |
 | Tiền tính ở backend (R-19) | `o.TotalAmount = total`, không nhận từ `CreateOrderRequest` |
 | Response đi qua `shared/response` (R-11) | `response.Created`, `response.Success`, `response.Error` |
+
+---
+
+### C-GO-07 — SQL phải là một hằng chuỗi đơn
+
+**Implements:** R-02, R-06, R-09, R-18
+
+Câu SQL trong `*_repository.go` phải là **một `BasicLit` đơn** khai bằng `const`. Cấm
+nối chuỗi — kể cả nối hai hằng — cấm `fmt.Sprintf`, `strings.Builder`, và mọi cách dựng
+SQL lúc chạy.
+
+```go
+// ĐÚNG: mot BasicLit don
+const insertOrderSQL = `
+INSERT INTO orders (id, company_id, code)
+VALUES ($1, $2, $3)`
+
+// SAI: noi hai hang. Go coi day la constant expression, nhung checker thi phai
+// evaluate expression moi biet chuoi cuoi cung la gi - va the la mo lai dung canh cua
+// ma quy uoc nay dong.
+const badSQL = "SELECT * FROM orders" + " WHERE company_id = $1"
+
+// SAI: dung luc chay, khong phan tich tinh duoc.
+q := fmt.Sprintf("SELECT * FROM %s WHERE company_id = $1", table)
+```
+
+**Vì sao quy ước nhỏ này quan trọng hơn vẻ ngoài của nó:** bốn Rule — R-02, R-06,
+R-09, R-18 — đều cần đọc được câu SQL thật để kiểm. Với SQL là hằng, checker trích ra
+bằng AST và parse được. Với SQL dựng lúc chạy, cả bốn mù hoàn toàn. Nói cách khác, bốn
+rule đó **chỉ đạt mức FULL khi quy ước này được tuân thủ**; bỏ nó là hạ cả bốn xuống
+mức kiểm được một phần.
+
+Nó cũng đóng luôn lỗ SQL injection, và R-12 đã đòi điều tương tự cho `sort` — đây là
+mở rộng ra toàn bộ.
+
+**Lọc động thì làm sao:** viết sẵn vài hằng cho từng tổ hợp, hoặc dùng điều kiện bỏ qua
+được ngay trong SQL:
+
+```go
+const listOrdersSQL = `
+SELECT id, code, status FROM orders
+WHERE company_id = $1
+  AND deleted_at IS NULL
+  AND ($2::text IS NULL OR status = $2)
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4`
+```
+
+Truyền `nil` cho `$2` khi không lọc theo trạng thái. Một hằng phục vụ cả hai trường
+hợp, và checker vẫn đọc được nó.
