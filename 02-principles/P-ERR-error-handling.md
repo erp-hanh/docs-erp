@@ -149,7 +149,7 @@ func (s *OrderService) GetOrder(ctx context.Context, actor auth.Actor, id string
 }
 
 // translateWrite là ca giao thoa: driver trả lỗi KỸ THUẬT nhưng ngữ nghĩa là NGHIỆP
-// VỤ. Chỉ service dịch được, vì chỉ nó biết constraint uq_orders_company_code ứng
+// VỤ. Chỉ service dịch được, vì chỉ nó biết constraint uq_orders_company_id_code ứng
 // với quy tắc "mã đơn không trùng trong một công ty". Lỗi 23505 nào không nhận ra
 // thì trả nguyên trạng: đoán bừa còn tệ hơn báo internal_error.
 func translateWrite(err error) error {
@@ -157,7 +157,7 @@ func translateWrite(err error) error {
 	if !errors.As(err, &pgErr) {
 		return err
 	}
-	if pgErr.Code == "23505" && pgErr.ConstraintName == "uq_orders_company_code" {
+	if pgErr.Code == "23505" && pgErr.ConstraintName == "uq_orders_company_id_code" {
 		return apperr.Conflict(apperr.CodeOrderCodeDuplicated, "ma don hang da ton tai")
 	}
 	return err

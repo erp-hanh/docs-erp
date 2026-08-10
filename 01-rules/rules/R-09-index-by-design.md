@@ -63,13 +63,13 @@ CREATE TABLE order_items (
     company_id  UUID NOT NULL REFERENCES companies(id),
     order_id    UUID NOT NULL REFERENCES orders(id),
     product_id  UUID NOT NULL REFERENCES products(id),
-    quantity    NUMERIC(14,2) NOT NULL,
-    unit_price  NUMERIC(14,2) NOT NULL,
+    quantity    NUMERIC(18,4) NOT NULL,
+    unit_price  NUMERIC(18,4) NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at  TIMESTAMPTZ,
     created_by  UUID NOT NULL,
-    updated_by  UUID
+    updated_by  UUID NOT NULL
 );
 -- SAI: order_id và product_id là khóa ngoại nhưng không có CREATE INDEX nào đi kèm,
 -- và cũng không có comment miễn nào giải thích lý do bỏ qua.
@@ -89,13 +89,13 @@ CREATE TABLE order_items (
     company_id  UUID NOT NULL REFERENCES companies(id),
     order_id    UUID NOT NULL REFERENCES orders(id),
     product_id  UUID NOT NULL REFERENCES products(id),
-    quantity    NUMERIC(14,2) NOT NULL,
-    unit_price  NUMERIC(14,2) NOT NULL,
+    quantity    NUMERIC(18,4) NOT NULL,
+    unit_price  NUMERIC(18,4) NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at  TIMESTAMPTZ,
     created_by  UUID NOT NULL,
-    updated_by  UUID
+    updated_by  UUID NOT NULL
 );
 
 -- ĐÚNG: mỗi khóa ngoại khác company_id là cột THỨ HAI của một index composite mở đầu
@@ -116,7 +116,7 @@ CREATE TABLE order_tags (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     created_by UUID NOT NULL,
-    updated_by UUID
+    updated_by UUID NOT NULL
 );
 
 -- ĐÚNG: order_tags KHÔNG đủ điều kiện miễn dù bảng rất nhỏ — nó trượt CẢ HAI điều
@@ -142,7 +142,7 @@ CREATE TABLE currencies (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     created_by UUID NOT NULL,
-    updated_by UUID
+    updated_by UUID NOT NULL
 );
 
 -- Partial unique index thay cho UNIQUE thuong, theo R-18: bang co soft delete nen mot
