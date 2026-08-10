@@ -37,9 +37,9 @@ rạc, không ghép lại được thành một hành động của người dù
 
 ### `audit_logs` nằm trong nhóm `append_only_tables`
 
-`audit_logs` không phải bảng nghiệp vụ và cũng không phải `system_tables`; nó thuộc
-nhóm thứ ba, `append_only_tables`, cùng với `outbox`. Cụ thể với R-17, điều đó nghĩa
-là:
+`audit_logs` không phải bảng nghiệp vụ, không phải `system_tables`, cũng không phải
+`reference_tables`; nó thuộc nhóm `append_only_tables`, cùng với `outbox`. Cụ thể với
+R-17, điều đó nghĩa là:
 
 - **Có** `company_id` (R-06 áp bình thường), **có** `created_at`, **có** `created_by`
   — chính là actor gây ra thao tác được ghi lại.
@@ -56,6 +56,19 @@ Nói cách khác, nhóm `append_only_tables` tồn tại chính vì hai bảng n
 `company_id` và `created_by` như bảng nghiệp vụ, nhưng phải nằm ngoài vòng
 sửa/xóa/audit mà bảng nghiệp vụ phải theo. Nguồn sự thật của danh sách là
 `03-decisions/ADR-0003-multi-tenant-ready.md`.
+
+### Bảng trong `reference_tables` vẫn sinh bản ghi audit
+
+`reference_tables` (`currencies`, `units`, `provinces`) không được miễn gì ở R-17: có
+đủ `created_by` và `updated_by`, và mọi thao tác ghi lên nó vẫn phải sinh một dòng
+`audit_logs` trong cùng transaction. Đó chính là lý do nhóm này tách khỏi
+`system_tables` — danh mục có người sửa, và sửa một danh mục dùng chung thì ảnh hưởng
+tới mọi tenant, nên càng cần biết ai sửa.
+
+Điểm cần chú ý: bảng bị sửa không có `company_id`, nhưng dòng `audit_logs` sinh ra thì
+vẫn có — giá trị lấy từ `actor.CompanyID`, tức công ty của người đã sửa. Không có mâu
+thuẫn ở đây: `audit_logs` chịu R-06 như mọi bảng có `company_id` khác, và câu hỏi mà
+nó trả lời là "ai đã sửa", chứ không phải "bản ghi bị sửa thuộc công ty nào".
 
 ## Ví dụ SAI
 
@@ -165,10 +178,12 @@ type OrderService struct {
 	auditRepo audit.Repository
 }
 
-// ĐÚNG: câu lệnh đầu tiên là kiểm quyền (R-15). Sau đó auditRepo.Record nhận cùng
-// DBTX (tx) với repository nghiệp vụ, gọi trước khi commit — audit và dữ liệu nghiệp
-// vụ commit hoặc rollback cùng nhau, không thể có chuyện một cái tồn tại mà cái kia
-// thì không. CompanyID và RequestID đều lấy từ ctx, không nhận từ tham số client.
+// ĐÚNG: actor là tham số thứ hai ngay sau ctx, nên câu lệnh đầu tiên của method vẫn
+// là kiểm quyền (R-15). Sau đó auditRepo.Record nhận cùng DBTX (tx) với repository
+// nghiệp vụ, gọi trước khi commit — audit và dữ liệu nghiệp vụ commit hoặc rollback
+// cùng nhau, không thể có chuyện một cái tồn tại mà cái kia thì không. CompanyID lấy
+// từ actor mà handler truyền xuống, RequestID lấy từ ctx; không cái nào nhận từ
+// tham số client.
 func (s *OrderService) UpdateStatus(ctx context.Context, actor auth.Actor, orderID, newStatus string) error {
 	if err := s.authz.Can(ctx, actor, PermOrderUpdate); err != nil {
 		return err
@@ -231,6 +246,8 @@ Get-ChildItem -Path modules -Recurse -Filter *_service*.go | ForEach-Object {
 }
 
 # 2) Bang nghiep vu moi tao co du created_by / updated_by chua?
+# reference_tables khong xuat hien o day la co y: no khong duoc mien gi o R-17 nen roi
+# vao nhanh "moi bang con lai" - doi ca created_by lan updated_by, dung nhu bang nghiep vu.
 $systemTables     = @('schema_migrations', 'companies')
 $appendOnlyTables = @('outbox', 'audit_logs')
 
@@ -260,9 +277,11 @@ dấu hiệu audit đang được ghi sau khi transaction đã commit. Đây là
 file, không phải theo hàm, nên mọi kết quả khớp cần đọc lại thủ công để xác nhận cả
 hai lời gọi thuộc cùng một method trước khi kết luận vi phạm.
 
-Lệnh (2) kiểm vế cột của R-17 và áp đúng ba nhóm bảng: `system_tables` bỏ qua hoàn
-toàn; `append_only_tables` chỉ đòi `created_by`; mọi bảng còn lại đòi cả `created_by`
-lẫn `updated_by`. Hai danh sách trong script phải được chép từ
+Lệnh (2) kiểm vế cột của R-17 và áp đúng bốn nhóm bảng: `system_tables` bỏ qua hoàn
+toàn; `append_only_tables` chỉ đòi `created_by`; `reference_tables` và mọi bảng nghiệp
+vụ đòi cả `created_by` lẫn `updated_by` — vì vậy `reference_tables` không cần một danh
+sách riêng trong script, nó rơi đúng vào nhánh mặc định. Hai danh sách trong script
+phải được chép từ
 `03-decisions/ADR-0003-multi-tenant-ready.md` — sửa danh sách ở đây mà không sửa ADR
 là làm sai lệch nguồn sự thật, không phải sửa lỗi script. Lệnh này cắt khối
 `CREATE TABLE ... );` theo dấu `);` đứng riêng một dòng, nên migration viết dồn tất cả

@@ -36,10 +36,22 @@ Ngoại lệ của R-09 từng dựa trên dự đoán kích thước ("dưới 
 JOIN"). Vế đó đã bị bỏ vì hai lý do. Thứ nhất, nó không kiểm được tại thời điểm review:
 người viết migration đoán, người review không có cách nào xác nhận hay bác bỏ. Thứ
 hai, nó sai theo thời gian — mọi bảng đều nhỏ trong tháng đầu, và không ai quay lại
-xóa dòng miễn trừ khi bảng lớn lên. Ngoại lệ hiện tại dựa trên tính chất cấu trúc,
-đọc thẳng ra được từ chính file migration: bảng tra cứu tĩnh, không có `company_id`,
-không có khóa ngoại trỏ tới bảng giao dịch. Một bảng như vậy không lớn lên theo lượng
-giao dịch, nên kết luận rút ra hôm nay vẫn còn đúng sau ba năm.
+xóa dòng miễn trừ khi bảng lớn lên.
+
+Ngoại lệ hiện tại dựa trên hai điều kiện cấu trúc, cả hai đều tra được chứ không đoán:
+tên bảng **có trong danh sách `reference_tables`** ở
+`03-decisions/ADR-0003-multi-tenant-ready.md`, và trong chính file migration **không có
+khóa ngoại trỏ tới bảng giao dịch**. Điều kiện thứ nhất tra ở ADR, điều kiện thứ hai
+đọc thẳng ra từ file đang review. Một bảng thỏa cả hai là danh mục dùng chung, không
+lớn lên theo lượng giao dịch, nên kết luận rút ra hôm nay vẫn còn đúng sau ba năm.
+
+Phải là `reference_tables` chứ không phải "bảng nào không có `company_id`". Theo R-06,
+bảng thiếu `company_id` chỉ hợp lệ khi nó nằm trong `system_tables` hoặc
+`reference_tables`; mà `system_tables` (`schema_migrations`, `companies`) vốn không có
+khóa ngoại nào nên chẳng bao giờ cần tới ngoại lệ này. Nếu ngoại lệ chỉ ghi "không có
+`company_id`" thì nhóm bảng duy nhất dùng được nó lại là nhóm không cần nó — ngoại lệ
+thành chữ chết. `reference_tables` là nhóm thật sự rơi vào tình huống đó: danh mục
+dùng chung, có người sửa, có audit, có soft delete, nhưng không thuộc tenant nào.
 
 ## Ví dụ SAI
 
@@ -107,25 +119,40 @@ CREATE TABLE order_tags (
     updated_by UUID
 );
 
--- ĐÚNG: order_tags KHÔNG đủ điều kiện miễn dù bảng rất nhỏ — nó có company_id và có
--- khóa ngoại trỏ tới orders, một bảng giao dịch. Kích thước dự kiến không còn là căn
--- cứ để miễn, nên bảng này nhận index như mọi bảng nghiệp vụ khác.
+-- ĐÚNG: order_tags KHÔNG đủ điều kiện miễn dù bảng rất nhỏ — nó trượt CẢ HAI điều
+-- kiện: tên không có trong reference_tables (nó là bảng nghiệp vụ, có company_id), và
+-- nó có khóa ngoại trỏ tới orders, một bảng giao dịch. Kích thước dự kiến không còn là
+-- căn cứ để miễn, nên bảng này nhận index như mọi bảng nghiệp vụ khác.
 CREATE INDEX idx_order_tags_company_id_order_id ON order_tags(company_id, order_id);
 ```
 
 ```sql
 -- migrations/000047_create_currencies.up.sql
 
+-- currencies nam trong nhom reference_tables: danh muc dung chung toan he thong,
+-- khong thuoc tenant nao nen khong co company_id (R-06). Nhung no chi duoc mien dung
+-- ve do: van co du cot thoi gian (R-08), du cot audit va van sinh ban ghi audit khi
+-- ghi (R-17), van xoa mem (R-18) - vi danh muc co nguoi sua va can truy vet ai sua.
 CREATE TABLE currencies (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code       TEXT NOT NULL UNIQUE,
+    code       TEXT NOT NULL,
     name       TEXT NOT NULL,
-    minor_unit SMALLINT NOT NULL
+    minor_unit SMALLINT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    updated_by UUID
 );
 
--- index-exempt: currencies la bang tra cuu tinh - khong co company_id, khong co khoa
--- ngoai tro toi bang giao dich. Du lieu nap mot lan luc seed (~180 dong ISO 4217) va
--- chi doc qua PRIMARY KEY hoac UNIQUE(code); ca hai rang buoc do da tu sinh index.
+-- Partial unique index thay cho UNIQUE thuong, theo R-18: bang co soft delete nen mot
+-- ma da xoa mem van chiem cho neu dung UNIQUE, khong tao lai duoc ban ghi cung ma.
+-- Bang khong co company_id nen index bat dau thang tu cot nghiep vu.
+CREATE UNIQUE INDEX uq_currencies_code ON currencies(code) WHERE deleted_at IS NULL;
+
+-- index-exempt: currencies nam trong danh sach reference_tables va khong co khoa ngoai
+-- tro toi bang giao dich - du ca hai dieu kien. Du lieu nap mot lan luc seed (~180 dong
+-- ISO 4217) va chi doc qua PRIMARY KEY hoac code; ca hai cot do da co index san.
 ```
 
 Comment miễn phải viết đúng mẫu ASCII `-- index-exempt: <lý do>` và nằm ngay trong
@@ -133,12 +160,15 @@ file migration đó. Lý do dùng ASCII thuần: PowerShell 5.1 đọc file `.sq
 không BOM theo codepage ANSI, nên một marker viết tiếng Việt có dấu sẽ không khớp khi
 grep — script sẽ báo oan file đã ghi lý do miễn.
 
-Lưu ý về `currencies`: nó không có `company_id`, mà theo R-06 chỉ bảng nằm trong danh
-sách `system_tables` mới được thiếu cột đó. Nghĩa là muốn dùng ngoại lệ của R-09,
-bảng phải được thêm tên vào `system_tables` ở
-`03-decisions/ADR-0003-multi-tenant-ready.md` trước — và việc đó cần một ADR mới. Đây
-là chủ ý: ngoại lệ index không được cấp lẻ trong một migration, nó đi kèm quyết định
-"bảng này không thuộc tenant nào".
+Hai điều kiện của ngoại lệ phải đủ **cả hai**, và `currencies` là ví dụ đủ cả hai.
+Điều kiện (a) — tên nằm trong `reference_tables` — không cấp được bằng một dòng comment
+trong migration: muốn có nó phải viết ADR bổ sung tên bảng vào danh sách ở
+`03-decisions/ADR-0003-multi-tenant-ready.md`. Đây là chủ ý: ngoại lệ index đi kèm
+quyết định "bảng này là danh mục dùng chung, không thuộc tenant nào", chứ không phải
+một ưu ái xin lẻ lúc viết migration. Điều kiện (b) — không có khóa ngoại trỏ tới bảng
+giao dịch — thì đọc thẳng ra từ file: nếu ngày mai ai đó thêm `order_id UUID REFERENCES
+orders(id)` vào `currencies`, bảng mất quyền miễn ngay cả khi vẫn nằm trong
+`reference_tables`, vì lúc đó nó lớn lên theo lượng giao dịch.
 
 ```sql
 -- migrations/000048_add_orders_status_index.up.sql

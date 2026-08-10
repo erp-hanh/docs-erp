@@ -31,10 +31,33 @@ Nhưng có điều kiện lọc thôi chưa đủ. Một câu SQL viết đúng 
 **giá trị** đưa vào `company_id = $1` là do client gửi lên: kẻ tấn công chỉ cần đổi
 một field trong JSON body hoặc một tham số trên URL là đọc được dữ liệu công ty khác,
 trong khi mọi lệnh grep tìm `company_id =` đều báo xanh. Vì thế giá trị đó bắt buộc
-lấy từ actor đã xác thực trong `ctx` — thứ do `shared/middleware/auth` gắn vào sau
-khi verify token (R-14) và client không có đường nào tác động tới. DTO request có
-field `company_id` là dấu hiệu vi phạm ngay cả khi nó chưa được dùng ở đâu, vì nó mở
-sẵn đường cho lỗi đó xuất hiện ở lần sửa sau.
+lấy từ `actor.CompanyID` của actor đã xác thực — actor do `shared/middleware/auth`
+gắn vào `ctx` sau khi verify token (R-14), handler đọc ra bằng `auth.FromContext(ctx)`
+rồi truyền xuống service làm tham số thứ hai theo R-15. Client không có đường nào tác
+động tới giá trị đó. DTO request có field `company_id` là dấu hiệu vi phạm ngay cả khi
+nó chưa được dùng ở đâu, vì nó mở sẵn đường cho lỗi đó xuất hiện ở lần sửa sau.
+
+Chỗ đọc actor ra khỏi `ctx` được giữ đúng **một**: handler. Service nhận actor qua
+tham số nên chữ ký hàm tự nói method này cần actor, test dựng được actor giả mà không
+phải nhồi giá trị vào `ctx`, và lời gọi kiểm quyền vẫn giữ được vị trí câu lệnh đầu
+tiên mà R-15 đòi — nếu service tự gọi `auth.FromContext(ctx)` thì dòng đó phải đứng
+trước `s.authz.Can(...)`, tức là vi phạm R-15 ngay tại chỗ.
+
+### `reference_tables` nằm ngoài phạm vi R-06
+
+Bảng trong `reference_tables` — `currencies`, `units`, `provinces` — là danh mục dùng
+chung toàn hệ thống, không thuộc tenant nào, nên **không có `company_id`** và mọi vế
+của R-06 không áp lên chúng: không đòi cột, không đòi `company_id = $n` trong `WHERE`,
+không có gì để lấy từ actor. Đừng nhầm chúng với bảng nghiệp vụ bị quên cột — khác
+biệt nằm ở chỗ tên bảng có trong danh sách `reference_tables` ở
+`03-decisions/ADR-0003-multi-tenant-ready.md` hay không, và thêm tên vào danh sách đó
+phải viết ADR mới.
+
+Nhưng `reference_tables` chỉ được miễn đúng vế `company_id`. Nó vẫn có đủ
+`created_at`, `updated_at`, `deleted_at` (R-08), đủ `created_by`, `updated_by` và vẫn
+sinh bản ghi audit khi ghi (R-17), vẫn xóa mềm (R-18). Bản ghi audit sinh ra khi sửa
+một danh mục mang `company_id` của actor đã sửa, vì `audit_logs` luôn có `company_id`
+kể cả khi bảng bị sửa thì không.
 
 ## Ví dụ SAI
 
@@ -157,7 +180,7 @@ func (r *orderRepo) GetByID(ctx context.Context, dbtx db.DBTX, companyID, id str
 }
 ```
 
-### `company_id` lấy từ actor trong `ctx`
+### `company_id` lấy từ `actor.CompanyID`
 
 ```go
 package handler
@@ -166,6 +189,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"erp/modules/order/internal/service"
+	"erp/shared/auth"
 	"erp/shared/response"
 )
 
@@ -189,7 +213,12 @@ func (h *OrderHandler) List(c *gin.Context) {
 		return
 	}
 
-	items, total, err := h.svc.ListOrders(ctx, service.ListOrdersInput{
+	// ĐÚNG: handler là nơi DUY NHẤT đọc actor ra khỏi ctx (R-15). shared/middleware/auth
+	// đã gắn actor vào ctx sau khi verify token (R-14); từ đây trở xuống actor đi bằng
+	// tham số, không ai moi lại từ ctx nữa.
+	actor := auth.FromContext(ctx)
+
+	items, total, err := h.svc.ListOrders(ctx, actor, service.ListOrdersInput{
 		Page:     q.Page,
 		PageSize: q.PageSize,
 		Sort:     q.Sort,
@@ -230,15 +259,15 @@ type ListOrdersInput struct {
 	Sort     string
 }
 
-// ĐÚNG: company_id đến từ actor đã xác thực trong ctx, do shared/middleware/auth gắn
-// vào sau khi verify token (R-14). Không có tham số nào của method này mang giá trị
-// company_id, nên không có đường cho client chèn giá trị của công ty khác vào.
-func (s *OrderService) ListOrders(ctx context.Context, in ListOrdersInput) ([]model.Order, int, error) {
-	if err := s.authz.Can(ctx, auth.FromContext(ctx), PermOrderRead); err != nil {
+// ĐÚNG: actor là tham số thứ hai, ngay sau ctx (R-15), nên câu lệnh đầu tiên của
+// method vẫn là lời gọi kiểm quyền — không cần dòng nào moi actor ra khỏi ctx trước
+// đó. company_id lấy từ actor.CompanyID; ListOrdersInput không có field company_id,
+// nên không có đường cho client chèn giá trị của công ty khác vào.
+func (s *OrderService) ListOrders(ctx context.Context, actor auth.Actor, in ListOrdersInput) ([]model.Order, int, error) {
+	if err := s.authz.Can(ctx, actor, PermOrderRead); err != nil {
 		return nil, 0, err
 	}
 
-	actor := auth.FromContext(ctx)
 	return s.orderRepo.List(ctx, s.db, actor.CompanyID, in.Page, in.PageSize, in.Sort)
 }
 ```
@@ -247,7 +276,11 @@ func (s *OrderService) ListOrders(ctx context.Context, in ListOrdersInput) ([]mo
 
 ```powershell
 # 1) Tung cau SQL trong repository: thieu company_id trong WHERE, hoac SELECT khong co WHERE
-$systemTables = @('schema_migrations', 'companies')
+# Hai nhom bang khong co company_id nen khong bi kiem: system_tables va reference_tables.
+# Chep tu 03-decisions/ADR-0003-multi-tenant-ready.md, khong tu them ten o day.
+$systemTables    = @('schema_migrations', 'companies')
+$referenceTables = @('currencies', 'units', 'provinces')
+$noTenantTables  = $systemTables + $referenceTables
 
 Get-ChildItem -Path modules -Recurse -Filter *_repository*.go | ForEach-Object {
     $file = $_.FullName
@@ -260,12 +293,12 @@ Get-ChildItem -Path modules -Recurse -Filter *_repository*.go | ForEach-Object {
         $sql = ($lit.Groups[1].Value -replace '\s+', ' ').Trim()
         if ($sql -notmatch '(?i)\b(SELECT|UPDATE|DELETE)\b') { continue }
 
-        # Bo qua cau chi dung tren system_tables
+        # Bo qua cau chi dung tren bang khong co company_id
         $tables = @([regex]::Matches($sql, '(?i)\b(?:FROM|JOIN|UPDATE)\s+([a-z_][a-z0-9_]*)') |
                     ForEach-Object { $_.Groups[1].Value.ToLower() })
         if ($tables.Count -gt 0) {
-            $business = @($tables | Where-Object { $systemTables -notcontains $_ })
-            if ($business.Count -eq 0) { continue }
+            $tenantScoped = @($tables | Where-Object { $noTenantTables -notcontains $_ })
+            if ($tenantScoped.Count -eq 0) { continue }
         }
 
         if ($sql -notmatch '(?i)\bWHERE\b') {
@@ -296,9 +329,11 @@ câu SQL, một lần kiểm, cả hai lọt.
 
 Vì vậy lệnh (1) báo riêng hai loại: `SELECT` trên bảng nghiệp vụ **không có mệnh đề
 `WHERE`** (nguy hiểm nhất, đọc sạch mọi công ty), và câu có `WHERE` nhưng thiếu
-`company_id =`. Câu SQL chỉ đụng tới bảng trong `system_tables` (`schema_migrations`,
-`companies` — nguồn sự thật ở `03-decisions/ADR-0003-multi-tenant-ready.md`) được bỏ
-qua để không báo oan.
+`company_id =`. Câu SQL chỉ đụng tới bảng không có `company_id` — `system_tables`
+(`schema_migrations`, `companies`) và `reference_tables` (`currencies`, `units`,
+`provinces`) — được bỏ qua để không báo oan. Hai danh sách trong script phải chép từ
+`03-decisions/ADR-0003-multi-tenant-ready.md`; sửa danh sách ở đây mà không sửa ADR là
+làm sai lệch nguồn sự thật, không phải sửa lỗi script.
 
 Lệnh (2) bắt vế nguồn của giá trị: mỗi dòng in ra là một chỗ `company_id` do client
 gửi lên. Loại này lệnh (1) không thấy được, vì câu SQL tương ứng vẫn có đủ
