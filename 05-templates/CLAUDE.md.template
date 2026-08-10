@@ -1,0 +1,104 @@
+# CLAUDE.md — `<ten-repo>`
+
+> **Khung `CLAUDE.md` cho ba repo code: `backend`, `frontend`, `infra`.**
+> Copy file này vào gốc repo, đổi tên thành `CLAUDE.md`, điền phần `<...>` của riêng
+> repo đó, rồi xóa mọi dòng trích dẫn `>` như dòng này.
+
+## 1. Nguồn sự thật
+
+**Nguồn sự thật về kiến trúc của hệ thống này là repo `docs-erp`, không phải code trong
+repo hiện tại.**
+
+**Trước khi sửa bất cứ thứ gì, đọc `docs-erp/00-START-HERE.md`.** File đó mất năm phút và
+nó nói bạn cần đọc tiếp cái gì cho việc bạn sắp làm.
+
+| Tầng | Trả lời câu hỏi | Ở đâu |
+|---|---|---|
+| RULES | Cái gì bắt buộc đúng | `docs-erp/01-rules/RULES.md` |
+| PRINCIPLES | Suy luận thế nào khi Rule không nói hết | `docs-erp/02-principles/` |
+| DECISIONS | Vì sao lại quyết như vậy | `docs-erp/03-decisions/` |
+| CONVENTIONS | Viết ra như thế nào, tới từng ký tự | `docs-erp/04-conventions/` |
+| CHECKLISTS | Kiểm lại bằng cách nào | `docs-erp/06-checklists/` |
+
+Code trong repo này là thứ **hiện thực hóa** những tài liệu trên. Khi code lệch với tài
+liệu, code là thứ sai — trừ khi tài liệu đã lạc hậu, và trong ca đó việc phải làm là mở
+issue ở `docs-erp` chứ không phải sửa code cho lệch tiếp.
+
+## 2. Hai quy tắc bắt buộc, không có ngoại lệ
+
+> **Nếu hai Rule mâu thuẫn nhau thì DỪNG LẠI và hỏi người. Không tự chọn bên.**
+
+Áp dụng cho cả người lẫn AI. Tự diễn giải một lần là tạo tiền lệ sai cho mọi lần sau, và
+tiền lệ đó không nằm ở đâu để ai đọc lại được. Dừng lại và hỏi luôn rẻ hơn.
+
+Cùng cách xử lý cho ba tình huống khác: một Rule đòi thứ mà repo này không có cách nào
+làm được; một Rule không nói gì về ca đang gặp; hai module phải cùng commit nguyên tử.
+Cả ba đều là ca cần một ADR mở đường, không phải chỗ để tự quyết cho xong.
+
+> **Khi Principle thắng Convention trong một ca cụ thể, BẮT BUỘC mở issue sửa Convention.**
+
+Thứ tự ưu tiên là chỉ dẫn tạm thời cho tới khi tầng dưới được sửa cho khớp, không phải
+giấy phép bỏ qua nó.
+
+## 3. Thứ tự ưu tiên khi xung đột
+
+```
+Rules > Principles > Conventions > existing code
+```
+
+`existing code` đứng cuối vì nó là thứ có thể sai và phải sửa. **Code hiện có không bao
+giờ là lý do để vi phạm Rule.** Câu "chỗ khác cũng viết như vậy" không phải lập luận —
+nó chỉ có nghĩa là có thêm một chỗ nữa cần sửa.
+
+## 4. Repo này là gì
+
+<Một đoạn: repo này chứa gì, chạy bằng lệnh nào, phụ thuộc vào repo nào.>
+
+**Bố cục:**
+
+```text
+<cây thư mục ở mức một tới hai tầng, đủ để biết thứ mình cần nằm ở đâu>
+```
+
+**Lệnh hay dùng:**
+
+| Việc | Lệnh |
+|---|---|
+| Chạy dưới máy | `<...>` |
+| Chạy test | `<...>` |
+| Lint | `<...>` |
+| Migration | `<...>` |
+
+## 5. Rule hay bị vi phạm nhất trong repo này
+
+<điền sau khi có code thật — mỗi repo tự liệt kê 3-5 rule>
+
+> Mục này **cố ý để trống**, và để trống là trạng thái đúng của nó lúc chưa có code.
+>
+> Danh sách này chỉ có giá trị khi nó được rút ra từ vi phạm **đã xảy ra thật** trong
+> chính repo này. Đoán trước rule nào sẽ hay bị phá là đoán sai: mỗi repo có hình dạng
+> vi phạm riêng, phụ thuộc vào thư viện đang dùng, vào thói quen của người viết, và vào
+> chỗ mà bộ kiểm tự động còn mù.
+>
+> Điền nó sau vài chục PR đầu tiên, mỗi dòng theo mẫu: **ID rule — dấu hiệu nhận ra
+> nhanh nhất — chỗ hay xuất hiện**. Giữ 3-5 dòng, không dài hơn: danh sách dài thì không
+> ai đọc, và mục này chỉ có tác dụng khi người ta liếc qua được trong mười giây.
+
+## 6. Trước khi mở PR
+
+**Chạy qua `docs-erp/06-checklists/CL-PR-code-review.md`.** Đó là bộ kiểm tổng hợp dùng
+cho mọi PR ở cả ba repo.
+
+Tùy loại thay đổi, chạy thêm một trong ba checklist chuyên biệt:
+
+| Thay đổi | Checklist |
+|---|---|
+| Thêm module mới | `docs-erp/06-checklists/CL-NEWMOD-new-module.md` |
+| Đổi schema | `docs-erp/06-checklists/CL-SCHEMA-schema-change.md` |
+| Thêm endpoint | `docs-erp/06-checklists/CL-API-new-endpoint.md` |
+
+Đánh dấu một dòng checklist nghĩa là **đã kiểm thật**, không phải đã đọc qua.
+
+Nếu PR này buộc phải vi phạm một Rule, khai ở mục cuối của `CL-PR-code-review.md` kèm ID
+rule và lý do. Reviewer quyết định. Khai ra thì còn tranh luận được; phá âm thầm thì
+không.

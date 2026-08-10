@@ -1,0 +1,32 @@
+# Khai bao ranh gioi module. Ba Rule kiem dua tren file nay:
+#   R-02 dua vao tables       - repository chi duoc query bang trong danh sach nay
+#   R-05 dua vao allowed_deps - service chi goi dong bo sang module trong danh sach
+#   R-15 dua vao internal_methods - ngoai le cua kiem quyen
+# Khong co file nay thi ca ba rule tren khong kiem duoc bang may.
+#
+# Vi tri: modules/<ten-module>/module.yaml, nam canh module.go.
+# File nay KHONG duoc code doc luc chay - no la dau vao cua bo kiem.
+name: <ten-module>
+
+# Bang module nay SO HUU. Khong liet ke outbox, audit_logs, hay bang trong
+# reference_tables - chung khong thuoc module nao.
+# Ten viet dung nhu trong migration: so nhieu, snake_case (orders, khong phai order).
+# Mot bang chi thuoc DUNG MOT module; hai module cung khai mot ten bang la dau hieu
+# ranh gioi module dang sai, va sua no can mot ADR chu khong phai sua file nay.
+tables:
+  - <bang_1>
+  - <bang_2>
+
+# Module duoc phep goi DONG BO. Ngoai danh sach nay phai di qua event.
+# R-04 cam hai chieu: neu A co B thi B khong duoc co A.
+# Cau hoi phai tra loi truoc khi them mot ten: neu viec kia hong, viec nay con duoc coi
+# la da xong khong? Tra loi "khong" thi moi can goi dong bo.
+allowed_deps:
+  - <module_khac>
+
+# Method public dung noi bo GIUA CAC SERVICE TRONG CUNG MODULE, mang tien to Internal.
+# Day KHONG phai duong goi xuyen module.
+# Ba dieu kien, phai du ca ba: ten mang tien to Internal; ten co trong danh sach nay;
+# ten KHONG xuat hien o bat ky interface nao trong modules/*/api/.
+internal_methods:
+  - <InternalTenMethod>
