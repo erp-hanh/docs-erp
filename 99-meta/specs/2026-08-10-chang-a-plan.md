@@ -1023,7 +1023,7 @@ Expected: cả hai subtest PASS.
 // Bang viet tay se lech khoi code ngay lan sua checker thu hai. Sinh tu du lieu thi
 // khong the lech.
 //
-//go:generate go run gen_readme.go
+// Chi thi //go:generate KHONG dat o day - xem ghi chu duoi.
 package main
 
 // Doc bien rules qua go/parser tu chinh package arch roi sinh bang Markdown gom bon
