@@ -55,7 +55,7 @@ R-17, điều đó nghĩa là:
 Nói cách khác, nhóm `append_only_tables` tồn tại chính vì hai bảng này: chúng cần
 `company_id` và `created_by` như bảng nghiệp vụ, nhưng phải nằm ngoài vòng
 sửa/xóa/audit mà bảng nghiệp vụ phải theo. Nguồn sự thật của danh sách là
-`03-decisions/ADR-0003-multi-tenant-ready.md`.
+`04-conventions/C-DB-database.md` mục `C-DB-04`.
 
 ### Bảng trong `reference_tables` vẫn sinh bản ghi audit
 
@@ -246,9 +246,10 @@ Get-ChildItem -Path modules -Recurse -Filter *_service*.go | ForEach-Object {
 }
 
 # 2) Bang nghiep vu moi tao co du created_by / updated_by chua?
-# reference_tables khong xuat hien o day la co y: no khong duoc mien gi o R-17 nen roi
-# vao nhanh "moi bang con lai" - doi ca created_by lan updated_by, dung nhu bang nghiep vu.
-$systemTables     = @('schema_migrations', 'companies')
+# tenant_root (companies) va reference_tables khong xuat hien o day la co y: ca hai
+# khong duoc mien gi o R-17 nen roi vao nhanh "moi bang con lai" - doi ca created_by
+# lan updated_by, dung nhu bang nghiep vu.
+$systemTables     = @('schema_migrations')
 $appendOnlyTables = @('outbox', 'audit_logs')
 
 Get-ChildItem -Path migrations -Filter *.up.sql | ForEach-Object {
@@ -277,12 +278,12 @@ dấu hiệu audit đang được ghi sau khi transaction đã commit. Đây là
 file, không phải theo hàm, nên mọi kết quả khớp cần đọc lại thủ công để xác nhận cả
 hai lời gọi thuộc cùng một method trước khi kết luận vi phạm.
 
-Lệnh (2) kiểm vế cột của R-17 và áp đúng bốn nhóm bảng: `system_tables` bỏ qua hoàn
-toàn; `append_only_tables` chỉ đòi `created_by`; `reference_tables` và mọi bảng nghiệp
-vụ đòi cả `created_by` lẫn `updated_by` — vì vậy `reference_tables` không cần một danh
-sách riêng trong script, nó rơi đúng vào nhánh mặc định. Hai danh sách trong script
-phải được chép từ
-`03-decisions/ADR-0003-multi-tenant-ready.md` — sửa danh sách ở đây mà không sửa ADR
-là làm sai lệch nguồn sự thật, không phải sửa lỗi script. Lệnh này cắt khối
+Lệnh (2) kiểm vế cột của R-17 và áp đúng năm nhóm bảng: `system_tables` bỏ qua hoàn
+toàn; `append_only_tables` chỉ đòi `created_by`; `tenant_root`, `reference_tables` và
+mọi bảng nghiệp vụ đòi cả `created_by` lẫn `updated_by` — vì vậy `tenant_root` và
+`reference_tables` không cần một danh sách riêng trong script, chúng rơi đúng vào
+nhánh mặc định. Hai danh sách trong script phải được chép từ
+`04-conventions/C-DB-database.md` mục `C-DB-04` — sửa danh sách ở đây mà không sửa
+registry là làm sai lệch nguồn sự thật, không phải sửa lỗi script. Lệnh này cắt khối
 `CREATE TABLE ... );` theo dấu `);` đứng riêng một dòng, nên migration viết dồn tất cả
 lên một dòng sẽ không được kiểm — đổi lại nó không cần parser SQL đầy đủ.

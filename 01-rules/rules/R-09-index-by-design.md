@@ -39,19 +39,20 @@ hai, nó sai theo thời gian — mọi bảng đều nhỏ trong tháng đầu,
 xóa dòng miễn trừ khi bảng lớn lên.
 
 Ngoại lệ hiện tại dựa trên hai điều kiện cấu trúc, cả hai đều tra được chứ không đoán:
-tên bảng **có trong danh sách `reference_tables`** ở
-`03-decisions/ADR-0003-multi-tenant-ready.md`, và trong chính file migration **không có
-khóa ngoại trỏ tới bảng giao dịch**. Điều kiện thứ nhất tra ở ADR, điều kiện thứ hai
-đọc thẳng ra từ file đang review. Một bảng thỏa cả hai là danh mục dùng chung, không
-lớn lên theo lượng giao dịch, nên kết luận rút ra hôm nay vẫn còn đúng sau ba năm.
+tên bảng **có trong danh sách `reference_tables`** ở `04-conventions/C-DB-database.md`
+mục `C-DB-04`, và trong chính file migration **không có khóa ngoại trỏ tới bảng giao
+dịch**. Điều kiện thứ nhất tra ở registry, điều kiện thứ hai đọc thẳng ra từ file đang
+review. Một bảng thỏa cả hai là danh mục dùng chung, không lớn lên theo lượng giao
+dịch, nên kết luận rút ra hôm nay vẫn còn đúng sau ba năm.
 
 Phải là `reference_tables` chứ không phải "bảng nào không có `company_id`". Theo R-06,
-bảng thiếu `company_id` chỉ hợp lệ khi nó nằm trong `system_tables` hoặc
-`reference_tables`; mà `system_tables` (`schema_migrations`, `companies`) vốn không có
-khóa ngoại nào nên chẳng bao giờ cần tới ngoại lệ này. Nếu ngoại lệ chỉ ghi "không có
-`company_id`" thì nhóm bảng duy nhất dùng được nó lại là nhóm không cần nó — ngoại lệ
-thành chữ chết. `reference_tables` là nhóm thật sự rơi vào tình huống đó: danh mục
-dùng chung, có người sửa, có audit, có soft delete, nhưng không thuộc tenant nào.
+bảng thiếu `company_id` chỉ hợp lệ khi nó nằm trong `system_tables`, `tenant_root` hoặc
+`reference_tables`; mà `system_tables` (`schema_migrations`) và `tenant_root`
+(`companies`) vốn không có khóa ngoại nào nên chẳng bao giờ cần tới ngoại lệ này. Nếu
+ngoại lệ chỉ ghi "không có `company_id`" thì hai nhóm bảng duy nhất dùng được nó lại là
+hai nhóm không cần nó — ngoại lệ thành chữ chết. `reference_tables` là nhóm thật sự rơi
+vào tình huống đó: danh mục dùng chung, có người sửa, có audit, có soft delete, nhưng
+không thuộc tenant nào.
 
 ## Ví dụ SAI
 
@@ -163,7 +164,7 @@ grep — script sẽ báo oan file đã ghi lý do miễn.
 Hai điều kiện của ngoại lệ phải đủ **cả hai**, và `currencies` là ví dụ đủ cả hai.
 Điều kiện (a) — tên nằm trong `reference_tables` — không cấp được bằng một dòng comment
 trong migration: muốn có nó phải viết ADR bổ sung tên bảng vào danh sách ở
-`03-decisions/ADR-0003-multi-tenant-ready.md`. Đây là chủ ý: ngoại lệ index đi kèm
+`04-conventions/C-DB-database.md` mục `C-DB-04`. Đây là chủ ý: ngoại lệ index đi kèm
 quyết định "bảng này là danh mục dùng chung, không thuộc tenant nào", chứ không phải
 một ưu ái xin lẻ lúc viết migration. Điều kiện (b) — không có khóa ngoại trỏ tới bảng
 giao dịch — thì đọc thẳng ra từ file: nếu ngày mai ai đó thêm `order_id UUID REFERENCES

@@ -775,9 +775,9 @@ tên bảng xuất hiện trong `modules/order/**/repository` mà không có tro
 vi phạm R-02, kể cả khi nó chỉ nằm trong một mệnh đề `JOIN`.
 
 - Viết đúng tên bảng thật, số nhiều, snake_case (C-DB-01): `orders`, không phải `order`.
-- Bảng trong `system_tables` và `reference_tables` **không** cần liệt kê: mọi module đọc
-  được chúng (ngoại lệ của R-02). Danh sách hai nhóm đó ở
-  [../03-decisions/ADR-0003-multi-tenant-ready.md](../03-decisions/ADR-0003-multi-tenant-ready.md).
+- Bảng trong `system_tables`, `tenant_root` và `reference_tables` **không** cần liệt
+  kê: mọi module đọc được chúng (ngoại lệ của R-02). Registry ba nhóm đó ở
+  [C-DB-database.md](C-DB-database.md) mục `C-DB-04`.
 - `outbox` và `audit_logs` **không** liệt kê ở đây: module không có repository nào chạm
   vào chúng. Đường vào duy nhất là `outbox.Repository` và `audit.Repository` của `shared/`,
   gọi từ service (R-05, R-17).

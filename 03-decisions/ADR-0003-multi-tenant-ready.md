@@ -15,6 +15,12 @@
 > Ba gạch đầu dòng trỏ tới chỗ giữ danh sách cũng được sửa theo cho khỏi trỏ vào chỗ
 > trống — một ở mục Phạm vi của `Decision`, hai ở `Consequences`. Nội dung quyết định
 > và nội dung hệ quả không đổi, chỉ đổi chỗ được trỏ tới.
+>
+> Cùng đợt sửa số đếm ở mục "Bảng hạ tầng chưa phân loại": việc thêm `tenant_root` ở
+> trên khiến "một nhóm bảng thứ năm" trở thành **thứ sáu**, và bốn danh sách hiện có
+> (`system_tables`, `tenant_root`, `reference_tables`, `append_only_tables`) khiến
+> `document_counters` giờ không có tên trong **bốn** danh sách, không phải ba. Đây là
+> sửa lỗi mô tả số đếm cho khớp với đợt thêm `tenant_root`, không phải đổi quyết định.
 
 ## Context
 
@@ -101,12 +107,12 @@ và ADR này **không** quyết thay:
 
 Đây là câu hỏi mở, cần **một ADR riêng khi module đầu tiên cần cấp số chứng từ**. Quyết
 sớm ở đây sẽ là quyết trong lúc chưa có ca dùng thật — đúng thứ ADR không nên làm. Ba
-hướng đã thấy, để lại cho ADR đó cân nhắc: thêm một nhóm bảng thứ năm cho bảng hạ tầng
+hướng đã thấy, để lại cho ADR đó cân nhắc: thêm một nhóm bảng thứ sáu cho bảng hạ tầng
 có trạng thái; đưa `document_counters` vào `system_tables` và chấp nhận mất truy vết;
 hoặc giữ là bảng nghiệp vụ nhưng miễn audit cho riêng thao tác cấp số.
 
 Cho tới khi ADR đó tồn tại, `document_counters` **là bảng nghiệp vụ** — vì nó không có
-tên trong ba danh sách, và mặc định của một bảng không có tên trong danh sách nào là
+tên trong bốn danh sách, và mặc định của một bảng không có tên trong danh sách nào là
 không được miễn gì.
 
 ## Consequences

@@ -36,10 +36,10 @@ mới. Lý do đầy đủ nằm ở khối ghi chú sửa đổi đầu
 
 - snake_case, chữ thường, **số nhiều**, khớp `^[a-z][a-z0-9_]*s$`: `orders`,
   `order_items`, `work_orders`, `price_lists`.
-- Tên không kết thúc bằng `s` chỉ hợp lệ khi đã có ADR bổ sung nó vào danh sách miễn đặt
-  tên ở [../03-decisions/ADR-0003-multi-tenant-ready.md](../03-decisions/ADR-0003-multi-tenant-ready.md).
-  Hiện danh sách đó có đúng một tên: `outbox`. Không ép `inventory` thành `inventorys`;
-  không lách bằng comment trong migration — viết ADR trước khi merge.
+- Tên không kết thúc bằng `s` chỉ hợp lệ khi đã có ADR bổ sung nó vào danh sách
+  `naming_exempt` ở mục `C-DB-04` của chính file này. Hiện danh sách đó có đúng một
+  tên: `outbox`. Không ép `inventory` thành `inventorys`; không lách bằng comment
+  trong migration — viết ADR trước khi merge.
 - Bảng nối đặt tên bằng hai danh từ, danh từ sở hữu đứng trước:
   `order_items`, `order_tags`.
 - Không tiền tố module vào tên bảng (`ord_orders` là sai). Ranh giới module do
@@ -442,8 +442,9 @@ CREATE INDEX idx_orders_company_id_status ON orders(company_id, status);
 CREATE INDEX idx_orders_company_id ON orders(company_id);
 ```
 
-Bảng không có `company_id` — nhóm `reference_tables` và `system_tables` — thì index bắt
-đầu thẳng từ cột nghiệp vụ: `CREATE UNIQUE INDEX uq_currencies_code ON currencies(code)`.
+Bảng không có `company_id` — nhóm `reference_tables`, `system_tables` và `tenant_root`
+— thì index bắt đầu thẳng từ cột nghiệp vụ:
+`CREATE UNIQUE INDEX uq_currencies_code ON currencies(code)`.
 
 Đây cũng là dạng hợp lệ thứ hai cho khóa ngoại theo R-09: khóa ngoại khác `company_id`
 hoặc là cột **dẫn đầu** của một index riêng, hoặc là cột **thứ hai** trong index composite
@@ -641,7 +642,7 @@ một cái tên không kết thúc bằng `s`.
 -- Vi vay bang nay KHONG co updated_at, updated_by, deleted_at. Ghi vao no cung khong
 -- sinh ban ghi audit (R-17), va no duoc hard delete theo lich giu lieu ma khong can
 -- ADR rieng (R-18).
--- Ten bang khong ket thuc bang 's': da co trong danh sach mien dat ten o ADR-0003.
+-- Ten bang khong ket thuc bang 's': da co trong danh sach naming_exempt o C-DB-04.
 CREATE TABLE outbox (
     id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id       UUID        NOT NULL UNIQUE,

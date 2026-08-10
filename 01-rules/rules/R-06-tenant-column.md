@@ -50,7 +50,7 @@ chung toàn hệ thống, không thuộc tenant nào, nên **không có `company
 của R-06 không áp lên chúng: không đòi cột, không đòi `company_id = $n` trong `WHERE`,
 không có gì để lấy từ actor. Đừng nhầm chúng với bảng nghiệp vụ bị quên cột — khác
 biệt nằm ở chỗ tên bảng có trong danh sách `reference_tables` ở
-`03-decisions/ADR-0003-multi-tenant-ready.md` hay không, và thêm tên vào danh sách đó
+`04-conventions/C-DB-database.md` mục `C-DB-04` hay không, và thêm tên vào danh sách đó
 phải viết ADR mới.
 
 Nhưng `reference_tables` chỉ được miễn đúng vế `company_id`. Nó vẫn có đủ
@@ -276,11 +276,13 @@ func (s *OrderService) ListOrders(ctx context.Context, actor auth.Actor, in List
 
 ```powershell
 # 1) Tung cau SQL trong repository: thieu company_id trong WHERE, hoac SELECT khong co WHERE
-# Hai nhom bang khong co company_id nen khong bi kiem: system_tables va reference_tables.
-# Chep tu 03-decisions/ADR-0003-multi-tenant-ready.md, khong tu them ten o day.
-$systemTables    = @('schema_migrations', 'companies')
+# Ba nhom bang khong co company_id nen khong bi kiem: system_tables, tenant_root va
+# reference_tables. Chep tu 04-conventions/C-DB-database.md muc C-DB-04, khong tu them
+# ten o day.
+$systemTables    = @('schema_migrations')
+$tenantRoot      = @('companies')
 $referenceTables = @('currencies', 'units', 'provinces')
-$noTenantTables  = $systemTables + $referenceTables
+$noTenantTables  = $systemTables + $tenantRoot + $referenceTables
 
 Get-ChildItem -Path modules -Recurse -Filter *_repository*.go | ForEach-Object {
     $file = $_.FullName
@@ -330,10 +332,10 @@ câu SQL, một lần kiểm, cả hai lọt.
 Vì vậy lệnh (1) báo riêng hai loại: `SELECT` trên bảng nghiệp vụ **không có mệnh đề
 `WHERE`** (nguy hiểm nhất, đọc sạch mọi công ty), và câu có `WHERE` nhưng thiếu
 `company_id =`. Câu SQL chỉ đụng tới bảng không có `company_id` — `system_tables`
-(`schema_migrations`, `companies`) và `reference_tables` (`currencies`, `units`,
-`provinces`) — được bỏ qua để không báo oan. Hai danh sách trong script phải chép từ
-`03-decisions/ADR-0003-multi-tenant-ready.md`; sửa danh sách ở đây mà không sửa ADR là
-làm sai lệch nguồn sự thật, không phải sửa lỗi script.
+(`schema_migrations`), `tenant_root` (`companies`) và `reference_tables` (`currencies`,
+`units`, `provinces`) — được bỏ qua để không báo oan. Ba danh sách trong script phải
+chép từ `04-conventions/C-DB-database.md` mục `C-DB-04`; sửa danh sách ở đây mà không
+sửa registry là làm sai lệch nguồn sự thật, không phải sửa lỗi script.
 
 Lệnh (2) bắt vế nguồn của giá trị: mỗi dòng in ra là một chỗ `company_id` do client
 gửi lên. Loại này lệnh (1) không thấy được, vì câu SQL tương ứng vẫn có đủ

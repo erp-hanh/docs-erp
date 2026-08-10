@@ -8,9 +8,8 @@ không đụng migration, vì câu SQL mới là thứ quyết định index nà
 `Verifies` trong ngoặc, trỏ ngược về Rule hoặc Convention cụ thể — mở ID đó ra đọc là
 biết chính xác thứ đang bị kiểm. Rule nằm ở
 [../01-rules/RULES.md](../01-rules/RULES.md), quy ước database nằm ở
-[../04-conventions/C-DB-database.md](../04-conventions/C-DB-database.md), bốn danh sách
-miễn trừ nằm ở
-[../03-decisions/ADR-0003-multi-tenant-ready.md](../03-decisions/ADR-0003-multi-tenant-ready.md).
+[../04-conventions/C-DB-database.md](../04-conventions/C-DB-database.md), năm danh sách
+miễn trừ nằm ở mục `C-DB-04` của cùng file đó.
 
 **Đánh dấu một dòng nghĩa là đã kiểm thật, không phải đã đọc qua.** Schema là tầng khó
 sửa nhất sau khi có dữ liệu thật — mọi dòng bỏ qua ở đây đều được trả bằng một migration
@@ -40,10 +39,12 @@ sửa nhất sau khi có dữ liệu thật — mọi dòng bỏ qua ở đây �
 ## Hai ca dừng lại viết ADR thay vì tự quyết
 
 - **Bảng mới cần được miễn một thứ gì đó** — không có `company_id`, không có cột audit,
-  không soft delete, hoặc tên không kết thúc bằng `s`. Ba danh sách miễn trừ là công tắc
-  tắt cùng lúc nhiều Rule, nên chúng sống ở tầng Decision và chỉ dài ra bằng một ADR mới.
-  Người viết migration có đúng hai lựa chọn: bảng đó là bảng nghiệp vụ và không được miễn
-  gì, hoặc dừng lại viết ADR. Không có đường thứ ba.
+  không soft delete, hoặc tên không kết thúc bằng `s`. Năm danh sách miễn trừ ở
+  `04-conventions/C-DB-database.md` mục `C-DB-04` (`system_tables`, `tenant_root`,
+  `reference_tables`, `append_only_tables`, `naming_exempt`) chỉ dài ra bằng một ADR
+  mới: mỗi entry mang một trường `adr` bắt buộc trỏ tới ADR biện minh cho nó. Người viết
+  migration có đúng hai lựa chọn: bảng đó là bảng nghiệp vụ và không được miễn gì, hoặc
+  dừng lại viết ADR. Không có đường thứ ba.
 - **Cần hard delete một bảng nghiệp vụ.** Phải có ADR riêng cho phép, comment tại chỗ xóa
   theo mẫu `-- hard-delete: ADR-00xx`, và ADR được trỏ tới phải có mục liệt kê đúng tên
   bảng được phép. Chi tiết ở

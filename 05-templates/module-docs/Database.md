@@ -19,25 +19,27 @@
 
 ## 1. Danh sách bảng
 
-| Bảng | Nhóm (ADR-0003) | Mô tả một dòng |
+| Bảng | Nhóm (C-DB-04) | Mô tả một dòng |
 |---|---|---|
 | `<bang_1>` | Bảng nghiệp vụ | <...> |
 | `<bang_2>` | Bảng nghiệp vụ | <...> |
 
-> Cột "Nhóm" nhận đúng một trong bốn giá trị: `system_tables`, `reference_tables`,
-> `append_only_tables`, hoặc **Bảng nghiệp vụ**. Nhóm quyết định bộ cột bắt buộc, việc
-> có sinh bản ghi audit hay không, và việc có soft delete hay không — nên nó phải được
-> khai tường minh ở đây chứ không để người đọc tự suy ra từ migration.
+> Cột "Nhóm" nhận đúng một trong năm giá trị: `system_tables`, `tenant_root`,
+> `reference_tables`, `append_only_tables`, hoặc **Bảng nghiệp vụ**. Nhóm quyết định bộ
+> cột bắt buộc, việc có sinh bản ghi audit hay không, và việc có soft delete hay không
+> — nên nó phải được khai tường minh ở đây chứ không để người đọc tự suy ra từ
+> migration.
 >
-> Mặc định của một bảng không có tên trong ba danh sách miễn trừ của ADR-0003 là **bảng
-> nghiệp vụ**, và bảng nghiệp vụ không được miễn thứ gì. Muốn một bảng nằm ngoài mặc
-> định đó thì phải có ADR trước, không phải một dòng ghi chú ở đây.
+> Mặc định của một bảng không có tên trong bốn danh sách miễn trừ ở
+> `04-conventions/C-DB-database.md` mục `C-DB-04` là **bảng nghiệp vụ**, và bảng
+> nghiệp vụ không được miễn thứ gì. Muốn một bảng nằm ngoài mặc định đó thì phải có
+> ADR trước, không phải một dòng ghi chú ở đây.
 
 ## 2. Chi tiết từng bảng
 
 ### `<bang_1>`
 
-**Nhóm:** <Bảng nghiệp vụ | reference_tables | append_only_tables | system_tables>
+**Nhóm:** <Bảng nghiệp vụ | tenant_root | reference_tables | append_only_tables | system_tables>
 
 **Bảng này giữ gì:** <một câu>
 

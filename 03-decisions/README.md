@@ -50,13 +50,17 @@ grep được trên một diff.
 Ba ca dưới đây đã được các tài liệu hiện có chỉ đích danh là **bắt buộc** có ADR trước
 khi viết code. Chúng không phải gợi ý:
 
-1. **Thêm một tên vào bất kỳ danh sách nào của
-   [ADR-0003](ADR-0003-multi-tenant-ready.md)** — `system_tables`,
-   `reference_tables`, `append_only_tables`, hoặc danh sách miễn quy tắc đặt tên. Bốn
-   danh sách đó là công tắc miễn trừ cùng lúc nhiều Rule, nên chúng nằm ở tầng
-   Decision chứ không ở tầng Convention. Ca hay gặp nhất: đặt tên bảng là `inventory`
-   hay `equipment` — tên không kết thúc bằng `s`, phải có ADR trước khi merge
-   migration.
+1. **Thêm một tên vào bất kỳ danh sách nào của registry nhóm bảng ở
+   [../04-conventions/C-DB-database.md](../04-conventions/C-DB-database.md) mục
+   `C-DB-04`** — `system_tables`, `tenant_root`, `reference_tables`,
+   `append_only_tables`, hoặc `naming_exempt`. Năm danh sách đó sống ở tầng
+   Convention, không phải tầng Decision — nhưng thứ giữ cho không ai âm thầm mở rộng
+   miễn trừ không phải chỗ chúng nằm, mà là **trường `adr` bắt buộc ở mỗi entry**: mỗi
+   dòng phải trỏ tới một ADR `Accepted` định nghĩa tiêu chí của nhóm đó, hoặc biện
+   minh riêng cho chính bảng đó. `check-ids.ps1` kiểm được vế "ADR tồn tại và ở trạng
+   thái Accepted"; vế "thỏa tiêu chí" là việc của reviewer. Ca hay gặp nhất: đặt tên
+   bảng là `inventory` hay `equipment` — tên không kết thúc bằng `s`, phải có ADR
+   trước khi merge migration.
 2. **Cho phép hard delete một bảng nghiệp vụ hoặc một bảng danh mục.** ADR phải liệt
    kê **đúng tên bảng** được phép, và chỗ xóa trong code trỏ ngược về ADR đó bằng
    comment. Bảng trong `append_only_tables` không cần ADR — chúng đã được

@@ -31,9 +31,10 @@ thuộc `inventory` và `finance`.">
 | `<bang_1>` | <bảng gốc / bảng con / bảng nối> | `Database.md` |
 | `<bang_2>` | <...> | `Database.md` |
 
-Bảng thuộc `system_tables` và `reference_tables` không liệt kê ở đây: chúng không thuộc
-module nào và mọi module đều đọc được. `outbox` và `audit_logs` cũng không — module chạm
-tới chúng qua package dùng chung của `shared/`, không bằng repository của mình.
+Bảng thuộc `system_tables`, `tenant_root` và `reference_tables` không liệt kê ở đây:
+chúng không thuộc module nào và mọi module đều đọc được. `outbox` và `audit_logs` cũng
+không — module chạm tới chúng qua package dùng chung của `shared/`, không bằng
+repository của mình.
 
 ## 3. Module phụ thuộc
 
