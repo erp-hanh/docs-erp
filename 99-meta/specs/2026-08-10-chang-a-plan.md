@@ -1824,3 +1824,63 @@ Rồi tắt Docker và chạy lại `go test ./arch/...` — phải vẫn xanh.
 | R-12, R-16 các vế cần type info | Cân nhắc chế độ type-check chạy riêng trên code thật |
 | R-19 và toàn bộ checker frontend | Chặng frontend |
 | `document_counters` chưa phân nhóm | Khi module đầu tiên cần cấp số chứng từ |
+
+---
+
+# Phụ lục A — Bốn task sửa nền, chèn TRƯỚC Task 12
+
+Một audit độc lập sau Phase 3 tìm ra rằng bộ máy `arch/` **chưa an toàn để thêm 15 checker**. Các lỗ hổng cùng một họ: **cơ chế bảo vệ bị vô hiệu hóa thì không có gì đỏ**. Bằng chứng thực nghiệm:
+
+| Thí nghiệm | Kết quả |
+|---|---|
+| Xóa `Scope` khỏi TI-01 và TI-02 | Hai checker mù hoàn toàn — toàn suite vẫn xanh |
+| Gõ sai `Roots` của `ProductionScope` | Nạp 0 file, ba rule chạy trên tập rỗng — xanh |
+| Checker cross-file đúng + fixture đúng 2 file | Đỏ oan, vì `TestFixtures` gọi `Check` từng file một |
+| Đặt `module.yaml` vào thư mục fixture | Bị loại im lặng |
+| Quên khai R-10 vào `rules` | Không gì xảy ra |
+
+## Nguyên tắc bổ sung
+
+> **Mọi cơ chế bảo vệ phải có một test chứng minh rằng khi cơ chế đó bị vô hiệu hóa, có thứ gì đó đỏ.**
+
+Nguyên tắc cũ chỉ áp cho *checker*; nó không áp cho *cơ chế đỡ checker*. Đó là chỗ trống mà cả năm thí nghiệm trên chui qua.
+
+## Task 11b — Nền fixture
+
+1. **Đơn vị fixture đổi từ file sang case-directory**: `testdata/<rule>/violation_<ten>/` và `valid_<ten>/`; mọi file trong một case nạp chung rồi gọi `r.Check(files)` **một lần**. File `.go` phẳng ở gốc vẫn là case một-file — giữ tương thích, không rule nào mất chiều kiểm.
+2. **Siết thêm cho case cross-file**: bỏ bớt bất kỳ file nào khỏi case `violation_*` thì Finding phải biến mất. Nếu không, case đó không thật sự cross-file và checker đang kết luận từ ít thông tin hơn nó khai.
+3. **Loader nhận `.yaml`/`.yml`/`.sql`** dưới dạng `RawFile{Path, Name, Bytes}`. File có đuôi mà không loader nào nhận, nằm trong thư mục case → **đỏ**. Hố im lặng hiện tại phải thành lỗi.
+4. **`TestFixtures` chạy fixture qua `r.scope()`**: fixture `violation_*` bị chính scope của rule loại ra → đỏ với thông điệp *"rule khai Scope không chứa loại file mà fixture của nó mô tả"*.
+5. **Mọi `Scope` có test hợp đồng với khẳng định DƯƠNG**: `len(files) > 0`, và ít nhất một file thuộc mỗi root khai báo. `TestProductionScopeExcludesArch` hiện chỉ có khẳng định phủ định nên tập rỗng cũng đậu.
+6. **`loader.Load` chế độ nghiêm**: root khai trong `Roots` mà không tồn tại → lỗi, trừ khi khai `Optional` (dành cho `modules/` ở chặng A).
+7. **`arch/internal/loader` phải có test riêng** — hiện 0 test, trong khi nó là nền của mọi checker: `//arch:path`, `excluded()`, và nhánh "root thiếu thì bỏ qua".
+8. `TestFixtureLineFilled` kiểm thêm `fd.File` trỏ đúng file trong case và `fd.Msg` mở đầu bằng `<rule ID>:`.
+
+## Task 11c — Nền khai báo
+
+1. **Song ánh `rules` ↔ `RULES.md`**: test đọc `docs-erp/01-rules/RULES.md`, trích mọi `### R-NN`, và đòi mỗi ID có mặt trong `rules` — dù chỉ `Level: NA` kèm lý do. ID trong `rules` không có trong `RULES.md` và không thuộc họ `TI-` → đỏ. Dùng `registry.FindDocsRoot()`, **không `t.Skip`**.
+2. **`DependsOn` phải giải được**: mỗi ID hoặc là Rule trong `rules`, hoặc có tên trong `knownPrerequisites` khai tường minh kèm nguồn. ID không giải được → **đỏ**, không phải hạ mức im lặng.
+3. **`passed` phải nhận được kết quả của checker convention**. Hiện `C-GO-07` không bao giờ vào `passed`, nên mọi rule phụ thuộc nó sẽ **vĩnh viễn PARTIAL kể cả sau khi nó được enforce** — trái hẳn điều `README.md` đang hứa.
+4. **Chu trình phụ thuộc → đỏ** ở `TestRuleDeclaration`. Hiện `A→B→A` và `C→C` đều tự chứng nhận FULL.
+5. **Bỏ `NoGoFixture`** sau khi loader nhận file khác `.go`. Nó là cửa thoát gỡ rule khỏi toàn bộ cơ chế chứng minh mà không test nào đỏ.
+6. **Bảng mức thực tế phải hiện ra**: `t.Logf` chỉ hiện khi có `-v`, mà `make arch` không có. Ghi ra `os.Stderr` hoặc thêm `-v`. Và **`t.Errorf` khi một rule khai FULL bị hạ mức** — im lặng hạ mức đúng là thứ bảng này sinh ra để chống.
+
+## Task 11d — Sửa ba chỗ đang nói quá về mức bảo vệ
+
+1. **TI-01/TI-02 khai FULL nhưng mù** `dockertest`, `moby/moby/client`, alias của `os/exec`, và `sh -c "docker run"`. Chính `internal/testharness` đang import moby client. Hoặc mở rộng (danh sách chuỗi cho TI-01; giải alias từ `f.AST.Imports` và quét mọi đối số literal cho TI-02), hoặc hạ PARTIAL với `Unverifiable` ghi đúng ba đường vòng.
+2. **TI-03 chỉ soi job tên `test`**. `env:` ở cấp workflow — cách tự nhiên nhất để set biến toàn cục trong Actions — mù hoàn toàn. Tệ hơn: `TestCINoTestDBURL` có case *"workflow không có job test"* với `wantHit: false`, tức **lỗ hổng đang được đóng đinh vào test như hành vi đúng**. Sửa cả checker lẫn case đó, và đổi thông điệp của `TestCIWorkflowUnverifiableStaysHonest` để nó không ép over-claim.
+3. **R-03 phụ thuộc hoàn toàn tên file** — đổi `order_repository.go` thành `postgres.go` là thoát cả ba vế. Khớp theo **cả** segment thư mục (`internal/repository/`, `internal/handler/`, `internal/service/`) lẫn hậu tố; bổ sung vế này vào `Unverifiable` cho tới khi có checker canh quy ước đặt tên.
+4. **R-04 dùng `strings.Contains`** nên bắt oan `github.com/acme/erp/modules/util`. Dùng lại `splitModuleImport` vốn đã có `HasPrefix` đúng, và thêm fixture `valid_*` cho ca này.
+5. **`checkCINoTestDBURL` nuốt mọi lỗi đọc**: `return nil` bắt cả lỗi quyền, không chỉ `NotExist`. Dùng `registry.RepoRoot()` thay đường dẫn tương đối cứng, và phân biệt hai loại lỗi.
+
+## Task 11e — Thay `Makefile` bằng `cmd/dev`
+
+`make` không có trên máy dev Windows, nên `make test` trong `CLAUDE.md` và `Makefile` là lệnh không chạy được — CI Ubuntu thì có. Hai đường khác nhau giữa dev và CI là chỗ lệch sẽ lớn dần.
+
+Viết `cmd/dev` bằng Go: một nguồn duy nhất, chạy mọi nơi, không cần công cụ ngoài. Các lệnh con: `dev`, `test`, `arch`, `lint`, `check`, `migrate-up`, `migrate-down`, `clean-test-db`. Xóa `Makefile`, cập nhật `CLAUDE.md` và CI.
+
+## Task 16 nhận thêm
+
+1. **Ghim phiên bản `docs-erp`**: băm nội dung từng mục `### R-NN` của `RULES.md`, so với bảng băm ghim trong `rules.go`. Mục nào đổi băm thì rule tương ứng đỏ với thông điệp *"mệnh đề nguồn đã đổi, đọc lại và cập nhật hoặc ghim lại"*. Đây là cách duy nhất biến *"docs-erp là nguồn sự thật"* thành thứ máy kiểm được thay vì một câu trong comment.
+2. **`go generate && git diff --exit-code`** để `README.md` không lệch khỏi `rules.go`.
+3. CI **phải checkout cả `docs-erp`** — registry loader và test song ánh đều đọc từ đó.
