@@ -267,8 +267,11 @@ func New(d Deps) *Module {
 	return &Module{handler: handler.New(svc)}
 }
 
+// Register nhận group /api/v1 do composition root dựng, nên ở đây chỉ khai phần
+// đuôi. Tiền tố /api/v1 xuất hiện đúng một lần trong toàn hệ thống — viết lại nó ở
+// đây thì path thật thành /api/v1/api/v1/orders (C-API-06).
 func (m *Module) Register(r gin.IRouter) {
-	g := r.Group("/api/v1/orders")
+	g := r.Group("/orders")
 	g.POST("", m.handler.Create)
 	g.GET("/:id", m.handler.Get)
 }

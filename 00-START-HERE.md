@@ -36,7 +36,7 @@ và trường link ngược. Báo một vi phạm chỉ cần nêu ID là tra ng
 
 | Việc | Đọc theo thứ tự |
 |---|---|
-| Thêm module mới | `06-checklists/CL-NEWMOD-new-module.md` → R-01..R-05 → `05-templates/module-docs/` |
+| Thêm module mới | `06-checklists/CL-NEWMOD-new-module.md` → R-01..R-05 → `04-conventions/C-GO-backend.md` → `05-templates/module-docs/` |
 | Sửa schema | `06-checklists/CL-SCHEMA-schema-change.md` → R-06..R-09 → `04-conventions/C-DB-database.md` |
 | Thêm endpoint | `06-checklists/CL-API-new-endpoint.md` → R-10..R-13 → `04-conventions/C-API-http.md` |
 | Review PR | `06-checklists/CL-PR-code-review.md` |
