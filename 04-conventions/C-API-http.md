@@ -299,6 +299,43 @@ func ValidationFailed(c *gin.Context, fields []FieldError) {
 	}})
 }
 
+// FieldErrors dịch lỗi của binding validator sang []FieldError. Mọi handler đều cần
+// nó ngay sau ShouldBindJSON, nên nó sống ở đây chứ không được viết lại trong từng
+// module — hai bản dịch khác nhau nghĩa là client nhận hai hình dạng lỗi cho cùng một
+// loại sai.
+//
+// Hợp đồng của nó, và đây là phần dễ làm sai nhất:
+//
+//   - `field` là ĐƯỜNG DẪN tới field trong body request, viết theo tag `json` chứ
+//     không phải tên field Go: `customer_id`, không phải `CustomerID`.
+//   - Phần tử mảng đánh chỉ số từ 0 và nối bằng dấu chấm: `items.0.quantity`. Đây là
+//     thứ frontend cần để highlight đúng ô thứ mấy của dòng thứ mấy (C-TS-05).
+//   - Lỗi không gắn được vào field nào — ví dụ JSON hỏng cú pháp — trả về một phần tử
+//     duy nhất với `field` rỗng.
+func FieldErrors(err error) []FieldError {
+	var ve validator.ValidationErrors
+	if !errors.As(err, &ve) {
+		// Không phải lỗi validate: JSON hỏng, kiểu sai, body rỗng. Không có field nào
+		// để gắn vào.
+		return []FieldError{{Field: "", Message: "Body khong doc duoc"}}
+	}
+
+	out := make([]FieldError, 0, len(ve))
+	for _, fe := range ve {
+		out = append(out, FieldError{
+			Field:   jsonPath(fe.Namespace()),
+			Message: messageFor(fe),
+		})
+	}
+	return out
+}
+
+// jsonPath đổi Namespace của validator (`CreateOrderRequest.Items[0].Quantity`) sang
+// đường dẫn theo tag json (`items.0.quantity`): bỏ tên struct gốc, đổi `[0]` thành
+// `.0`, và tra tag json của từng chặng. messageFor sinh thông điệp tiếng Việt theo
+// tag validate (`required`, `gt`, `uuid`...). Cả hai không xuất khẩu — chúng là chi
+// tiết của FieldErrors, không phải API.
+
 // Error trả lỗi đã có mã ra nguyên trạng; lỗi không có mã là lỗi kỹ thuật nên chỉ ra
 // tới client dưới dạng ERR_INTERNAL kèm request_id (P-ERR).
 func Error(c *gin.Context, err error) {
