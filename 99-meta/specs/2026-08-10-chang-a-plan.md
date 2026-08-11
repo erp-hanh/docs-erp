@@ -53,7 +53,8 @@ Mười lăm checker ở Phase 5 được đặc tả bằng **bảng: bắt gì
 | Đường dẫn | Trách nhiệm |
 |---|---|
 | `go.mod` | `module erp`, `go 1.26` |
-| `Makefile` | `test`, `check`, `dev`, `migrate-up`, `clean-test-db` |
+| `cmd/dev/` | Bộ chạy lệnh: `dev`, `test`, `arch`, `arch-update`, `lint`, `check`, `migrate-up`, `migrate-down`, `clean-test-db` — thay `Makefile`, xem Task 11e |
+| `internal/reporoot/`, `internal/migrator/` | Tìm gốc repo; chạy migration — dùng chung giữa `cmd/dev` và `internal/testharness` |
 | `arch/internal/loader/` | Nạp file `.go` thành AST, lọc theo scope |
 | `arch/internal/imports/` | Dựng import graph, truy vấn "package X có import Y không" |
 | `arch/internal/scan/` | Trích const string, quét call expression, đọc struct tag |
@@ -381,6 +382,11 @@ Báo cáo: output `check-ids.ps1`; diff của R-08/R-17/R-18 để người duy�
 # PHASE 1 — Khung Go và engine `arch/`
 
 ## Task 4: `go.mod`, cấu trúc thư mục, `Makefile`
+
+> **Task này đã chạy, và `Makefile` của nó đã bị Task 11e xóa.** Giữ nguyên phần dưới vì
+> đó là việc đã xảy ra thật; đừng dựng lại `Makefile` từ nó. Lý do bỏ: `make` không có
+> trên máy dev Windows, nên mọi lệnh trong file đó không chạy được ở đúng chỗ người ta gõ.
+> Bộ chạy lệnh hiện tại là `cmd/dev` — xem Task 11e.
 
 **Files:**
 - Create: `backend-erp/go.mod`, `backend-erp/Makefile`, `backend-erp/compose.dev.yml`, `backend-erp/.gitignore` (bổ sung)
@@ -1574,7 +1580,7 @@ func Connect(t *testing.T) *sqlx.DB {
 
 	admin := os.Getenv("TEST_DATABASE_URL")
 	if admin == "" {
-		t.Fatal("TEST_DATABASE_URL rong. Chay \"make test\", hoac set bien nay tro toi mot Postgres co san.")
+		t.Fatal("TEST_DATABASE_URL rong. Chay `go run ./cmd/dev test`, hoac set bien nay tro toi mot Postgres co san.")
 	}
 
 	adminDB, err := sqlx.Connect("pgx", admin)
@@ -1614,18 +1620,18 @@ func Connect(t *testing.T) *sqlx.DB {
 
 Ba helper còn lại: `sanitize` giữ lại `[a-z0-9_]` và hạ chữ thường; `pq` bọc identifier bằng dấu nháy kép và nhân đôi nháy bên trong; `replaceDBName` đổi phần path của DSN sang tên database mới.
 
-Thông báo khi thiếu biến: `TEST_DATABASE_URL rong. Chay "make test", hoac set bien nay tro toi mot Postgres co san.`
+Thông báo khi thiếu biến: ``TEST_DATABASE_URL rong. Chay `go run ./cmd/dev test`, hoac set bien nay tro toi mot Postgres co san.``
 
 - [ ] **Step 6: Chạy và commit**
 
-Run: `make test`
+Run: `go run ./cmd/dev test`
 Expected: harness dựng container, chạy toàn bộ test, dọn container. `go test ./arch/...` xanh gồm ba checker mới.
 
 ---
 
 ### ⏸ CHECKPOINT PHASE 3
 
-Báo cáo: output `make test`; bằng chứng chỉ **một** container Postgres tồn tại trong lúc chạy (`docker ps` giữa chừng); và output `go test ./arch/... ` khi **đã tắt Docker** — phải vẫn xanh.
+Báo cáo: output `go run ./cmd/dev test`; bằng chứng chỉ **một** container Postgres tồn tại trong lúc chạy (`docker ps` giữa chừng); và output `go test ./arch/... ` khi **đã tắt Docker** — phải vẫn xanh.
 
 ---
 
@@ -1671,7 +1677,7 @@ Thứ tự: đọc config → `log.Init` → `db.Open` → dựng router với `
 
 - [ ] **Step 6: Chạy toàn bộ và commit**
 
-Run: `make check && make test`
+Run: `go run ./cmd/dev check` rồi `go run ./cmd/dev test`
 
 ---
 
@@ -1755,8 +1761,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: { go-version: '1.26' }
-      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
-      - run: go vet ./...
+      # Mot lenh chu khong phai hai: gofmt -l LIET KE file sai dinh dang roi THOAT VOI
+      # MA 0, nen no phai duoc doc dau ra chu khong doc ma thoat. Logic do nam trong
+      # cmd/dev va co test canh; viet lai o day la co hai ban de lech nhau.
+      - run: go run ./cmd/dev lint
 
   arch:
     runs-on: ubuntu-latest
@@ -1768,7 +1776,9 @@ jobs:
       - uses: actions/setup-go@v5
         with: { go-version: '1.26' }
       # Job nay CO Y khong dung Docker: rule phai duoc canh ke ca khi Docker hong.
-      - run: go test ./arch/... -v
+      # cmd/dev arch in ca arch/LEVELS.md sau khi chay - package list mode vut bo dau ra
+      # cua binary khi package xanh, nen khong in tay thi bang muc khong den duoc log CI.
+      - run: go run ./cmd/dev arch
 
   test:
     runs-on: ubuntu-latest
@@ -1776,10 +1786,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with: { go-version: '1.26' }
-      # KHONG set TEST_DATABASE_URL o day. make test goi harness tu dung container,
+      # KHONG set TEST_DATABASE_URL o day. Lenh duoi goi harness tu dung container,
       # nho vay duong MAC DINH duoc chay moi PR nen no khong muc. Co checker
       # (checkCINoTestDBURL) canh chinh dieu nay.
-      - run: make test
+      - run: go run ./cmd/dev test
 ```
 
 - [ ] **Step 2: Chạy checker `checkCINoTestDBURL` trên workflow vừa viết**
@@ -1793,10 +1803,9 @@ Chạy lần lượt và dán output:
 
 ```powershell
 cd "d:\My project web\erp\backend-erp"
-gofmt -l .              # rong
-go vet ./...            # sach
-go test ./arch/...      # xanh
-make test               # xanh
+go run ./cmd/dev lint   # xanh
+go run ./cmd/dev arch   # xanh, va in bang muc thuc te
+go run ./cmd/dev test   # xanh
 ```
 
 Rồi tắt Docker và chạy lại `go test ./arch/...` — phải vẫn xanh.
@@ -1811,7 +1820,7 @@ Rồi tắt Docker và chạy lại `go test ./arch/...` — phải vẫn xanh.
 
 **`docs-erp`:** `tenant_root` vào mệnh đề của R-08/R-17/R-18 (không chỉ Ngoại lệ); registry ở `C-DB-04` với trường `adr`; `system_actor_id`; `C-GO-07`; ngoại lệ bootstrap của R-17; `created_by`/`updated_by` không FK; `check-ids.ps1` xanh và kiểm được `adr`.
 
-**`backend-erp`:** build/vet/gofmt sạch; `/health` 200 và `/ready` **503 khi DB chết**, kiểm bằng test; `migrate up`/`down` chạy được; `go test ./...` xanh; `go test ./arch/...` xanh **khi Docker tắt**; mỗi checker có ≥1 fixture MUST-FAIL và ≥1 MUST-PASS; không rule nào FULL chỉ vì chạy trên tập rỗng; `arch/README.md` sinh bằng `go generate`; `TestDependencyDowngrade` xanh; ba checker hạ tầng test xanh; CI ba job; `make clean-test-db` chạy được.
+**`backend-erp`:** build/vet/gofmt sạch; `/health` 200 và `/ready` **503 khi DB chết**, kiểm bằng test; `migrate up`/`down` chạy được; `go test ./...` xanh; `go test ./arch/...` xanh **khi Docker tắt**; mỗi checker có ≥1 fixture MUST-FAIL và ≥1 MUST-PASS; không rule nào FULL chỉ vì chạy trên tập rỗng; `arch/README.md` sinh bằng `go generate`; `TestDependencyDowngrade` xanh; ba checker hạ tầng test xanh; CI ba job; `go run ./cmd/dev clean-test-db` chạy được.
 
 ---
 
@@ -1878,6 +1887,17 @@ Nguyên tắc cũ chỉ áp cho *checker*; nó không áp cho *cơ chế đỡ c
 `make` không có trên máy dev Windows, nên `make test` trong `CLAUDE.md` và `Makefile` là lệnh không chạy được — CI Ubuntu thì có. Hai đường khác nhau giữa dev và CI là chỗ lệch sẽ lớn dần.
 
 Viết `cmd/dev` bằng Go: một nguồn duy nhất, chạy mọi nơi, không cần công cụ ngoài. Các lệnh con: `dev`, `test`, `arch`, `lint`, `check`, `migrate-up`, `migrate-down`, `clean-test-db`. Xóa `Makefile`, cập nhật `CLAUDE.md` và CI.
+
+### Đã chạy — và bịt thêm sáu chỗ mà việc đọc kỹ `Makefile` làm lộ ra
+
+1. **`gofmt -l .` thoát với mã 0 kể cả khi có file sai định dạng.** Kiểm chứng bằng thực nghiệm. Nghĩa là `make lint` chưa bao giờ đỏ vì định dạng — nó in tên file rồi đi tiếp. `cmd/dev lint` đọc **đầu ra** chứ không đọc mã thoát, và `TestKiemGofmt` chạy `gofmt` thật theo cả hai chiều.
+2. **`migrate -path ... up` đòi một binary không repo nào khai.** Đúng căn bệnh của `make`. Thay bằng thư viện: `internal/migrator`, dùng chung giữa `cmd/dev` và `internal/testharness` — nên cái bẫy `m.Close()` chỉ còn một chỗ để nhớ.
+3. **`migrator.Down` là code mới và là đường xóa dữ liệu.** `m.Down()` lùi *hết*, `m.Steps(-n)` lùi *n*. Test đầu tiên chạy trên `migrations/` thật thì **xanh nhưng vô nghĩa** — repo mới có một migration nên hai hành vi trùng nhau. Bản hiện tại dựng thư mục hai migration để phân biệt được, và đã kiểm chứng: đổi sang `m.Down()` thì đỏ.
+4. **`arch/LEVELS.md` in ra bằng lệnh riêng.** `go test ./arch/...` là package list mode nên nó vứt đầu ra của binary khi package xanh.
+5. **TI-02 nhận đúng một ngoại lệ: `cmd/dev`, file không phải `_test.go`** — lệnh `dev` phải dựng ngăn xếp dev bằng `docker compose`. Ngoại lệ không lan được vì `cmd/dev` là `package main` nên không package test nào import được nó; `TestCmdDevLaPackageMain` canh chính tiền đề đó. Ba fixture canh ba lớp của ngoại lệ.
+6. **TI-03 mất mỏ neo `make test`, nên nó được siết thay vì chỉ đổi tên**: dấu hiệu job chạy test giờ gồm cả `go test` trần — hình dạng của việc đi vòng qua harness mà bản cũ chỉ bắt được nếu job tình cờ mang tên `test`.
+
+Thêm một chiều kiểm mới: **`TestLenhKhopCLAUDEmd`** đối chiếu bảng lệnh trong `CLAUDE.md` với bảng lệnh thật theo cả hai chiều. Chính vì không có nó mà `make test` nằm trong `CLAUDE.md` suốt nhiều task mà không gì kêu.
 
 ## Task 16 nhận thêm
 

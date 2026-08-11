@@ -202,7 +202,7 @@ Rule bảo mật giữ conservative: false negative nguy hiểm hơn false posit
 ```
 backend-erp/
 ├── go.mod                          # module erp
-├── Makefile
+├── cmd/dev/                     # bo chay lenh, thay Makefile
 ├── compose.dev.yml                 # chỉ Postgres, cho chạy tay
 ├── cmd/api/main.go                 # composition root
 ├── shared/
@@ -413,7 +413,7 @@ Hệ quả trực tiếp: không test package nào được dựng hay dọn h�
 Tách rõ:
 
 ```
-make test                       →  harness dựng đúng 1 container
+go run ./cmd/dev test           →  harness dựng đúng 1 container
                                    → harness export TEST_DATABASE_URL
                                    → go test ./...   (package chỉ ĐỌC biến)
                                    → harness dọn container
@@ -421,9 +421,9 @@ make test                       →  harness dựng đúng 1 container
 TEST_DATABASE_URL=... go test   →  dùng Postgres có sẵn, harness không chạy
 ```
 
-CI gọi `make test` và **không** tự set `TEST_DATABASE_URL`. Đường mặc định — harness tự dựng — là đường được chạy mỗi PR, nên nó không mục. Việc "mỗi package một container" không xảy ra được về mặt cấu trúc, không phải nhờ kỷ luật.
+CI gọi `go run ./cmd/dev test` và **không** tự set `TEST_DATABASE_URL`. Đường mặc định — harness tự dựng — là đường được chạy mỗi PR, nên nó không mục. Việc "mỗi package một container" không xảy ra được về mặt cấu trúc, không phải nhờ kỷ luật.
 
-Vòng đời container nằm ở `internal/testharness`, gọi từ `Makefile`. Package test chỉ có `testutil.Connect(t)` đọc biến và trả `*sqlx.DB`; nếu biến rỗng thì fail ngay với thông báo *"chạy `make test`, hoặc set `TEST_DATABASE_URL`"* — không im lặng tự xoay xở.
+Vòng đời container nằm ở `internal/testharness`, gọi từ `cmd/dev`. Package test chỉ có `testutil.Connect(t)` đọc biến và trả `*sqlx.DB`; nếu biến rỗng thì fail ngay với thông báo *"chạy `go run ./cmd/dev test`, hoặc set `TEST_DATABASE_URL`"* — không im lặng tự xoay xở.
 
 ### Ba hard rule enforce nguyên tắc trên
 
@@ -461,7 +461,7 @@ Fixture chỉ là file Go được `go/parser` đọc. Bộ checker phải chạ
 | `arch` | `go test ./arch/...` | **Không** | Rule phải được canh kể cả khi Docker hỏng |
 | `test` | `go test ./...` | Có | Testcontainers |
 
-Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"* của R-07 phải so với base ref của PR. Đó là vế duy nhất **chỉ chạy được trong CI**, không chạy được lúc phát triển offline — ghi rõ trong `arch/README.md`, nếu không người ta tưởng `make check` local đã phủ hết.
+Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"* của R-07 phải so với base ref của PR. Đó là vế duy nhất **chỉ chạy được trong CI**, không chạy được lúc phát triển offline — ghi rõ trong `arch/README.md`, nếu không người ta tưởng `go run ./cmd/dev check` local đã phủ hết.
 
 **Mức enforce của từng rule ghi ở `backend-erp/arch/README.md`, không ghi vào `RULES.md`.** Rule là chuẩn mực; mức enforce là trạng thái công cụ tại một thời điểm. Trộn hai thứ thì `RULES.md` phải sửa mỗi lần checker khá lên. `CL-PR-code-review.md` thêm một dòng trỏ sang bảng đó, để reviewer biết chỗ nào máy không canh và phải soi tay.
 
@@ -494,7 +494,7 @@ Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"*
 - [ ] Ba checker của test infrastructure xanh: cấm `testcontainers` ngoài `internal/testharness`, cấm `exec.Command` với `"docker"` trong `*_test.go`, và job `test` trong CI không có `TEST_DATABASE_URL` trong `env`
 - [ ] Không package test nào dựng hay dọn hạ tầng — kiểm bằng chính ba checker trên
 - [ ] CI ba job chạy trên PR; job `arch` không cần Docker
-- [ ] `make clean-test-db` dọn tài nguyên test
+- [ ] `go run ./cmd/dev clean-test-db` dọn tài nguyên test
 
 ---
 
@@ -505,7 +505,7 @@ Job `arch` cần `fetch-depth: 0` vì vế *"không sửa migration đã merge"*
 | Checker xanh giả vì chạy trên tập rỗng | Fixture hai chiều bắt buộc; không fixture thì coi như chưa implement |
 | Checker bắt oan code hợp lệ | Fixture MUST-PASS bắt buộc — chính là lỗi đã gặp ở R-10 |
 | Bốn rule FULL phụ thuộc `C-GO-07` bị tắt lặng lẽ | `DependsOn` là dữ liệu; engine tự hạ mức; `TestDependencyDowngrade` chứng minh cơ chế hạ mức hoạt động |
-| Đường testcontainers mục vì dev toàn dùng `TEST_DATABASE_URL` | CI gọi `make test` và không set biến, nên đường mặc định chạy mỗi PR |
+| Đường testcontainers mục vì dev toàn dùng `TEST_DATABASE_URL` | CI gọi `go run ./cmd/dev test` và không set biến, nên đường mặc định chạy mỗi PR |
 | Một package test tự dựng container, quay lại "mỗi package một container" | Nguyên tắc *test infrastructure owns lifecycle* + hai checker AST chặn tĩnh |
 | `arch/README.md` lệch khỏi code | Sinh bằng `go generate`, không viết tay |
 | `SYSTEM_ACTOR_ID` lệch giữa bốn nơi | Checker kiểm khớp với registry |
