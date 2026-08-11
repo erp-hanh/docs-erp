@@ -1679,6 +1679,17 @@ Thứ tự: đọc config → `log.Init` → `db.Open` → dựng router với `
 
 Run: `go run ./cmd/dev check` rồi `go run ./cmd/dev test`
 
+### Đã chạy — bốn quyết định và một lỗi môi trường thật
+
+1. **`/health` và `/ready` đi qua envelope của `shared/response`.** R-13 miễn cho chúng *tiền tố* `/api/v1`, không miễn *hình dạng* response — hai vế độc lập nhau, và coi một ngoại lệ về đường dẫn là ngoại lệ về thân response là cách một ngoại lệ hẹp nở ra. Hệ quả: `503` cần một `code`, nên C-API-05 nhận thêm `ERR_COMMON_SERVICE_UNAVAILABLE` kèm ghi chú nói rõ nó là mã **hạ tầng** duy nhất và vì sao nó nằm trong một bảng mã nghiệp vụ.
+2. **`recovery()` thay cho `gin.Recovery()`.** Bản có sẵn trả `500` với thân **rỗng** — không envelope, không `request_id`, đúng lúc người ta cần `request_id` nhất để tìm lại stack trong log.
+3. **`Pinger` thay vì `*sqlx.DB`** ở `/ready`, để test dùng được một kết nối chết thật. Cả hai chiều đều có test: `Pinger` giả chứng minh handler rẽ nhánh đúng, `sqlx.Open` tới một cổng không ai nghe chứng minh `*sqlx.DB` thật sự báo lỗi.
+4. **`LOG_LEVEL` gõ nhầm bị từ chối lúc khởi động.** `log.Init` cố ý dễ — nó không được phép làm sập tiến trình — nhưng người *đọc cấu hình* thì được quyền từ chối trước khi tiến trình chạy. Tập mức hợp lệ lấy từ `log.Names()`, không chép tay sang `cmd/api`.
+
+**Lỗi môi trường thật:** `compose.dev.yml` map cổng `5432`, mà máy dev đã có một Postgres **native** chiếm cổng đó. Kiểu hỏng không phải "không kết nối được" mà là **kết nối nhầm**: `localhost:5432` nói chuyện với database của người khác, và `migrate-up` suýt chạy lên đó. Đổi sang `5433:5432`.
+
+**Graceful shutdown không kiểm được bằng tín hiệu trên Windows** — `kill -TERM` ở đó giết cứng tiến trình (thoát 143), nên một lần chạy tay **không** đi qua đoạn `Shutdown` lần nào. Câu hỏi được đặt ở mức hàm: hủy context là đúng thứ `signal.NotifyContext` làm, và nó chạy giống nhau trên mọi hệ điều hành. Cả hai đường ra của `phucVu` — tắt theo yêu cầu → `0`, không mở được cổng → khác `0` — đều có test, và cả hai đều đỏ khi bị phá.
+
 ---
 
 # PHASE 5 — 15 checker còn lại

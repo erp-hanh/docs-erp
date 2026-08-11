@@ -519,6 +519,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_COMMON_IDEMPOTENCY_KEY_MISSING` | `422` | Thiếu header Idempotency-Key | Endpoint có tên ở bảng 5 của C-API-07 mà request không gửi header |
 | `ERR_COMMON_IDEMPOTENCY_KEY_REUSED` | `422` | Idempotency-Key đã dùng cho một request có nội dung khác | Cùng khóa, payload khác (P-IDEM) |
 | `ERR_COMMON_RATE_LIMITED` | `429` | Bạn thao tác quá nhanh, thử lại sau ít phút | Vượt hạn mức số lần gọi |
+| `ERR_COMMON_SERVICE_UNAVAILABLE` | `503` | Dịch vụ chưa sẵn sàng | `/ready` không ping được database. Mã hạ tầng: người đọc nó là orchestrator, không phải client nghiệp vụ — xem ghi chú dưới bảng |
 | `ERR_ORDER_NOT_FOUND` | `404` | Đơn hàng không tồn tại | `sql.ErrNoRows` ở endpoint chi tiết đơn hàng |
 | `ERR_ORDER_CODE_DUPLICATED` | `409` | Mã đơn hàng đã tồn tại | Vi phạm `uq_orders_company_id_code` |
 | `ERR_ORDER_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Duyệt một đơn đã hủy, sửa một đơn đã duyệt |
@@ -540,6 +541,12 @@ Quy ước dùng bảng này:
   tách mã theo loại lỗi kỹ thuật — client không làm gì được với sự khác biệt đó.
 - **Lỗi nghiệp vụ log ở mức `Info`, không phải `Error`**: nó là hành vi bình thường của
   hệ thống.
+- **`ERR_COMMON_SERVICE_UNAVAILABLE` là mã hạ tầng, và nó là mã hạ tầng duy nhất.** Bảng
+  này là bảng mã *nghiệp vụ*, nên một mã mà không client nghiệp vụ nào rẽ nhánh theo cần
+  được giải thích chứ không được lặng lẽ nằm chung. Nó có mặt vì R-11 buộc **mọi** response
+  đi qua envelope, mà envelope thì đòi một `code` — kể cả response `503` của `/ready`, thứ
+  chỉ có readiness probe đọc và chỉ đọc mỗi status code. Thêm mã hạ tầng thứ hai phải sửa
+  chính dòng này, đúng cách R-13 đóng danh sách ba endpoint hạ tầng.
 
 Ánh xạ từ tên constraint sang mã lỗi (P-ERR: dịch theo **tên constraint**, không theo mã
 lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào bị vi phạm):
