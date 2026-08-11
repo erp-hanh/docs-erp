@@ -1778,6 +1778,21 @@ Mười lần phá, mười lần đỏ — kể cả những chiều bắt oan 
 Run: `cd arch && go generate ./... && cd .. && go test ./arch/... -v`
 Expected: `arch/README.md` có đủ 19 dòng, cột `Dependency` điền cho R-02/R-06/R-09/R-18.
 
+### Đã chạy — 18/19 rule có checker
+
+`arch/README.md` đủ 19 dòng, cột `Dependency` điền đúng cho bốn rule phụ thuộc `C-GO-07`. Rule duy nhất còn `N/A` là **R-19** — nó nói về file `.ts`/`.tsx`, mà `backend-erp` không có file nào như vậy để quét. Đó là kết luận đúng chứ không phải việc còn thiếu.
+
+**Hai vế bị bỏ lại có chủ đích, và cả hai đều là vế GIT:**
+
+- R-07 vế *"cấm sửa migration đã merge"*
+- R-13 vế *so sánh DTO giữa hai phiên bản*
+
+Cả hai đọc **lịch sử commit**, tức cần `git` và cần base ref của PR. Một checker phụ thuộc trạng thái git thì **không fixture nào mô tả được nó**, và một lần chạy local xanh **không phải bằng chứng** vế đó đã đạt. Viết nửa vời sẽ tạo ra đúng thứ cả chặng này đi diệt: một dòng `PASS` không có nghĩa gì. Chúng nằm trong `Unverifiable` với lời khai rõ là **chưa implement**, không phải "đã kiểm một phần".
+
+**Fixture quan trọng nhất của Task 15** là `r10/valid_danh_tu_chua_dong_tu.go`. Nó giữ `/documents`, `/checklists`, `/price-lists` làm chứng — ba đường dẫn từng bị bắt oan bởi một bản regex có cờ `(?i)`, trong khi chính câu văn bên cạnh regex đó nói cả ba hợp lệ. Kiểm chứng: thêm `(?i)` vào → **đỏ**; bỏ neo `^...$` để khớp chuỗi con → **đỏ**.
+
+Chín lần phá, chín lần đỏ. Lần đầu chỉ tám: sabotage "khớp chuỗi con" của tôi thực ra chỉ gộp cả path thành một segment, mà regex có neo vẫn từ chối — nó **không** chạm vào cái nó tưởng đang kiểm. Phải bỏ neo `^...$` mới là phép thử thật.
+
 ---
 
 # PHASE 6 — CI
