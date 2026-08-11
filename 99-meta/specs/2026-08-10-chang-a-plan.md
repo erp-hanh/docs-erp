@@ -1710,6 +1710,22 @@ Mỗi checker theo đúng vòng: fixture MUST-FAIL → chạy, đỏ → viết 
 
 **Với R-05, fixture MUST-FAIL bắt buộc có ca `bus.Publish` đứng SAU `tx.Commit()`** — đó là ca mà mệnh đề cũ để lọt, và là bài toán dual write mà outbox sinh ra để giải.
 
+### Đã chạy — năm checker, và ba lỗi mà chính cơ chế kiểm bắt được
+
+**Không rule nào trong nhóm này lên FULL, kể cả R-11 và R-14 mà bảng trên khai FULL.** Lý do không phải thiếu công sức mà là thiếu **thông tin**: `loader` cố ý không dùng `go/packages` nên không có type info, mà checker chỉ biết một biểu thức *viết ra* thế nào chứ không biết nó *là* gì. `c.JSON(200, than)` với `than` là một biến, hay `logger.Info("x", u)` với `u` là struct, đều đi qua sạch sẽ. Nâng FULL lúc này là lặp lại đúng lỗi Task 11d đi sửa, chỉ khác chỗ nó ở một rule khác. **R-03 cũng giữ PARTIAL** dù vế thứ tư đã có: vế còn lại — không checker nào bắt buộc quy ước đặt tên — không hề biến mất khi vế thứ tư được thêm.
+
+**Ba lỗi do cơ chế kiểm bắt, không do đọc lại code:**
+
+1. **Mâu thuẫn bên trong R-16.** *Dấu hiệu vi phạm* bắt mọi field khớp regex mà tag khác `json:"-"`; *Cách sửa* của chính R-16 lại đề nghị "thêm một field boolean riêng ở DTO". Một field `DaDatMatKhau bool` khớp regex — rule bắt đúng thứ nó vừa khuyên. Fixture `valid_tag_an.go` đỏ ngay lần chạy đầu. Đã sửa **rule**, không phải sửa fixture: field kiểu `bool` được miễn, vì một `bool` chỉ lộ đúng một bit "có hay không".
+2. **R-16 bắt oan trên code thật.** Checker chỉ so *tên method*, nên `response.Error(c, err)` — đường ra lỗi chuẩn của mọi handler — bị bắt vì nó cũng tên `Error`. Fixture không thấy; `TestProductionCode` thấy ngay. Nay checker đọc cả **người nhận**, đúng như dấu hiệu của R-16 viết (`logger.Info(`, `fmt.Printf(`, `log.Println(`).
+3. **`relay/` không nằm trong scope nào.** Lộ ra khi một fixture của R-05 cần mô tả relay và không khai được đường dẫn hợp lệ nào. `relay/` là nơi **duy nhất** được publish ra bus — một thư mục mang đặc quyền mà không scope nào quét là chỗ dễ nhất để mọi rule khác cũng bị bỏ qua ở đó. Đã thêm vào `ProductionScope` và `TestInfraScope`.
+
+**Thêm một cột vào bảng mức: `FILE`.** Từ task này trở đi có checker chỉ kết luận về `modules/**`, mà `modules/` còn rỗng — chúng chạy, không thấy gì, và bảng in `PASS`. Dòng đó không phân biệt được với một checker đã quét cả repo rồi không thấy vi phạm. Nay bảng nói thẳng: `PASS tren tap RONG: chua co file nao trong tam ket luan`. `Rule.Targets` khai *rule kết luận về đâu*, khác `Scope` khai *loader nạp ở đâu* — hai cái lệch nhau đúng ở chỗ nguy hiểm.
+
+`targetChuaCo` tự hết hạn theo đúng cách `Scope.Optional` tự hết hạn. Bản đầu của nó hỏi `os.Stat` và **đỏ ngay**: `backend-erp/modules/` có tồn tại — nó được tạo từ Task 4 — nhưng rỗng. Cột `FILE` đo *số file*, nên một thư mục rỗng và một thư mục không tồn tại cho ra cùng con số 0; phân biệt bằng sự tồn tại của thư mục là phân biệt nhầm thứ.
+
+Tám lần phá, tám lần đỏ. Trong đó **một xác nhận giả bị bắt lại**: fixture `valid` của R-05 ban đầu chỉ *khai báo* method `Publish` chứ không *gọi* nó, nên gỡ bỏ hoàn toàn phần miễn cho code ngoài `modules/` vẫn cho ra một lần chạy xanh — fixture không chạy qua đường nó tưởng mình đang canh.
+
 ## Task 14: Checker nhóm SQL — `C-GO-07`, R-02, R-06, R-08, R-09, R-18
 
 - [ ] **Step 1: `C-GO-07` trước tiên** — bốn rule sau phụ thuộc nó, và `EffectiveLevels` sẽ hạ chúng xuống PARTIAL nếu nó đỏ.
