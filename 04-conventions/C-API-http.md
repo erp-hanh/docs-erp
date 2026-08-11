@@ -512,6 +512,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | Mã | HTTP | Thông điệp mặc định | Khi nào |
 |---|---|---|---|
 | `ERR_AUTH_UNAUTHENTICATED` | `401` | Phiên đăng nhập không hợp lệ hoặc đã hết hạn | Thiếu token, token sai chữ ký, token hết hạn |
+| `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
 | `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request; luôn kèm `error.fields` |
@@ -541,6 +542,14 @@ Quy ước dùng bảng này:
   tách mã theo loại lỗi kỹ thuật — client không làm gì được với sự khác biệt đó.
 - **Lỗi nghiệp vụ log ở mức `Info`, không phải `Error`**: nó là hành vi bình thường của
   hệ thống.
+- **`ERR_AUTH_INVALID_CREDENTIALS` dùng đúng một thông điệp cho cả sai email lẫn sai mật
+  khẩu, và đó là chủ ý.** Tách hai ca thành "email không tồn tại" và "mật khẩu sai" là xác
+  nhận với người ngoài rằng email nào có tồn tại trong hệ thống — một kênh dò tài khoản
+  dùng được mà không cần đăng nhập nổi lần nào. Đây đúng là lý do khiến bản ghi của công ty
+  khác trả `404` chứ không phải `403`
+  ([../02-principles/P-ERR-error-handling.md](../02-principles/P-ERR-error-handling.md)).
+  Thông điệp phải mờ như nhau, và thời gian trả lời cũng vậy: bỏ qua bước so mật khẩu khi
+  không tìm thấy email là để lộ cùng thông tin đó qua độ trễ.
 - **`ERR_COMMON_SERVICE_UNAVAILABLE` là mã hạ tầng, và nó là mã hạ tầng duy nhất.** Bảng
   này là bảng mã *nghiệp vụ*, nên một mã mà không client nghiệp vụ nào rẽ nhánh theo cần
   được giải thích chứ không được lặng lẽ nằm chung. Nó có mặt vì R-11 buộc **mọi** response

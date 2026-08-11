@@ -23,6 +23,7 @@ mỹ — đặt tên khác là làm mù bộ kiểm, và mọi Rule dựa vào n
 | C-GO-05 | Nội dung `module.yaml` | R-02, R-05, R-15 |
 | C-GO-06 | Chữ ký method service, actor và kiểm quyền | R-15, R-17 |
 | C-GO-07 | SQL phải là một hằng chuỗi đơn | R-02, R-06, R-09, R-18 |
+| C-GO-08 | Bảng vai trò tới được `cmd/api` bằng đường nào | R-15, R-04, R-01 |
 
 ---
 
@@ -224,7 +225,8 @@ Tên khác cho những thứ trên không sai về mặt Go, nhưng chúng là m
 #### Vài quy ước nhỏ còn lại
 
 - Hằng quyền đặt tên `Perm<Đối tượng><Hành động>`, giá trị là chuỗi `<module>.<hành động>`:
-  `const PermOrderCreate = "order.create"`. Khai ở package `service` của module sở hữu.
+  `const PermOrderCreate = "order.create"`. Khai ở package `service` của module sở hữu;
+  cách bảng vai trò ở `cmd/api` chạm tới được những hằng này thì xem C-GO-08.
 - Struct đầu vào của service đặt tên `<Method>Input`, đầu ra là `*model.X` hoặc
   `<Method>Output`: `CreateOrderInput`. DTO của lớp HTTP đặt tên `<Method>Request` /
   `<Đối tượng>DTO` và ở lại package `handler`.
@@ -1439,3 +1441,103 @@ LIMIT $3 OFFSET $4`
 
 Truyền `nil` cho `$2` khi không lọc theo trạng thái. Một hằng phục vụ cả hai trường
 hợp, và checker vẫn đọc được nó.
+
+---
+
+### C-GO-08 — Bảng vai trò tới được `cmd/api` bằng đường nào
+
+**Implements:** R-15, R-04, R-01
+
+C-GO-02 đã chốt định dạng chuỗi permission và nơi hằng sống: `<module>.<hành động>`, ví dụ
+`const PermOrderCreate = "order.create"`, khai ở package `service` của module sở hữu. Mục
+này **không** đổi điều đó. Nó chốt thứ C-GO-02 để trống: **bảng vai trò → permission sống ở
+đâu, và làm sao nó chạm tới được những hằng kia.**
+
+Câu hỏi nghe nhỏ, nhưng hai đáp án tự nhiên nhất đều vi phạm rule.
+
+#### Hai đường sai, và rule nào chặn chúng
+
+**Sai 1 — để bảng vai trò trong `shared/authz`.** Bảng đó phải nhắc tên từng permission của
+từng module, nên `shared/` sẽ phải import `modules/`. Đó là **R-04**, và vi phạm ở đúng chỗ
+R-04 sinh ra để chặn: phụ thuộc chạy từ `modules/` xuống `shared/`, không bao giờ ngược lại.
+
+**Sai 2 — để `cmd/api` import thẳng `modules/<A>/api/` hoặc `modules/<A>/internal/service/`
+để lấy hằng.** Đây là chỗ dễ sai nhất vì nó *nghe* hợp lý — `api/` vốn là thứ module khác
+được import. Nhưng R-01 nói riêng về composition root:
+
+> Composition root `cmd/**` chỉ được import package chứa `modules/<A>/module.go` — cấm
+> import bất kỳ package con nào **khác** của module. Dòng import trong `cmd/**` còn nhiều
+> hơn một segment sau `modules/` (ví dụ `erp/modules/order/api`) là dấu hiệu vi phạm.
+
+`cmd/**` **không** được import `api/`. Chỉ đúng `erp/modules/order` mới hợp lệ. Và đây là
+R-01 — rule duy nhất đang ở mức **FULL** — nên `checkR01` bắt ngay dòng import đầu tiên.
+
+#### Đường đúng: module xuất permission ở package gốc
+
+Package gốc của module — nơi có `module.go` — là mặt tiếp xúc **duy nhất** giữa module và
+composition root. Vậy permission đi ra qua đúng cửa đó:
+
+```go
+// modules/order/module.go
+package order
+
+import "erp/modules/order/internal/service"
+
+// Permission cua module, xuat lai o package goc. Hang that song trong internal/service
+// theo C-GO-02; day chi la CUA RA.
+//
+// Vi sao phai co cua nay: cmd/api dung bang vai tro nen no phai goi ten tung permission,
+// ma R-01 cam cmd/** import ca api/ lan internal/service/. Khong co cua nay thi duong
+// vong duy nhat con lai la chep tay chuoi "order.create" vao cmd/api - hai ban cua cung
+// mot chuoi o hai noi, va mot lan doi ten permission se lam mot vai tro mat quyen trong
+// khi build van xanh.
+const (
+	PermCreate  = service.PermOrderCreate
+	PermRead    = service.PermOrderRead
+	PermApprove = service.PermOrderApprove
+)
+```
+
+```go
+// cmd/api/authz.go
+package main
+
+import (
+	"erp/modules/order"
+	"erp/modules/user"
+	"erp/shared/authz"
+)
+
+// bangVaiTro la DU LIEU, va no song o day vi day la noi duy nhat duoc biet CA HAI phia:
+// danh sach vai tro cua he thong, va permission cua tung module.
+func bangVaiTro() authz.Bang {
+	return authz.Bang{
+		"admin":  {user.PermCreate, user.PermList, order.PermCreate, order.PermApprove},
+		"sale":   {order.PermCreate, order.PermRead},
+		"viewer": {user.PermList, order.PermRead},
+	}
+}
+```
+
+`shared/authz` khai `Checker` với `Can(ctx, actor, perm) error` và một bản cài đặt **nhận
+bảng làm dữ liệu**. Nó không biết permission nào tồn tại, và đó chính là điều kiện để nó
+không phải import `modules/`.
+
+#### Hệ quả có lợi: mất quyền lộ ra lúc biên dịch
+
+Xóa hoặc đổi tên một hằng permission làm **vỡ build của `cmd/api`**. Đó là hành vi mong
+muốn: một vai trò mất quyền phải lộ ra lúc biên dịch, không phải lúc một người dùng thật
+bấm nút và nhận `403`.
+
+Ngược lại, chép tay chuỗi `"order.create"` vào `cmd/api` thì đổi tên permission vẫn build
+xanh, và lỗi chỉ hiện ra ở môi trường thật.
+
+#### Cách kiểm
+
+```powershell
+# cmd/** chi duoc import package goc cua module - R-01 canh san
+go test ./arch/ -run TestProductionCode
+
+# shared/ khong duoc import modules/ - R-04 canh san
+Select-String -Path shared\*\*.go -Pattern 'erp/modules/'
+```

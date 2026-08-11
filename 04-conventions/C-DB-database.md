@@ -125,8 +125,17 @@ và ghi comment ASCII ngay trên câu lệnh nêu bộ cột đầy đủ.
 | Định danh | `UUID` | `SERIAL`, `BIGSERIAL`, `BIGINT` |
 | Văn bản mọi độ dài | `TEXT` | `VARCHAR(n)`, `CHAR(n)` |
 | Trạng thái | `TEXT` + `CHECK`, hoặc bảng tham chiếu | `ENUM` của PostgreSQL |
-| Đúng/sai | `BOOLEAN NOT NULL DEFAULT false` | `SMALLINT` 0/1 |
+| Đúng/sai | `BOOLEAN NOT NULL DEFAULT <giá trị an toàn>` | `SMALLINT` 0/1, cột boolean cho phép `NULL` |
 | Dữ liệu bán cấu trúc | `JSONB` | `JSON`, `TEXT` chứa JSON |
+
+**Cột boolean: phần bắt buộc là `BOOLEAN NOT NULL` cộng một `DEFAULT` tường minh, không
+phải giá trị `false`.** Bắt buộc `NOT NULL` + `DEFAULT` vì một boolean cho phép `NULL` là
+một trạng thái ba giá trị, và `WHERE is_active = false` khi đó **bỏ sót** mọi hàng `NULL` —
+một loại lỗi im lặng, đọc code không thấy. Còn *giá trị* mặc định thì chọn theo cột: lấy
+trạng thái an toàn nhất khi hàng vừa được tạo mà chưa ai gán. `users.is_active DEFAULT true`
+là đúng vì hệ thống chưa có luồng kích hoạt tài khoản — mặc định `false` nghĩa là mọi user
+vừa tạo đều không đăng nhập được, tức một tính năng chưa tồn tại được bật lên bằng một giá
+trị mặc định.
 
 **Tiền là `NUMERIC(18,4)`, không bao giờ là kiểu dấu phẩy động.** `FLOAT` và `DOUBLE
 PRECISION` là nhị phân: `0.1` không biểu diễn được chính xác, nên mỗi phép cộng để lại
