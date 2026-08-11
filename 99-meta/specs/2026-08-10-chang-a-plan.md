@@ -1748,6 +1748,21 @@ Fixture MUST-FAIL phải có cả hai ca: nối hai hằng, và `fmt.Sprintf`.
 
 Sau khi có `C-GO-07` thật, thêm một subtest dùng fixture SQL nối chuỗi thật và khẳng định R-02 báo "không kết luận được".
 
+### Đã chạy — sáu checker, và bốn lỗi do chính cơ chế kiểm bắt
+
+Không rule nào lên FULL. `sqlscan` đọc SQL ở **mức văn bản**, đúng mức mà dấu hiệu vi phạm của bốn rule được viết ra — nhưng `ALTER TABLE ADD COLUMN` ở một migration sau, định danh trích dẫn bằng ngoặc kép, và subquery lồng nhau đều nằm ngoài tầm. Chúng được ghi vào `Unverifiable` của từng rule.
+
+Bước 3 của kế hoạch được thay bằng **`TestR02MuKhiCGO07Do`**. `TestDependencyDowngrade` chỉ báo động khi một rule khai FULL bị tụt, mà cả R-02 lẫn C-GO-07 đều PARTIAL nên nó im. Câu hỏi thật nằm ở chỗ khác và nặng hơn: khi SQL nối chuỗi, R-02 **im lặng — không phải vì sạch mà vì mù** — và C-GO-07 là thứ kêu ở cùng lần chạy. Đó là một ca checker xanh trong khi vi phạm còn nguyên, nên nó phải có test riêng.
+
+**Bốn lỗi, tất cả do fixture hoặc cơ chế siết bắt, không do đọc lại code:**
+
+1. **`fileMigration` lọc theo `Name` thay vì `Path`.** `Name` là tên thật trên đĩa, mà fixture tên `violation_thieu_cot.sql` — nên nó loại **sạch** mọi fixture rồi trả về rỗng, và cả bốn checker chạy trên tập rỗng. Mọi fixture `violation_*` đi qua.
+2. **R-09 kết luận từ chỗ trống.** Không nạp được migration nào thì tập index rỗng, tập index rỗng thì mọi cột đều "không có index phục vụ" — checker báo vi phạm cho cả câu SQL hoàn toàn đúng. Cơ chế siết cross-file bắt ra: bỏ file migration khỏi case thì Finding **vẫn còn**.
+3. **`MenhDeWhere` tìm `" WHERE "` bằng so khớp chuỗi có dấu cách hai đầu.** Trong SQL nhiều dòng — tức mọi câu SQL thật, vì C-GO-07 khuyến khích backtick — `WHERE` đứng sau ký tự xuống dòng. Nó trượt sạch sẽ và trả về mệnh đề **rỗng**, mà mệnh đề rỗng làm R-06 thôi đòi `company_id = $` và R-18 thôi đòi `deleted_at IS NULL`.
+4. **`ORDER BY o.created_at` cho ra "cột `o`".** Bắt một định danh trần lấy nhầm chính cái alias, và R-09 sẽ đòi index cho một cột không tồn tại. Một checker đòi index cho cột không có thật sẽ bị gỡ bỏ chứ không được sửa.
+
+Mười lần phá, mười lần đỏ — kể cả những chiều bắt oan đắt nhất: `companies` không cần `company_id`, `outbox` chỉ cần `created_at`, `schema_migrations` miễn toàn bộ vế cột, và hard delete có ADR duyệt thì hợp lệ.
+
 ## Task 15: Checker còn lại — R-07, R-10, R-12, R-13, R-17
 
 | Rule | Cơ chế | Mức | Ghi chú |
