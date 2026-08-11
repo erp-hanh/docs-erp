@@ -1869,6 +1869,23 @@ Rồi tắt Docker và chạy lại `go test ./arch/...` — phải vẫn xanh.
 
 - [ ] **Step 4: Commit**
 
+### Đã chạy — và hai cơ chế tự hết hạn nổ đúng lúc
+
+**Ghim băm biến một câu khẩu hiệu thành một cơ chế.** Mọi tài liệu đều nói *"docs-erp là nguồn sự thật, code chỉ hiện thực hóa"*. Câu đó đúng, và cho tới trước Task 16 nó **không có răng**: `RULES.md` đổi một mệnh đề thì checker không đổi theo, và **không gì kêu**. Bộ kiểm vẫn xanh, bảng mức vẫn báo `PASS`, và khoảng cách giữa tài liệu với code lớn dần trong im lặng.
+
+`arch/RULES-PIN.md` ghim băm nội dung từng mục `### R-NN`. Mục đổi thì test **đỏ**, và thông điệp buộc chọn một trong hai: cập nhật checker, hoặc ghim lại nếu thay đổi không chạm tới điều checker đang kiểm. Im lặng đi tiếp không còn là một lựa chọn. Kiểm chứng: sửa một chữ trong `### R-01` → `bam 0a9dde32a8d3 -> f38455220be5`, đỏ.
+
+**Cờ `-pin` tách riêng khỏi `-update`**, và sự tách đó là có chủ ý: `-update` làm mới bảng mức sau một thay đổi trong **code**, `-pin` xác nhận một thay đổi trong **tài liệu**. Gộp hai cờ làm một thì một lần làm mới bảng mức sẽ âm thầm nuốt luôn một mệnh đề vừa đổi.
+
+**Băm chuẩn hóa CRLF/LF và khoảng trắng cuối dòng.** Máy dev là Windows, CI là Ubuntu. Không chuẩn hóa thì mọi mục đều "đổi" ngay khi đổi máy — và một cảnh báo kêu ở mọi lần chạy là một cảnh báo không ai đọc nữa, tức cách nhanh nhất để vô hiệu hóa chính cơ chế này.
+
+**Hai cơ chế tự hết hạn nổ đúng lúc thêm `ci.yml`**, và cả hai đều đỏ đúng lý do:
+
+- `TestCIWorkflowUnverifiableStaysHonest` — ghi chú của TI-03 còn khẳng định *"chưa có ci.yml"* trong khi file đã có.
+- `TestOptionalRootStaysHonest` — `.github` không còn được phép `Optional`.
+
+Job `lint` gọi `cmd/dev lint` chứ **không** viết lại `gofmt -l` trong yaml: `gofmt -l` thoát với mã 0 kể cả khi có file sai định dạng, nên logic đọc đầu ra phải nằm ở một chỗ có test canh. `fetch-depth: 0` giữ sẵn cho vế GIT của R-07 và R-13, nhưng comment trong workflow nói rõ **hai vế đó chưa được implement** — đừng đọc dòng cấu hình ấy như bằng chứng chúng đang chạy.
+
 ---
 
 ### ⏸ CHECKPOINT PHASE 6 — Định nghĩa hoàn thành
@@ -1890,6 +1907,10 @@ Rồi tắt Docker và chạy lại `go test ./arch/...` — phải vẫn xanh.
 | R-12, R-16 các vế cần type info | Cân nhắc chế độ type-check chạy riêng trên code thật |
 | R-19 và toàn bộ checker frontend | Chặng frontend |
 | `document_counters` chưa phân nhóm | Khi module đầu tiên cần cấp số chứng từ |
+| **R-07 vế "cấm sửa migration đã merge"** — đọc lịch sử commit, cần `git` + base ref | Khi có PR thật để so; `fetch-depth: 0` đã sẵn trong CI |
+| **R-13 vế so sánh DTO giữa hai phiên bản** — cùng hình dạng với vế GIT của R-07 | Cùng lúc với trên |
+| R-16: ngoại lệ DTO cấp token khai ở C-API-07 chưa được đọc, nên một DTO đã đăng ký vẫn bị bắt oan | Khi module `auth` có endpoint cấp token |
+| R-09 điều kiện (b) của Ngoại lệ — *"bảng danh mục không có FK trỏ tới bảng giao dịch"* — không có danh sách nào khai bảng nào là bảng giao dịch | Chặng sau |
 
 ---
 
