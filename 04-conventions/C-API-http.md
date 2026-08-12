@@ -514,6 +514,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_UNAUTHENTICATED` | `401` | Phiên đăng nhập không hợp lệ hoặc đã hết hạn | Thiếu token, token sai chữ ký, token hết hạn |
 | `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
+| `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email đã được dùng trong công ty này | Tạo hoặc sửa user với email đã tồn tại trong **cùng** công ty — vi phạm `uq_users_email_active`. Cùng một email ở công ty khác thì hợp lệ |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
 | `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request; luôn kèm `error.fields` |
 | `ERR_COMMON_VERSION_CONFLICT` | `409` | Bản ghi đã được người khác cập nhật, hãy tải lại rồi thử lại | `updated_at` client gửi lên không khớp bản trong DB |
@@ -564,6 +565,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 |---|---|---|
 | `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` |
 | `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
+| `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` |
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
@@ -634,8 +636,8 @@ Ba quy tắc dùng sổ này:
 
 Cột `Ngày duyệt` ghi theo dạng `YYYY-MM-DD`, là ngày PR chứa endpoint đó được merge.
 
-Cả năm bảng hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải quên
-ghi.
+Bảng 1, 2, 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
+quên ghi.
 
 #### 1. Endpoint hành động dạng `/actions/<verb>` — ngoại lệ R-10
 
@@ -675,7 +677,14 @@ struct DTO được miễn, vì thứ được miễn là struct chứ không ph
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| _(chưa có endpoint nào)_ | — | — |
+| `POST /api/v1/auth/login` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: thân response mang `access_token` và `refresh_token`, không có đường nào khác trao chúng cho client | 2026-08-11 |
+| `POST /api/v1/auth/refresh` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **làm mới token**: cùng struct với `/auth/login`, vì nó trả đúng một cặp token mới sau khi thu hồi cặp cũ | 2026-08-11 |
+
+Hai dòng trên miễn đúng **một** struct. Mọi struct khác của module `auth` vẫn chịu R-16
+đầy đủ: `service.TokenPair`, `service.LoginInput`, `service.RefreshInput`,
+`service.LogoutInput` và `service.ChangePasswordInput` đều mang `json:"-"` trên field nhạy
+cảm, và `model.RefreshToken.TokenHash` cũng vậy. Ngoại lệ này là về **đường ra tới
+client**, không phải về tiện lợi khi viết struct.
 
 #### 5. Endpoint bắt buộc nhận header `Idempotency-Key` — hard check của P-IDEM
 

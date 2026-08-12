@@ -31,8 +31,7 @@ khác nhau: `R-16` chạy sạch trên mọi fixture rồi bắt oan `response.E
 | `shared/middleware/auth` | R-14: nơi **duy nhất** được `jwt.Parse` |
 | `shared/audit` | R-17: **mọi** thao tác ghi sinh audit trong cùng transaction |
 | Migration `users`, `refresh_tokens`, `audit_logs` | Ba bảng module cần |
-| `modules/auth` | Login, Refresh, Logout, ChangePassword |
-| `modules/user` | CRUD + list có phân trang |
+| `modules/auth` | MỘT module, sở hữu `users` + `refresh_tokens`; xem mục 7 |
 
 **KHÔNG làm, và lý do:**
 
@@ -266,31 +265,66 @@ Mật khẩu băm bcrypt cost 12 (`golang.org/x/crypto/bcrypt`).
 C-API-07 nói rõ thêm dòng là việc của chính PR tạo endpoint. Dòng đăng ký nêu cả endpoint
 lẫn **tên struct**.
 
-## 7. Module `user`
+## 7. MỘT module `auth`, không phải hai — sửa sau khi viết
 
-CRUD đầy đủ trên `users` cộng một endpoint list có phân trang — endpoint list là thứ duy
-nhất làm R-12 gặp code thật.
+> **Bản đầu của spec này chia hai module** `auth` và `user`, với `auth` gọi `modules/user/api/`
+> để tra user theo email. **Không sống được**, và nó lộ ra khi viết hợp đồng giữa hai module.
+
+**Login xảy ra khi chưa có actor.** R-15 bắt *mọi* method public của service nhận `actor`
+làm tham số thứ hai và mở đầu bằng một lời gọi kiểm quyền. Ngoại lệ là danh sách **đóng**:
+`Login`, `Refresh`, `Logout` của **`AuthService`** — không phải của `UserService`. Nên
+`UserService.VerifyCredentials(...)` không có actor nào để nhận và không có quyền nào để
+kiểm.
+
+Ba đường ra, hai đường đầu đều tệ:
+
+| Đường | Vấn đề |
+|---|---|
+| Mở rộng ngoại lệ R-15 sang `UserService` | Phải sửa chính rule — thứ đã cố ý tránh ở mục 6 |
+| Cho `auth` query thẳng bảng `users` | Vi phạm R-02: một bảng thuộc đúng một module |
+| **Một module `auth` sở hữu cả `users` lẫn `refresh_tokens`** | Không vi phạm gì, không cần ADR |
+
+Đường thứ ba khớp đúng một cơ chế đã có sẵn: `AuthService` gọi
+`UserService.InternalByEmail(ctx, actor, ...)` — method `Internal*` dùng nội bộ **giữa các
+service trong cùng một module**, chính là ca mà ngoại lệ `Internal*` của R-15 sinh ra để
+phục vụ. Nó được miễn kiểm quyền, vẫn nhận `actor`, và bắt buộc có tên trong
+`internal_methods` — tức `C-GO-05` vừa viết ở B1 sẽ canh nó.
+
+Thêm một căn cứ độc lập: **R-14 gọi đích danh `modules/auth/internal/token`** trong phần
+Ngoại lệ. Tên module đã được rule chốt sẵn.
 
 ```
+modules/auth/
+├── api/              DTO cho module khac (chua module nao dung)
+├── internal/
+│   ├── handler/      auth_handler.go, user_handler.go, routes.go
+│   ├── service/      auth_service.go, user_service.go, permissions.go
+│   ├── repository/   user_repository.go, refresh_token_repository.go
+│   ├── model/        user.go, refresh_token.go
+│   └── token/        ky token - ngoai le tuong minh cua R-14
+├── module.go
+└── module.yaml       tables: [users, refresh_tokens]
+```
+
+**`AuthService`** — `Login`, `Refresh`, `Logout` (miễn theo R-15), `ChangePassword`
+(có actor, kiểm quyền bình thường).
+
+**`UserService`** — CRUD đầy đủ cộng một endpoint list có phân trang; mọi method public
+nhận `actor` và mở đầu bằng `s.authz.Can(...)`; cộng `InternalByEmail` phục vụ `AuthService`.
+
+```
+POST   /api/v1/auth/login  /refresh  /logout          mien dang tai nguyen (C-API-01)
+POST   /api/v1/auth/change-password
 GET    /api/v1/users        list, co page/page_size/sort
-POST   /api/v1/users        tao moi, tra 201
-GET    /api/v1/users/:id    chi tiet
-PATCH  /api/v1/users/:id    sua mot phan
+POST   /api/v1/users        tra 201
+GET    /api/v1/users/:id
+PATCH  /api/v1/users/:id
 DELETE /api/v1/users/:id    xoa mem, tra 204
 ```
 
-`UserService` mọi method public nhận `actor auth.Actor` làm tham số thứ hai và mở đầu bằng
-`s.authz.Can(...)`. Mọi thao tác ghi gọi `auditRepo.Record(ctx, tx, ...)` trong cùng
-transaction.
-
-`sort` đi qua map whitelist khai tĩnh ở cấp package trong repository (R-12), câu SQL là hằng
-chuỗi đơn (C-GO-07), mọi câu đọc có `company_id = $n` và `deleted_at IS NULL` (R-06, R-18).
-
-**Hai module cùng đọc bảng `users`.** `modules/auth` cần đọc `users` để xác thực, `modules/user`
-sở hữu nó. R-02 nói bảng chỉ thuộc **một** module. Giải: `tables` của `auth` chứa
-`refresh_tokens`, `tables` của `user` chứa `users`; `auth` lấy dữ liệu user qua
-`modules/user/api/` chứ không query thẳng — và `user` có tên trong `allowed_deps` của `auth`.
-Đây chính là ca R-02 sinh ra để bắt, nên nó phải đi đúng đường ngay từ module đầu tiên.
+**Cái mất khi gộp:** vế *JOIN xuyên module* của R-02 không được thử trên code thật ở chặng
+này — chỉ còn fixture canh nó. Chấp nhận được: dựng một module thứ hai chỉ để thử một
+checker là dựng thứ không ai dùng, và chặng A đã cho thấy thứ không ai dùng thì mục.
 
 ## 8. Kéo theo ở `docs-erp`
 

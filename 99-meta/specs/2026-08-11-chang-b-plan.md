@@ -79,3 +79,63 @@ nên `user/api/` phải có trước. Làm `B8` phần `api/` + `model/` + `repo
    năm mục không có checker nào canh (cây thư mục, chu trình `allowed_deps`, 5 file docs,
    test cho mỗi method public) chỉ có người kiểm được.
 5. Đẩy lên GitHub, đợi CI ba job xanh.
+
+
+---
+
+# Trạng thái chặng B — cập nhật 2026-08-12
+
+## Đã xong
+
+| Task | Commit |
+|---|---|
+| B1 `C-GO-05` canh `module.yaml` · B2/B3/B4/B5 `shared/{auth,authz,middleware/auth,audit}` · B6 migration ba bảng · B9 `ERR_AUTH_INVALID_CREDENTIALS` + C-GO-08 | `4746187`, `ff35d53` |
+| B7a nền móng `modules/auth` (model, repository, `module.yaml`) + hai checker bắt oan được sửa | `86ffcd6` |
+| `checkR13` thôi kết luận ở chỗ nó không nhìn thấy | `03592e5` |
+| B7 `AuthService` + token · B8 `UserService` + handler · B10 `cmd/api` ghép lại | `608e81f` |
+
+**Mục tiêu đo được đã đạt:** `arch/LEVELS.md` **không còn dòng `PASS tren tap RONG` nào**.
+18 rule + 2 convention đều chạm code sản xuất. Năm ca end-to-end chạy qua database thật:
+login → 200, gọi endpoint kèm token → 200, không token → 401, bản ghi công ty khác →
+**404 chứ không 403**, sai mật khẩu → 401 không lộ token, refresh→logout→refresh lại → 401.
+
+## Còn lại của chặng B
+
+1. **Docs module (CL-NEWMOD-08)** — `modules/auth/docs/` cần đủ 5 file theo
+   `05-templates/module-docs/`: `README`, `Database`, `Workflow`, `Permission`, `Events`.
+   `Database.md` phải khớp từng dòng với `tables` của `module.yaml`. **Không checker nào canh.**
+2. **Chạy `CL-NEWMOD-new-module.md` và `CL-API-new-endpoint.md` bằng mắt.** Năm mục không
+   có checker: cây thư mục module, chu trình `allowed_deps` hai nút, 5 file docs, test cho
+   mỗi method public của service, và `module.yaml` đủ trường (mục cuối nay đã có `C-GO-05`).
+3. **Đợi CI ba job xanh** sau khi đẩy.
+
+## Hai món nợ, phải giải trước khi gọi phân quyền là có thật
+
+**1. Phân quyền hiện là hình thức.** `users` chưa có cột role, nên `modules/auth` ký một
+hằng `RoleMacDinh` cho **mọi** user, và bảng vai trò ở `cmd/api` cấp đủ sáu quyền cho hằng
+đó. Hệ quả: **không tồn tại user hạn chế nào**, nên không test nào chứng minh được `authz`
+thật sự từ chối ai — `Can` chưa bao giờ trả lỗi trên đường chạy thật.
+
+Đây là hở trong chính spec này: mục 4.3 chốt *"role nằm trong JWT claims, không bảng"*
+nhưng **không nói role lấy từ đâu**. Cách sửa gọn nhất: thêm cột `roles TEXT[]` vào `users`
+bằng một migration mới (R-07 cấm sửa migration đã merge), đọc nó lúc ký token, và bỏ
+`RoleMacDinh`. Ba chỗ đang sống bằng comment: `auth_permissions.go`, `auth_service.go`
+(hai lời gọi), `cmd/api/authz.go`.
+
+**2. Không có đường tạo user đầu tiên.** `POST /users` đòi actor có quyền, mà muốn có actor
+thì phải đăng nhập, mà muốn đăng nhập thì phải có user. Hiện chỉ vào được bằng SQL tay —
+`cmd/api/e2e_test.go` làm đúng việc đó. Cần một lệnh bootstrap ở `cmd/dev` hoặc một
+migration seed có kiểm soát.
+
+**3. `ERR_AUTH_EMAIL_DUPLICATED` chưa có ca end-to-end** — mới chốt status/mã ở tầng
+`shared/errors`. Đường `23505` → `409` chưa lần nào chạy thật.
+
+## Ghi chú cho người tiếp tục
+
+Đọc theo thứ tự: `docs-erp/00-START-HERE.md` → `backend-erp/CLAUDE.md` →
+`backend-erp/arch/README.md` (bảng mức khai báo) → `backend-erp/arch/LEVELS.md` (bảng mức
+**thực tế**, đọc kết quả lần chạy). Chạy `go run ./cmd/dev check` rồi `test`.
+
+Ba cơ chế tự hết hạn đã nổ đúng lúc trong chặng này và sẽ còn nổ tiếp:
+`Scope.Optional`, `targetChuaCo`, và `TestCIWorkflowUnverifiableStaysHonest`. Khi một
+trong chúng đỏ, thông điệp lỗi nói đích danh việc phải làm — làm đúng thế, đừng nới lỏng.
