@@ -536,6 +536,9 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_ORDER_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Duyệt một đơn đã hủy, sửa một đơn đã duyệt |
 | `ERR_CUSTOMER_CREDIT_LIMIT_EXCEEDED` | `409` | Vượt hạn mức công nợ của khách hàng | Tổng công nợ sau thao tác vượt hạn mức đã cấp |
 | `ERR_INVENTORY_STOCK_NOT_AVAILABLE` | `409` | Không đủ tồn kho | Giữ hàng thất bại vì không còn đủ số lượng |
+| `ERR_MACHINE_CODE_DUPLICATED` | `409` | Mã đã tồn tại trong công ty này | Tạo hoặc sửa máy, hoặc kế hoạch bảo trì, với mã đã có trong **cùng** công ty — vi phạm `uq_machines_company_id_code` hoặc `uq_maintenance_plans_company_id_code`. Cùng một mã ở công ty khác thì hợp lệ |
+| `ERR_MACHINE_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, hành động) không có trong bảng chuyển trạng thái của kế hoạch bảo trì: bắt đầu một kế hoạch đang làm, hoàn thành một kế hoạch chưa bắt đầu, hủy một kế hoạch đã hoàn thành |
+| `ERR_MACHINE_ASSIGNEE_INVALID` | `422` | Người phụ trách không hợp lệ | `assigned_to` không phải user còn hoạt động của cùng công ty. User thuộc công ty khác trả **cùng** mã này, không phải `404`: thứ không tồn tại ở đây là một giá trị trong body chứ không phải tài nguyên trên URL |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -575,6 +578,10 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` |
 | `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
 | `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` |
+| `uq_machines_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` |
+| `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` |
+| `ck_machines_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
+| `ck_maintenance_plans_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
@@ -645,7 +652,7 @@ Ba quy tắc dùng sổ này:
 
 Cột `Ngày duyệt` ghi theo dạng `YYYY-MM-DD`, là ngày PR chứa endpoint đó được merge.
 
-Bảng 1, 2, 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
+Bảng 2, 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
 quên ghi.
 
 #### 1. Endpoint hành động dạng `/actions/<verb>` — ngoại lệ R-10
@@ -655,7 +662,9 @@ R-10 cấm động từ trong path. Endpoint không map được vào CRUD dùng
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| _(chưa có endpoint nào)_ | — | — |
+| `POST /api/v1/maintenance-plans/:id/actions/start` | Không tạo tài nguyên nào nên không phải `POST` tài nguyên, không thay toàn bộ bản ghi nên không phải `PUT`. Nó là **chuyển trạng thái** `ke_hoach` → `dang_lam`, kèm đổi `machines.status` sang `bao_tri` trong cùng transaction — thứ không diễn đạt được bằng một `PATCH` sửa field `status` | 2026-08-12 |
+| `POST /api/v1/maintenance-plans/:id/actions/complete` | Cùng lý do: **chuyển trạng thái** `dang_lam` → `hoan_thanh` kèm trả máy về `hoat_dong` và đóng dấu `completed_at`. Cặp (trạng thái hiện tại, hành động) hợp lệ hay không do service quyết, không phải do client gửi lên giá trị `status` mới | 2026-08-12 |
+| `POST /api/v1/maintenance-plans/:id/actions/cancel` | Cùng lý do: **chuyển trạng thái** sang `huy` từ `ke_hoach` hoặc `dang_lam`, và hiệu ứng kèm theo khác nhau tùy trạng thái xuất phát. Đó là một hành động nghiệp vụ chứ không phải một phép sửa field, và cũng không phải `DELETE` vì bản ghi vẫn sống | 2026-08-12 |
 
 #### 2. Endpoint trả file hoặc stream, được miễn envelope — ngoại lệ R-11
 

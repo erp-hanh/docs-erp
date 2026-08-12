@@ -122,7 +122,7 @@ machines(
   location TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'hoat_dong',   -- CHECK
   assigned_to UUID,              -- user phu trach; KHONG khoa ngoai, xem muc 4.2
-  commissioned_on DATE,          -- ngay dua vao su dung
+  commissioned_date DATE,          -- ngay dua vao su dung
   created_at, updated_at, deleted_at, created_by, updated_by)
 
 uq_machines_company_id_code       (company_id, code) WHERE deleted_at IS NULL
@@ -142,7 +142,7 @@ maintenance_plans(
   id, company_id,
   machine_id UUID NOT NULL REFERENCES machines(id),
   code TEXT NOT NULL,
-  planned_on DATE NOT NULL,
+  planned_date DATE NOT NULL,
   status TEXT NOT NULL DEFAULT 'ke_hoach',    -- CHECK
   note TEXT NOT NULL DEFAULT '',
   started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ,
@@ -150,7 +150,7 @@ maintenance_plans(
 
 uq_maintenance_plans_company_id_code       (company_id, code) WHERE deleted_at IS NULL
 idx_maintenance_plans_company_id_machine_id (company_id, machine_id) WHERE deleted_at IS NULL
-idx_maintenance_plans_company_id_planned_on (company_id, planned_on) WHERE deleted_at IS NULL
+idx_maintenance_plans_company_id_planned_date (company_id, planned_date) WHERE deleted_at IS NULL
 ck_maintenance_plans_status CHECK (status IN ('ke_hoach','dang_lam','hoan_thanh','huy'))
 ```
 

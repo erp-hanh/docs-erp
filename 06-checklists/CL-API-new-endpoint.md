@@ -32,7 +32,7 @@ hôm nay mới có đúng một client.
 - [ ] CL-API-14 — Handler lấy actor bằng `auth.FromContext(ctx)` rồi truyền xuống service làm tham số thứ hai; handler không chứa so sánh role hay permission, và không đọc header `Authorization` (Verifies: R-14, R-15, C-GO-06)
 - [ ] CL-API-15 — Handler truyền `c.Request.Context()` làm tham số đầu tiên khi gọi service, và ghi log bằng logger dẫn xuất từ `ctx` chứ không phải logger toàn cục (Verifies: R-17, C-GO-02)
 - [ ] CL-API-16 — Diff không xóa field, không đổi kiểu, không đổi tag `json` của DTO response đang có dưới `/api/v1`, và không thêm field gắn `binding:"required"` vào DTO request đã tồn tại (Verifies: R-13, C-API-06)
-- [ ] CL-API-17 — Frontend gọi endpoint này không tự tính rồi gửi lên số tiền, thuế hay tồn kho; nó chỉ gửi đầu vào thô và render lại con số backend trả về (Verifies: R-19, C-TS-04)
+- [ ] CL-API-17 — Frontend gọi endpoint này không tự tính rồi gửi lên số tiền, thuế hay tồn kho; nó chỉ gửi đầu vào thô và render lại con số backend trả về (Verifies: R-19, C-TS-05)
 
 ---
 

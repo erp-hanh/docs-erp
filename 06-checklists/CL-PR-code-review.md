@@ -41,7 +41,7 @@ trong ba mươi giây là reviewer đang ký tên vào một thứ mình chưa n
 
 ## Frontend
 
-- [ ] CL-PR-14 — File `.ts`/`.tsx` trong diff không đưa kết quả tính tiền, thuế hay tồn kho vào body của request `POST`/`PUT`; hiển thị con số tạm tính lên màn hình thì được (Verifies: R-19, C-TS-04)
+- [ ] CL-PR-14 — File `.ts`/`.tsx` trong diff không đưa kết quả tính tiền, thuế hay tồn kho vào body của request `POST`/`PUT`; hiển thị con số tạm tính lên màn hình thì được (Verifies: R-19, C-TS-05)
 - [ ] CL-PR-15 — Không component nào hardcode bảng chuyển trạng thái hợp lệ để quyết định cho phép hành động; frontend chỉ dựa vào field do API trả về (Verifies: R-19, C-TS-05)
 - [ ] CL-PR-16 — Không có quy tắc nghiệp vụ nào chỉ tồn tại ở frontend: mỗi validate ở frontend có bản backend tương ứng, và ẩn nút theo quyền không thay thế kiểm quyền ở service (Verifies: R-15, C-TS-06)
 
