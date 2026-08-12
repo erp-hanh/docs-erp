@@ -18,7 +18,7 @@ việc đã được kiểm.
 ---
 
 - [ ] CL-NEWMOD-01 — `modules/<A>/module.yaml` tồn tại và có đủ bốn trường `name`, `tables`, `allowed_deps`, `internal_methods`; `name` khớp đúng tên thư mục dưới `modules/` (Verifies: R-02, R-05, C-GO-05)
-- [ ] CL-NEWMOD-02 — Cây thư mục module có đúng `api/`, `internal/handler/`, `internal/service/`, `internal/repository/`, `internal/model/`, `module.go`, `module.yaml`; không có package nào khác ở cấp gốc module (Verifies: R-01, C-GO-01)
+- [ ] CL-NEWMOD-02 — Cây thư mục module có đúng `api/`, `internal/handler/`, `internal/service/`, `internal/repository/`, `internal/model/`, `module.go`, `module.yaml`; hai package tùy chọn được phép có mặt là `internal/subscriber/` (nghe event) và `internal/token/` (ngoại lệ tường minh của R-14); **không** có package nào khác ở cấp gốc module (Verifies: R-01, C-GO-01)
 - [ ] CL-NEWMOD-03 — Grep toàn repo: không file nào nằm ngoài `modules/<A>/` có dòng import chứa `modules/<A>/internal` (Verifies: R-01)
 - [ ] CL-NEWMOD-04 — Mọi dòng import chứa `modules/` trong `cmd/**` dừng ở đúng `erp/modules/<A>`, không có segment nào đứng sau tên module (Verifies: R-01, C-GO-01)
 - [ ] CL-NEWMOD-05 — Không file `*_handler.go` nào import `pgx` hoặc `sqlx`; không file `*_service.go` nào import `gin` hoặc `net/http`; không file `*_repository.go` nào import package `service` (Verifies: R-03, C-GO-01)
@@ -34,6 +34,18 @@ việc đã được kiểm.
 - [ ] CL-NEWMOD-15 — Mỗi method public của service có ít nhất một test gọi thẳng nó, truyền `auth.Actor` qua tham số chứ không dựng `ctx` giả (Verifies: R-15, C-GO-06)
 
 ---
+
+**Vì sao hai package tùy chọn ở dòng trên có tên riêng.** Cả hai đã tồn tại thật và đều
+được sinh ra bởi một Rule chứ không bởi tiện tay: `internal/token/` của module `auth` là
+ngoại lệ mà R-14 gọi đích danh — chiều **ký** token tách khỏi chiều **verify** để
+`shared/middleware/auth` là nơi duy nhất quyết định "request này là ai";
+`internal/subscriber/` của module `machine` giữ handler nghe event, và nó không phải
+handler HTTP nên nó không thuộc `internal/handler/`.
+
+Cả hai lần, package thứ sáu xuất hiện trước khi dòng checklist này được sửa, và người
+chạy checklist bằng mắt phải tự quyết xem đó là vi phạm hay không. Đó là lý do chúng có
+tên ở đây: một ngoại lệ không được ghi ra thì mỗi người review sẽ tự nghĩ ra một câu trả
+lời khác nhau.
 
 ## Ba thứ hay bị bỏ sót nhất ở PR module mới
 
