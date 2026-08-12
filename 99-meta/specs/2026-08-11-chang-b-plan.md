@@ -99,17 +99,49 @@ nên `user/api/` phải có trước. Làm `B8` phần `api/` + `model/` + `repo
 login → 200, gọi endpoint kèm token → 200, không token → 401, bản ghi công ty khác →
 **404 chứ không 403**, sai mật khẩu → 401 không lộ token, refresh→logout→refresh lại → 401.
 
-## Còn lại của chặng B
+## Còn lại của chặng B — cập nhật 2026-08-12 (lượt hai)
 
-1. **Docs module (CL-NEWMOD-08)** — `modules/auth/docs/` cần đủ 5 file theo
-   `05-templates/module-docs/`: `README`, `Database`, `Workflow`, `Permission`, `Events`.
-   `Database.md` phải khớp từng dòng với `tables` của `module.yaml`. **Không checker nào canh.**
-2. **Chạy `CL-NEWMOD-new-module.md` và `CL-API-new-endpoint.md` bằng mắt.** Năm mục không
-   có checker: cây thư mục module, chu trình `allowed_deps` hai nút, 5 file docs, test cho
-   mỗi method public của service, và `module.yaml` đủ trường (mục cuối nay đã có `C-GO-05`).
-3. **Đợi CI ba job xanh** sau khi đẩy.
+1. ~~**Docs module (CL-NEWMOD-08)**~~ — **xong.** `modules/auth/docs/` có đủ 5 file theo
+   `05-templates/module-docs/`. `Database.md` khớp từng dòng với `tables` của
+   `module.yaml` (`users`, `refresh_tokens`). Không checker nào canh việc này, nên nó chỉ
+   giữ được bằng thói quen sửa docs trong cùng PR với schema.
+2. ~~**Chạy hai checklist bằng mắt**~~ — **xong**, kết quả ở mục dưới. `check` và `test`
+   xanh sau khi thêm docs; `go generate ./arch/...` không sinh diff.
+3. **Đợi CI ba job xanh** sau khi đẩy — **chưa làm**, docs mới còn là thư mục untracked.
 
-## Hai món nợ, phải giải trước khi gọi phân quyền là có thật
+## Kết quả chạy hai checklist bằng mắt
+
+`CL-NEWMOD` 15/15 và `CL-API` 17/17 đã đi từng dòng. Mọi mục đạt, trừ ba chỗ dưới đây —
+hai trong số đó là lệch thật, đo được, và chúng đứng thành món nợ thứ tư.
+
+**CL-NEWMOD-02 — cây thư mục có package thứ năm.** Ngoài `handler/`, `service/`,
+`repository/`, `model/` còn có `modules/auth/internal/token/`. Đây **không** phải vi phạm:
+Ngoại lệ của R-14 gọi đích danh package đó — nó được ký token và bị cấm mọi hàm parse, và
+`checkR14` quét chính thư mục đó để giữ vế thứ hai. Ghi ra để lần review sau không tick
+mục này mà không biết mình đang tick cái gì.
+
+**CL-API-02 — `:id` không phải UUID cho ra `500`.** `c.Param("id")` đi thẳng vào
+`WHERE id = $2`; Postgres trả `22P02`, service không dịch mã đó nên nó ra client dưới dạng
+`ERR_INTERNAL`. Đo thật, không suy luận:
+`GET /api/v1/users/khong-phai-uuid` → `500 ERR_INTERNAL`. Câu trả lời đúng là `404` — cùng
+một `404` với "không tồn tại" và "của công ty khác", vì một id sai định dạng thì chắc chắn
+không tồn tại nên `404` không lộ gì.
+
+**CL-API-03 — ranh giới `400`/`422` chưa tồn tại.** `shared/response` **không có** hàm nào
+trả `400`: mọi lỗi bind đều đi qua `ValidationFailed` → `422`. Hai ca mà C-API-02 chốt là
+`400` đang trả `422`, đo thật:
+
+| Request | Hiện tại | C-API-02 đòi |
+|---|---|---|
+| `POST /auth/login` body `{"company_code": broken` | `422` `ERR_COMMON_VALIDATION_FAILED` | `400` |
+| `GET /users?page=abc` | `422` `ERR_COMMON_VALIDATION_FAILED` | `400` |
+
+Cả hai ra cùng `fields: [{"field": "", "message": "Body khong doc duoc"}]` — kể cả ca thứ
+hai, nơi lỗi nằm ở query chứ không ở body. Frontend phân biệt hai loại này (`422` giữ
+form và highlight ô, `400` thì không có ô nào để highlight), nên đây là hợp đồng lệch chứ
+không phải chi tiết trình bày.
+
+## Bốn món nợ, phải giải trước khi gọi phân quyền là có thật
 
 **1. Phân quyền hiện là hình thức.** `users` chưa có cột role, nên `modules/auth` ký một
 hằng `RoleMacDinh` cho **mọi** user, và bảng vai trò ở `cmd/api` cấp đủ sáu quyền cho hằng
@@ -129,6 +161,15 @@ migration seed có kiểm soát.
 
 **3. `ERR_AUTH_EMAIL_DUPLICATED` chưa có ca end-to-end** — mới chốt status/mã ở tầng
 `shared/errors`. Đường `23505` → `409` chưa lần nào chạy thật.
+
+**4. Ba mã status sai so với C-API-02**, phát hiện lúc chạy checklist bằng mắt (chi tiết
+và số đo ở mục trên): `:id` sai định dạng ra `500` thay vì `404`; JSON hỏng và query sai
+kiểu ra `422` thay vì `400`. Món này khác ba món trên ở chỗ nó **không** nằm trong module:
+lời giải là một hàm `response.BadRequest` ở `shared/response` cộng với một chỗ phân biệt
+lỗi cú pháp JSON (`*json.SyntaxError`, `*json.UnmarshalTypeError`) khỏi
+`validator.ValidationErrors` trong `FieldErrors`, và một bước kiểm UUID ở handler. Sửa ở
+`shared/` thì mọi module sau đều thừa hưởng; để lại thì mọi module sau đều chép lại đúng
+cái lệch này.
 
 ## Ghi chú cho người tiếp tục
 
