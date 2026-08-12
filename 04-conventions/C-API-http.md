@@ -82,7 +82,7 @@ ký ở C-API-07:
 | GET chi tiết, GET list, PUT/PATCH thành công | `200` | envelope có `data` |
 | POST tạo mới thành công | `201` | envelope có `data` là bản ghi vừa tạo |
 | DELETE thành công | `204` | không có body |
-| Body không parse được (JSON hỏng, query param sai kiểu) | `400` | envelope có `error` |
+| Body không parse được (JSON hỏng, query param sai kiểu) | `400` | envelope có `error` mã `ERR_COMMON_MALFORMED_REQUEST`, **không** có `error.fields` |
 | Chưa xác thực, token sai hoặc hết hạn | `401` | envelope có `error` |
 | Đã xác thực nhưng không đủ quyền | `403` | envelope có `error` |
 | Không tìm thấy bản ghi | `404` | envelope có `error` |
@@ -100,6 +100,14 @@ Bốn ranh giới hay bị làm sai, mỗi cái đều có hệ quả thật:
 danh sách field lỗi. Trả `400` cho lỗi validate là dấu hiệu vi phạm R-10, vì frontend
 phân biệt hai loại này: `422` thì highlight ô và giữ nguyên form, `400` thì không có ô nào
 để highlight.
+
+Handler **không** tự chọn giữa hai mã đó: mọi lỗi bind đi qua `response.BindFailed(c, err)`,
+và hàm đó chốt ranh giới một lần cho cả hệ thống. Quy tắc nó dùng là
+`validator.ValidationErrors` → `422`, **mọi thứ còn lại** → `400` — chứ không phải một danh
+sách kiểu lỗi phải giữ cho đầy đủ. Chiều suy luận đóng: validator chỉ chạy sau khi request
+đã đọc xong, nên "lỗi là `ValidationErrors`" tương đương "đã đọc được request", đúng câu hỏi
+phân biệt hai mã. Để mỗi handler tự chọn nghĩa là có bao nhiêu handler thì có bấy nhiêu bản
+dịch của cùng một ranh giới, và chúng sẽ lệch.
 
 **`403` và `404`.** Bản ghi tồn tại nhưng thuộc công ty khác thì trả **`404`**, không phải
 `403`. Với R-06, "không tồn tại" và "tồn tại nhưng của công ty khác" cho ra cùng một
@@ -515,6 +523,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
 | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email đã được dùng trong công ty này | Tạo hoặc sửa user với email đã tồn tại trong **cùng** công ty — vi phạm `uq_users_email_active`. Cùng một email ở công ty khác thì hợp lệ |
+| `ERR_COMMON_MALFORMED_REQUEST` | `400` | Dữ liệu gửi lên không đọc được | Request **chưa đọc được**: JSON sai cú pháp, body rỗng, query param không ép được về kiểu của field. **Không** kèm `error.fields` |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
 | `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request; luôn kèm `error.fields` |
 | `ERR_COMMON_VERSION_CONFLICT` | `409` | Bản ghi đã được người khác cập nhật, hãy tải lại rồi thử lại | `updated_at` client gửi lên không khớp bản trong DB |

@@ -193,10 +193,47 @@ permission, cho một vai trò `bootstrap` chỉ tồn tại trong bộ nhớ c�
 kèm vế dễ mất nhất: xóa mềm rồi tạo lại cùng email **phải được** — đó là ca mà partial
 unique index sinh ra để phục vụ.
 
-**4. Ba mã status sai so với C-API-02 — CÒN NGUYÊN.** `:id` sai định dạng ra `500` thay vì
-`404`; JSON hỏng và query sai kiểu ra `422` thay vì `400`. Lời giải nằm ở `shared/`
-(`response.BadRequest` + phân biệt lỗi cú pháp JSON khỏi `validator.ValidationErrors`) nên
-mọi module sau đều thừa hưởng — hoặc đều chép lại đúng cái lệch này.
+**4. ~~Ba mã status sai so với C-API-02~~ — ĐÃ GIẢI.** Mã `ERR_COMMON_MALFORMED_REQUEST`
+(`400`) vào bảng C-API-05, và `response.BindFailed` chốt ranh giới `400`/`422` **một lần
+cho cả hệ thống** thay vì để mỗi handler tự chọn.
+
+Quy tắc nó dùng là `validator.ValidationErrors` → `422`, **mọi thứ còn lại** → `400` — chứ
+không phải một danh sách kiểu lỗi (`*json.SyntaxError`, `io.EOF`, `*strconv.NumError`, …)
+phải giữ cho đầy đủ qua từng phiên bản của gin và `encoding/json`. Chiều suy luận đóng:
+validator chỉ chạy sau khi request đã đọc xong, nên "lỗi là `ValidationErrors`" tương đương
+"đã đọc được request", đúng câu hỏi mà C-API-02 dùng để phân biệt hai mã.
+
+`:id` không phải UUID trả `404` bằng một lần kiểm ở **service**, ngay sau lệnh kiểm quyền
+(R-15 đòi kiểm quyền là câu lệnh đầu tiên). Service là tầng sở hữu "không tồn tại", nên nó
+là chỗ đúng — handler chỉ chuyển tiếp lỗi.
+
+Đo qua ngăn xếp đầy đủ, tám ca trong một bảng: JSON hỏng / body rỗng / kiểu sai trong JSON
+/ `?page=abc` → `400` **không** kèm `error.fields`; thiếu field bắt buộc / `page_size=500`
+→ `422` **có** `error.fields`; `:id` không phải UUID ở `GET` và `DELETE` → `404`.
+
+## Hai món nợ mới, cả hai đều đã có ranh giới đúng chỗ
+
+**5. `PermUserAssignRoles` đã tách — còn lại là mở rộng.** Gán vai trò là thao tác duy nhất
+trong module có thể nâng quyền của chính người thao tác, nên nó không còn đi chung
+`PermUserUpdate`. Hôm nay chỉ `admin` có nó; giá trị nằm ở chỗ ngày mai thêm một vai trò
+nhân sự hay hỗ trợ thì không phải nghĩ lại từ đầu.
+
+Thu hồi vai trò (`roles: []`) **cũng** chịu permission này — đó là vế dễ sót nhất, và một
+cài đặt "bỏ qua danh sách rỗng cho gọn" sẽ làm đường tước quyền người khác không còn ai
+canh.
+
+**6. Một bảng vai trò cho hai composition root — CẦN ADR.** `authz.Checker` nay trả lời
+được câu hỏi thứ hai, `VaiTroTonTai(role)`, nên gán một tên gõ nhầm qua API trả `422` thay
+vì tạo ra một user không quyền gì trong im lặng.
+
+Nhưng `cmd/dev bootstrap-user` là composition root **thứ hai** và không import được bảng
+của `cmd/api` (hai package `main`), nên nó khai mọi tên vai trò được yêu cầu là "có thật" —
+tức nó tin chính tả của người chạy. Cái giá hẹp hơn nhiều so với đường API (người chạy đọc
+ngay dòng log rồi đăng nhập thử trong một phút), nhưng nó vẫn là một lỗ.
+
+Lời giải đúng là **một** bảng vai trò mà cả hai root cùng đọc. C-GO-08 chỉ nói về `cmd/api`
+và không nói gì về ca hai root, nên theo chính `backend-erp/CLAUDE.md` mục 2 đây là ca phải
+dừng lại và mở ADR, không phải chỗ tự quyết.
 
 ## Hai lỗi thật do chính test mới bắt được
 
