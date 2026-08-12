@@ -582,6 +582,8 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` |
 | `ck_machines_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
 | `ck_maintenance_plans_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
+| `ck_machines_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
+| `ck_breakdowns_repair_cost_non_negative` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng

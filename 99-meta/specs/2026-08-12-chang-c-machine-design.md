@@ -204,6 +204,7 @@ modules/machine/
 | | `UpdateMachine` | `machine.update` | `PATCH /api/v1/machines/:id` |
 | | `DeleteMachine` | `machine.delete` | `DELETE /api/v1/machines/:id` |
 | `MaintenanceService` | `ListPlans` | `machine.plan_list` | `GET /api/v1/maintenance-plans` |
+| | `ListPlansByMachine` | `machine.plan_list` | `GET /api/v1/machines/:id/maintenance-plans` |
 | | `GetPlan` | `machine.plan_read` | `GET /api/v1/maintenance-plans/:id` |
 | | `CreatePlan` | `machine.plan_create` | `POST /api/v1/maintenance-plans` |
 | | `UpdatePlan` | `machine.plan_update` | `PATCH /api/v1/maintenance-plans/:id` |
@@ -232,7 +233,13 @@ Không có endpoint sửa/xóa `breakdowns`: nhật ký sự cố là sổ ghi v
 |---|---|---|---|
 | `ke_hoach` | `start` | `dang_lam` | `machines.status` → `bao_tri`; `started_at` = now |
 | `dang_lam` | `complete` | `hoan_thanh` | `machines.status` → `hoat_dong`; `completed_at` = now |
-| `ke_hoach`, `dang_lam` | `cancel` | `huy` | Nếu đang `dang_lam` thì `machines.status` → `hoat_dong` |
+| `ke_hoach` | `cancel` | `huy` | Máy **không** đổi — nó chưa từng vào bảo trì |
+| `dang_lam` | `cancel` | `huy` | `machines.status` → `hoat_dong` |
+
+Bốn dòng chứ không ba: bản đầu của spec này gộp hai lần `cancel` vào một dòng với chữ
+"nếu" ở cột hiệu ứng, và chính chữ "nếu" đó là thứ không sống được trong một bảng — hủy
+một kế hoạch đang làm trả máy về `hoat_dong`, hủy một kế hoạch chưa bắt đầu thì không.
+Code tách đúng, spec là bản lạc hậu và đã sửa theo.
 
 Cặp `(từ, hành động)` không có dòng ở đây trả `409` với `ERR_MACHINE_STATUS_NOT_ALLOWED`. Bảng này là **bảng trong service**; sơ đồ ở `Workflow.md` là mô tả của nó, không phải bản sao thứ hai được phép lệch (R-19).
 
