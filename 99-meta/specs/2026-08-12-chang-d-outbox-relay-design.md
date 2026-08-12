@@ -107,11 +107,19 @@ Hằng sống ở `shared/` chứ không ở module phát: consumer phải gọi
 ```json
 {
   "event_id": "...", "occurred_at": "...", "company_id": "...",
+  "request_id": "...",
   "user_id": "9f1c0a6e-4b2d-4f8a-9c33-2b7d8e5a1f04"
 }
 ```
 
-Bốn field, không hơn. Không `email`, không `full_name`: consumer duy nhất cần đúng một thứ — id để so với `assigned_to`. Mỗi field thêm vào là một field mọi consumer tương lai được phép dựa vào, và gỡ nó ra là breaking change.
+**Năm field, không phải bốn.** Bản đầu của spec này viết bốn và bỏ sót `request_id`; hai
+agent thi công phát hiện độc lập với nhau và cùng từ chối tự sửa. Chỗ đúng của nó là
+payload chứ không phải một cột: C-DB-07 không cho bảng `outbox` cột `request_id`, còn
+P-EVT thì đặt `request_id` cạnh `event_id` và `occurred_at` trong payload — và consumer
+chỉ nhận payload qua bus, nó không đọc bảng `outbox`. Chuỗi rỗng là trạng thái **hợp lệ**:
+một sự việc sinh ra ngoài đường HTTP không có request nào để trỏ tới.
+
+Không `email`, không `full_name`: consumer duy nhất cần đúng một thứ — id để so với `assigned_to`. Mỗi field thêm vào là một field mọi consumer tương lai được phép dựa vào, và gỡ nó ra là breaking change.
 
 ### 4.4 `shared/idempotency`
 
