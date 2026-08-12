@@ -23,7 +23,7 @@ mỹ — đặt tên khác là làm mù bộ kiểm, và mọi Rule dựa vào n
 | C-GO-05 | Nội dung `module.yaml` | R-02, R-05, R-15 |
 | C-GO-06 | Chữ ký method service, actor và kiểm quyền | R-15, R-17 |
 | C-GO-07 | SQL phải là một hằng chuỗi đơn | R-02, R-06, R-09, R-18 |
-| C-GO-08 | Bảng vai trò tới được `cmd/api` bằng đường nào | R-15, R-04, R-01 |
+| C-GO-08 | Bảng vai trò tới được composition root bằng đường nào | R-15, R-04, R-01 |
 
 ---
 
@@ -226,7 +226,7 @@ Tên khác cho những thứ trên không sai về mặt Go, nhưng chúng là m
 
 - Hằng quyền đặt tên `Perm<Đối tượng><Hành động>`, giá trị là chuỗi `<module>.<hành động>`:
   `const PermOrderCreate = "order.create"`. Khai ở package `service` của module sở hữu;
-  cách bảng vai trò ở `cmd/api` chạm tới được những hằng này thì xem C-GO-08.
+  cách bảng vai trò ở composition root chạm tới được những hằng này thì xem C-GO-08.
 - Struct đầu vào của service đặt tên `<Method>Input`, đầu ra là `*model.X` hoặc
   `<Method>Output`: `CreateOrderInput`. DTO của lớp HTTP đặt tên `<Method>Request` /
   `<Đối tượng>DTO` và ở lại package `handler`.
@@ -1444,7 +1444,7 @@ hợp, và checker vẫn đọc được nó.
 
 ---
 
-### C-GO-08 — Bảng vai trò tới được `cmd/api` bằng đường nào
+### C-GO-08 — Bảng vai trò tới được composition root bằng đường nào
 
 **Implements:** R-15, R-04, R-01
 
@@ -1499,8 +1499,8 @@ const (
 ```
 
 ```go
-// cmd/api/authz.go
-package main
+// cmd/internal/vaitro/vaitro.go
+package vaitro
 
 import (
 	"erp/modules/order"
@@ -1508,9 +1508,9 @@ import (
 	"erp/shared/authz"
 )
 
-// bangVaiTro la DU LIEU, va no song o day vi day la noi duy nhat duoc biet CA HAI phia:
+// Bang la DU LIEU, va no song o day vi day la noi duy nhat duoc biet CA HAI phia:
 // danh sach vai tro cua he thong, va permission cua tung module.
-func bangVaiTro() authz.Bang {
+func Bang() authz.Bang {
 	return authz.Bang{
 		"admin":  {user.PermCreate, user.PermList, order.PermCreate, order.PermApprove},
 		"sale":   {order.PermCreate, order.PermRead},
@@ -1519,24 +1519,48 @@ func bangVaiTro() authz.Bang {
 }
 ```
 
+**Bảng sống ở `cmd/internal/vaitro`, không ở `cmd/api` ([ADR-0010](../03-decisions/ADR-0010-bang-vai-tro-o-cmd-internal.md)).**
+Hệ thống có **nhiều hơn một** composition root — `cmd/api` phục vụ HTTP, `cmd/dev
+bootstrap-user` tạo user đầu tiên — và hai `package main` không import được nhau. Mỗi root
+một bảng nghĩa là hai bản của cùng một danh sách, và chúng lệch về phía im lặng: root nào
+khai lỏng hơn thì chấp nhận mọi tên vai trò mà không bao giờ đỏ.
+
+`cmd/internal/` giải điều đó mà không nới rule nào: quy tắc `internal/` của Go chặn mọi
+thứ ngoài cây `cmd/` import nó, còn `checkR01` đọc đường dẫn file nên package này chịu
+**đúng** ràng buộc của composition root — chỉ được import package gốc của module, cấm
+`api/`, cấm `internal/`.
+
+Một root được phép thêm vai trò **tạm** của riêng nó vào bản nhận về (ví dụ `bootstrap` ở
+`cmd/dev`, phạm vi đúng một hai permission). Vai trò tạm không nằm trong bảng chung, không
+user nào mang được, và không token nào ký ra nó.
+
 `shared/authz` khai `Checker` với `Can(ctx, actor, perm) error` và một bản cài đặt **nhận
 bảng làm dữ liệu**. Nó không biết permission nào tồn tại, và đó chính là điều kiện để nó
 không phải import `modules/`.
 
 #### Hệ quả có lợi: mất quyền lộ ra lúc biên dịch
 
-Xóa hoặc đổi tên một hằng permission làm **vỡ build của `cmd/api`**. Đó là hành vi mong
+Xóa hoặc đổi tên một hằng permission làm **vỡ build của mọi composition root**. Đó là hành vi mong
 muốn: một vai trò mất quyền phải lộ ra lúc biên dịch, không phải lúc một người dùng thật
 bấm nút và nhận `403`.
 
-Ngược lại, chép tay chuỗi `"order.create"` vào `cmd/api` thì đổi tên permission vẫn build
-xanh, và lỗi chỉ hiện ra ở môi trường thật.
+Ngược lại, chép tay chuỗi `"order.create"` vào bảng thì đổi tên permission vẫn build xanh,
+và lỗi chỉ hiện ra ở môi trường thật.
+
+Cùng lý do đó áp cho **tên vai trò**: chúng là dữ liệu nằm trong cột `users.roles`, nên
+không trình biên dịch nào kiểm được chính tả của chúng. Thứ kiểm được là
+`authz.Checker.VaiTroTonTai(role)` — service hỏi nó trước mỗi lần gán, và câu trả lời chỉ
+đáng tin khi bảng tiêm vào là bảng thật. Đó là lý do thứ hai khiến bảng phải có đúng một
+bản.
 
 #### Cách kiểm
 
 ```powershell
-# cmd/** chi duoc import package goc cua module - R-01 canh san
+# cmd/** - ke ca cmd/internal/** - chi duoc import package goc cua module; R-01 canh san
 go test ./arch/ -run TestProductionCode
+
+# Khong root nao duoc khai bang vai tro rieng: chi mot cho goi authz.Bang{
+Select-String -Path cmd\*\*.go -Pattern 'authz\.Bang\{' 
 
 # shared/ khong duoc import modules/ - R-04 canh san
 Select-String -Path shared\*\*.go -Pattern 'erp/modules/'

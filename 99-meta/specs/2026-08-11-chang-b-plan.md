@@ -222,7 +222,26 @@ Thu hồi vai trò (`roles: []`) **cũng** chịu permission này — đó là v
 cài đặt "bỏ qua danh sách rỗng cho gọn" sẽ làm đường tước quyền người khác không còn ai
 canh.
 
-**6. Một bảng vai trò cho hai composition root — CẦN ADR.** `authz.Checker` nay trả lời
+**6. ~~Một bảng vai trò cho hai composition root~~ — ĐÃ GIẢI bằng
+[ADR-0010](../../03-decisions/ADR-0010-bang-vai-tro-o-cmd-internal.md).** Bảng sống ở
+`cmd/internal/vaitro`; cả `cmd/api` lẫn `cmd/dev bootstrap-user` đọc chung nó, nên một tên
+vai trò gõ nhầm ở cờ `-roles` làm lệnh **dừng** thay vì tạo ra một tài khoản quản trị không
+quyền gì. Có test đo đúng ca đó.
+
+`cmd/internal/` giải được mà **không nới rule nào**, và đó là lý do phương án này thắng:
+quy tắc `internal/` của Go chặn mọi thứ ngoài cây `cmd/` import nó, còn `checkR01` đọc
+đường dẫn file nên package này chịu đúng ràng buộc của composition root — chỉ được import
+package gốc của module, cấm `api/`, cấm `internal/`. Phương án `internal/vaitro` ở gốc repo
+bị `checkR01` bắt và sẽ phải nới chính rule đang ở mức FULL.
+
+Nợ để lại của ADR đó: vai trò **tạm** mà một root tự thêm (`bootstrap` ở `cmd/dev`) không
+được gì kiểm. Hôm nay có đúng một cái, phạm vi hai permission. Danh sách đó dài ra là một
+bảng vai trò thứ hai đang mọc.
+
+<details>
+<summary>Nội dung mục này trước khi ADR-0010 được viết</summary>
+
+**Một bảng vai trò cho hai composition root — CẦN ADR.** `authz.Checker` nay trả lời
 được câu hỏi thứ hai, `VaiTroTonTai(role)`, nên gán một tên gõ nhầm qua API trả `422` thay
 vì tạo ra một user không quyền gì trong im lặng.
 
@@ -234,6 +253,8 @@ ngay dòng log rồi đăng nhập thử trong một phút), nhưng nó vẫn l�
 Lời giải đúng là **một** bảng vai trò mà cả hai root cùng đọc. C-GO-08 chỉ nói về `cmd/api`
 và không nói gì về ca hai root, nên theo chính `backend-erp/CLAUDE.md` mục 2 đây là ca phải
 dừng lại và mở ADR, không phải chỗ tự quyết.
+
+</details>
 
 ## Hai lỗi thật do chính test mới bắt được
 
