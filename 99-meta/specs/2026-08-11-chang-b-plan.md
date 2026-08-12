@@ -107,7 +107,10 @@ login → 200, gọi endpoint kèm token → 200, không token → 401, bản gh
    giữ được bằng thói quen sửa docs trong cùng PR với schema.
 2. ~~**Chạy hai checklist bằng mắt**~~ — **xong**, kết quả ở mục dưới. `check` và `test`
    xanh sau khi thêm docs; `go generate ./arch/...` không sinh diff.
-3. **Đợi CI ba job xanh** sau khi đẩy — **chưa làm**, docs mới còn là thư mục untracked.
+3. ~~**Đợi CI ba job xanh**~~ — **xong** (`4bf2b5e`): `test`, `lint`, `arch` đều xanh.
+
+**Chặng B đóng ở đây.** Phần bên dưới là bốn món nợ đã ghi từ lượt trước, và ba trong số
+đó đã được giải ở lượt ba.
 
 ## Kết quả chạy hai checklist bằng mắt
 
@@ -141,35 +144,69 @@ hai, nơi lỗi nằm ở query chứ không ở body. Frontend phân biệt hai
 form và highlight ô, `400` thì không có ô nào để highlight), nên đây là hợp đồng lệch chứ
 không phải chi tiết trình bày.
 
-## Bốn món nợ, phải giải trước khi gọi phân quyền là có thật
+## Bốn món nợ — cập nhật 2026-08-12 (lượt ba)
 
-**1. Phân quyền hiện là hình thức.** `users` chưa có cột role, nên `modules/auth` ký một
-hằng `RoleMacDinh` cho **mọi** user, và bảng vai trò ở `cmd/api` cấp đủ sáu quyền cho hằng
-đó. Hệ quả: **không tồn tại user hạn chế nào**, nên không test nào chứng minh được `authz`
-thật sự từ chối ai — `Can` chưa bao giờ trả lỗi trên đường chạy thật.
+**1. ~~Phân quyền hình thức~~ — ĐÃ GIẢI.** Migration `000005` thêm cột
+`users.roles TEXT[] NOT NULL DEFAULT '{}'`; luồng cấp token đọc chính hàng `users` rồi ký
+nguyên văn vào claim `roles`. Hằng `RoleMacDinh` biến mất khỏi cả ba chỗ nó từng sống.
+Bảng vai trò ở `cmd/api/authz.go` tách thành `admin` (đủ sáu quyền) và `member`
+(`user_read`, `user_list`, `change_password`).
 
-Đây là hở trong chính spec này: mục 4.3 chốt *"role nằm trong JWT claims, không bảng"*
-nhưng **không nói role lấy từ đâu**. Cách sửa gọn nhất: thêm cột `roles TEXT[]` vào `users`
-bằng một migration mới (R-07 cấm sửa migration đã merge), đọc nó lúc ký token, và bỏ
-`RoleMacDinh`. Ba chỗ đang sống bằng comment: `auth_permissions.go`, `auth_service.go`
-(hai lời gọi), `cmd/api/authz.go`.
+Đo được, qua ngăn xếp đầy đủ với database thật: cùng một endpoint `POST /users`, hai token
+thật do `/auth/login` cấp — `member` nhận **403** `ERR_AUTH_FORBIDDEN`, `admin` nhận
+**201**; và `member` vẫn `GET /users` được **200**, nên cái 403 kia là về quyền chứ không
+phải về một token hỏng. Ở tầng service, hai test đo tiếp: token ký ra mang đúng vai trò
+của hàng `users` (verify qua **chính** middleware thật, không phải một phép parse thứ hai
+— R-14), và thu hồi vai trò có hiệu lực ngay ở lần xoay token kế tiếp.
 
-**2. Không có đường tạo user đầu tiên.** `POST /users` đòi actor có quyền, mà muốn có actor
-thì phải đăng nhập, mà muốn đăng nhập thì phải có user. Hiện chỉ vào được bằng SQL tay —
-`cmd/api/e2e_test.go` làm đúng việc đó. Cần một lệnh bootstrap ở `cmd/dev` hoặc một
-migration seed có kiểm soát.
+Ba khoản kèm theo phải biết:
 
-**3. `ERR_AUTH_EMAIL_DUPLICATED` chưa có ca end-to-end** — mới chốt status/mã ở tầng
-`shared/errors`. Đường `23505` → `409` chưa lần nào chạy thật.
+- **`TEXT[]` cần một kiểu cột.** pgx đi qua `database/sql` trả `text[]` về dưới dạng
+  **chuỗi literal** `{admin,member}`, không phải `[]string` — nhánh mặc định của
+  `stdlib.Rows.Next` biến mọi kiểu lạ thành chuỗi. Nên có `shared/db.MangChuoi`
+  (Scanner + Valuer), và `lib/pq` thành phụ thuộc **trực tiếp** cho đúng hai method phân
+  tích literal đó. Không kết nối nào đi qua lib/pq.
+- **Gán vai trò đi qua `PermUserUpdate`**, chưa có permission riêng. Nghĩa đen: ai sửa
+  được user thì tự nâng được quyền cho mình. Chấp nhận được vì chỉ `admin` có
+  `PermUserUpdate`, nhưng một `PermUserAssignRoles` tách riêng là bước đúng tiếp theo.
+- **Tên vai trò không được kiểm.** `authz.Checker` chỉ trả lời "actor có quyền này không",
+  không trả lời "vai trò này có tồn tại không", nên gõ nhầm một tên cho ra user không
+  quyền gì — im lặng. Hướng thất bại an toàn (mặc định cấm) và nhìn thấy được (`UserDTO`
+  trả `roles`), nhưng lời giải đúng là một câu hỏi thứ hai ở `authz.Checker`.
 
-**4. Ba mã status sai so với C-API-02**, phát hiện lúc chạy checklist bằng mắt (chi tiết
-và số đo ở mục trên): `:id` sai định dạng ra `500` thay vì `404`; JSON hỏng và query sai
-kiểu ra `422` thay vì `400`. Món này khác ba món trên ở chỗ nó **không** nằm trong module:
-lời giải là một hàm `response.BadRequest` ở `shared/response` cộng với một chỗ phân biệt
-lỗi cú pháp JSON (`*json.SyntaxError`, `*json.UnmarshalTypeError`) khỏi
-`validator.ValidationErrors` trong `FieldErrors`, và một bước kiểm UUID ở handler. Sửa ở
-`shared/` thì mọi module sau đều thừa hưởng; để lại thì mọi module sau đều chép lại đúng
-cái lệch này.
+**2. ~~Không có đường tạo user đầu tiên~~ — ĐÃ GIẢI.** `go run ./cmd/dev bootstrap-user`,
+đăng ký trong bảng lệnh của `backend-erp/CLAUDE.md` (test `TestLenhKhopCLAUDEmd` đối chiếu
+hai chiều — nó đỏ ngay khi thiếu dòng đó).
+
+Hai quyết định đáng giữ: mật khẩu đi qua **biến môi trường** `BOOTSTRAP_PASSWORD` chứ
+không qua cờ dòng lệnh — đối số của một tiến trình đang chạy đọc được từ ngoài; và lệnh
+gọi **service thật** (`auth.Module.TaoUser` → `UserService.CreateUser`) chứ không gõ tay
+một câu `INSERT`, nên nó vẫn băm bcrypt đúng cost, vẫn chuẩn hóa email theo đúng cách
+`uq_users_email_active` đòi, và vẫn ghi một dòng audit trong cùng transaction (R-17).
+
+Nó **không** phải cửa sau: `TaoUser` kiểm quyền như mọi lời gọi khác. Thứ khác là bảng vai
+trò — `cmd/dev` là một composition root nên nó tiêm một bảng riêng, hẹp đúng một
+permission, cho một vai trò `bootstrap` chỉ tồn tại trong bộ nhớ của lệnh đó.
+
+**3. ~~`ERR_AUTH_EMAIL_DUPLICATED` chưa có ca end-to-end~~ — ĐÃ GIẢI.**
+`TestE2ETrungEmailTrongCungCongTyTra409` đo đường `23505` → `409` qua HTTP xuống Postgres,
+kèm vế dễ mất nhất: xóa mềm rồi tạo lại cùng email **phải được** — đó là ca mà partial
+unique index sinh ra để phục vụ.
+
+**4. Ba mã status sai so với C-API-02 — CÒN NGUYÊN.** `:id` sai định dạng ra `500` thay vì
+`404`; JSON hỏng và query sai kiểu ra `422` thay vì `400`. Lời giải nằm ở `shared/`
+(`response.BadRequest` + phân biệt lỗi cú pháp JSON khỏi `validator.ValidationErrors`) nên
+mọi module sau đều thừa hưởng — hoặc đều chép lại đúng cái lệch này.
+
+## Hai lỗi thật do chính test mới bắt được
+
+Ghi lại vì cả hai đều là bằng chứng rằng cơ chế đang chạy, không phải chuyện bên lề:
+
+1. **R-16 bắt `TaoUserInput.MatKhau`** thiếu `json:"-"`. Checker đọc **tên field** và
+   "MatKhau" khớp y hệt "Password" — nó không bị đánh lừa bởi tiếng Việt.
+2. **`tenHienThi` cắt sai** khi `-email " Admin@ViDu.test "`: `full_name` ra `" Admin"` với
+   một dấu cách ở đầu mà không ai nhìn thấy trên màn hình. Service chuẩn hóa email của nó
+   rồi, nhưng chuỗi đi vào hàm dẫn xuất tên là chuỗi **thô** từ cờ dòng lệnh.
 
 ## Ghi chú cho người tiếp tục
 
