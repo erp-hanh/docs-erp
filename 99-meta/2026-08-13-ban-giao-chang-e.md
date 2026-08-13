@@ -10,17 +10,24 @@ Nó **không** thay thế `00-START-HERE.md` hay hai file spec chặng E; nó gh
 
 ## 0. Đọc dòng này trước mọi dòng khác
 
-**Không một dòng nào của chặng E được commit.** Toàn bộ nằm trong working tree:
+Chặng E nằm trên nhánh **`chang-e`** ở ba repo, **chưa đẩy lên GitHub và chưa merge vào
+`main`**.
 
-| Repo | HEAD | Thay đổi chưa commit |
+| Repo | `main` | Nhánh `chang-e` |
 |---|---|---|
-| `backend-erp` | `9492397` | **39 file** |
-| `docs-erp` | `9335b46` | **8 file** (kể cả chính file này) |
-| `frontend-erp` | `4f13696` | **15 file** |
-| `infra-erp` | `d66dcf7` | 0 — vẫn trống |
+| `backend-erp` | `9492397` | 6 commit |
+| `docs-erp` | `9335b46` | 4 commit (+1 sửa chính mục này) |
+| `frontend-erp` | `4f13696` | 7 commit |
+| `infra-erp` | `d66dcf7` | — vẫn trống |
 
-Một lệnh `git checkout .` xóa sạch chặng E. Việc đầu tiên của phiên sau là **đọc diff rồi
-commit**, không phải viết thêm gì.
+Cây làm việc của cả ba đều sạch. Việc đầu tiên của phiên sau: **đẩy ba nhánh, mở PR, đợi
+CI** — `backend-erp` ba job, `frontend-erp` ba job (`lint`, `arch`, `test`). Chưa lần nào
+bộ luật ESLint và job `arch` của frontend chạy trên máy CI thật; chúng mới chỉ chạy dưới
+máy dev.
+
+Bản đầu của mục này viết khi chưa có gì được commit, và nó cảnh báo rằng một lệnh
+`git checkout .` sẽ xóa sạch chặng. Cảnh báo đó đã hết hiệu lực — giữ lại câu này để
+người đọc biết mục 0 đã được sửa một lần chứ không phải luôn nói thế.
 
 ---
 
@@ -238,7 +245,7 @@ không ai nêu: `navigate()` chỉ so `pathname`, nên **cái link đầu tiên 
 
 ## 5. Đề nghị cho phiên tiếp theo
 
-**Việc đầu tiên là commit.** Đọc diff của 62 file rồi commit theo từng nhóm có nghĩa — spec
+**Việc đầu tiên là commit.** Đẩy ba nhánh `chang-e` rồi mở PR — spec
 riêng, hợp đồng lỗi riêng, bộ canh riêng, lát cắt dọc riêng. Commit message của repo này
 giải thích **vì sao**, không chỉ **cái gì**. Sau đó đẩy và đợi CI: `backend-erp` ba job,
 `frontend-erp` ba job.
