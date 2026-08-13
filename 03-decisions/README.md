@@ -1,4 +1,4 @@
-# Decisions — 10 ADR nền
+# Decisions — 12 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Mười ADR hiện có
+## Mười hai ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
@@ -35,6 +35,8 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0008 | Soft Delete mặc định — xóa là đánh dấu `deleted_at` | Accepted (2026-08-10) | R-18 | [ADR-0008-soft-delete-by-default.md](ADR-0008-soft-delete-by-default.md) |
 | ADR-0009 | Backend là nơi duy nhất giữ business rule | Accepted (2026-08-10) | R-15, R-19 | [ADR-0009-business-rule-chi-o-backend.md](ADR-0009-business-rule-chi-o-backend.md) |
 | ADR-0010 | Bảng vai trò ở `cmd/internal/vaitro`, dùng chung cho mọi composition root | Accepted (2026-08-12) | — | [ADR-0010-bang-vai-tro-o-cmd-internal.md](ADR-0010-bang-vai-tro-o-cmd-internal.md) |
+| ADR-0011 | TanStack Query v5 là thư viện data-fetching duy nhất cho server state ở frontend | Accepted (2026-08-13) | — | [ADR-0011-tanstack-query-v5.md](ADR-0011-tanstack-query-v5.md) |
+| ADR-0012 | `R-19` canh bằng ESLint ở `frontend-erp`, không mở rộng `backend-erp/arch` | Accepted (2026-08-13) | — | [ADR-0012-r19-canh-o-frontend-eslint.md](ADR-0012-r19-canh-o-frontend-eslint.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
