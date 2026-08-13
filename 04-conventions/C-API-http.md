@@ -82,7 +82,7 @@ ký ở C-API-07:
 | GET chi tiết, GET list, PUT/PATCH thành công | `200` | envelope có `data` |
 | POST tạo mới thành công | `201` | envelope có `data` là bản ghi vừa tạo |
 | DELETE thành công | `204` | không có body |
-| Body không parse được (JSON hỏng, query param sai kiểu) | `400` | envelope có `error` mã `ERR_COMMON_MALFORMED_REQUEST`, **không** có `error.fields` |
+| JSON sai cú pháp, body rỗng, hoặc query param sai kiểu (`page=abc`) | `400` | envelope có `error` mã `ERR_COMMON_MALFORMED_REQUEST`, **không** có `error.fields` |
 | Chưa xác thực, token sai hoặc hết hạn | `401` | envelope có `error` |
 | Đã xác thực nhưng không đủ quyền | `403` | envelope có `error` |
 | Không tìm thấy bản ghi | `404` | envelope có `error` |
@@ -94,20 +94,55 @@ ký ở C-API-07:
 
 Bốn ranh giới hay bị làm sai, mỗi cái đều có hệ quả thật:
 
-**`400` và `422`.** Ranh giới là *đã đọc được request hay chưa*. JSON sai cú pháp,
-`page=abc` không ép được về số — chưa đọc được, `400`. Đọc được nhưng vi phạm ràng buộc
-`binding:"..."` — thiếu field bắt buộc, `quantity` âm, ngày sai định dạng — là `422` kèm
-danh sách field lỗi. Trả `400` cho lỗi validate là dấu hiệu vi phạm R-10, vì frontend
-phân biệt hai loại này: `422` thì highlight ô và giữ nguyên form, `400` thì không có ô nào
-để highlight.
+**`400` và `422`.** Từ chặng E, ranh giới không còn gói gọn trong một câu "đã đọc được hay
+chưa" — nó tách theo **đường bind**. Thân JSON hỏng cú pháp hoặc body rỗng thì chưa đọc
+được gì cả, `400`. Thân JSON đọc được về mặt cú pháp nhưng **sai kiểu một field**
+(`"repair_cost": 1500000` — số JSON thay vì chuỗi) hoặc vi phạm ràng buộc `binding:"..."`
+(thiếu field bắt buộc, `quantity` âm) là `422` kèm danh sách field lỗi — sai kiểu và sai
+ràng buộc giờ đi chung một mã, cùng mang `error.fields`. Query param sai kiểu (`page=abc`)
+đi qua một đường bind khác thân JSON (`ShouldBindQuery`) và **vẫn** là `400`, cố ý ngoài
+phạm vi của thay đổi này — xem C-API-05. Trả `400` cho lỗi validate hay lỗi sai kiểu trong
+thân JSON là dấu hiệu vi phạm R-10: frontend cần phân biệt hai loại này để quyết có
+highlight ô hay không.
 
-Handler **không** tự chọn giữa hai mã đó: mọi lỗi bind đi qua `response.BindFailed(c, err)`,
-và hàm đó chốt ranh giới một lần cho cả hệ thống. Quy tắc nó dùng là
-`validator.ValidationErrors` → `422`, **mọi thứ còn lại** → `400` — chứ không phải một danh
-sách kiểu lỗi phải giữ cho đầy đủ. Chiều suy luận đóng: validator chỉ chạy sau khi request
-đã đọc xong, nên "lỗi là `ValidationErrors`" tương đương "đã đọc được request", đúng câu hỏi
-phân biệt hai mã. Để mỗi handler tự chọn nghĩa là có bao nhiêu handler thì có bấy nhiêu bản
-dịch của cùng một ranh giới, và chúng sẽ lệch.
+Handler **không** tự chọn giữa hai mã đó: mọi lỗi bind thân JSON đi qua
+`response.BindFailed(c, err)`, và hàm đó chốt ranh giới một lần cho cả hệ thống. Quy tắc nó
+dùng, sau chặng E: `validator.ValidationErrors` → `422` kèm field theo từng phần tử;
+`*json.UnmarshalTypeError` **có `Field` khác rỗng** → `422` kèm đúng một field, tên lấy từ
+thuộc tính `Field` sẵn có của chính lỗi đó; **mọi thứ còn lại** (JSON sai cú pháp, body
+rỗng) → `400` không field. Đây là đúng **một** kiểu lỗi phân tích được nhận thêm vào danh
+sách được nhận diện tên, không phải một bảng phân loại lỗi phải giữ cho đầy đủ theo từng
+phiên bản của gin hay `encoding/json` — mở rộng danh sách đó là lặp lại đúng rủi ro mà bản
+thân `BindFailed` từng tránh khi chỉ nhận `validator.ValidationErrors`.
+
+Điều kiện "`Field` khác rỗng" không phải chi tiết vặt: `*json.UnmarshalTypeError` cũng sinh
+ra khi cả **thân request** — không phải một field bên trong nó — không phải object mà
+`ShouldBindJSON` đang chờ, ví dụ thân là `[1,2,3]`, `"chuoi"`, hay `123` thay vì
+`{...}`. Trong ca đó `Field` là chuỗi rỗng, vì lỗi nằm ở hình dạng của cả thân request chứ
+không ở một ô nào cụ thể — và ca đó **ở lại `400`**, không được suy ra `422`. Mệnh đề
+"`422` luôn có `error.fields`; `400` không bao giờ có" (xem hộp cuối C-API-05) mạnh hơn
+đúng ca ngoại lệ này, và không được phép có ngoại lệ ngược lại.
+
+Một hệ quả kèm theo, phải biết để không tưởng nhầm là lỗi: **`planned_date`,
+`commissioned_date` và `occurred_at` không còn là `time.Time` trong DTO, mà là `string`.**
+`*time.ParseError` sinh ra từ `UnmarshalJSON` của `time.Time` không mang tên field của
+struct cha — nó chỉ biết layout và value, không biết mình đang nằm ở đâu — nên không có
+cách nào lấy tên ô ra khỏi nó. Ba trường ngày đi theo đúng khuôn đã có sẵn trong repo từ
+trước (`repair_cost` bind vào `RepairCostText string` rồi handler tự chuyển): DTO nhận
+chuỗi, handler tự parse và tự đặt tên field khi hỏng. Cái giá là DTO mất kiểm tra kiểu tĩnh
+ở ba trường đó; chỉ trường **người dùng gõ ngày** đi lối này, và mỗi lần thêm một trường
+mới vào danh sách đó phải có dòng giải thích tại chỗ.
+
+`occurred_at` khác hai trường kia ở đúng một điểm, và điểm đó không được gộp chung như thể
+cả ba giống nhau: cột của nó là `TIMESTAMPTZ` (migration `000008_create_breakdowns`), không
+phải `DATE` như `planned_date` và `commissioned_date`. Cả ba vẫn đòi cùng một khuôn chuỗi —
+RFC 3339 đầy đủ giờ phút giây, một `"2026-09-01"` thiếu giờ ở bất kỳ trường nào trong ba
+cũng không qua được `time.Parse(time.RFC3339, ...)` và vẫn ra `422` kèm field, không trường
+nào được nới lỏng thành "chỉ ngày" — nhưng ý nghĩa của phần giờ khác nhau: ở
+`planned_date`/`commissioned_date`, phần giờ chỉ là hình thức để chuỗi qua được
+`time.Parse`, vì service ghi thẳng xuống một cột `DATE` nên phần đó bị bỏ sau khi parse; ở
+`occurred_at`, phần giờ là dữ liệu nghiệp vụ thật — thời điểm trong ngày sự cố xảy ra — và
+được giữ nguyên xuống `TIMESTAMPTZ`.
 
 **`403` và `404`.** Bản ghi tồn tại nhưng thuộc công ty khác thì trả **`404`**, không phải
 `403`. Với R-06, "không tồn tại" và "tồn tại nhưng của công ty khác" cho ra cùng một
@@ -523,9 +558,9 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
 | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email đã được dùng trong công ty này | Tạo hoặc sửa user với email đã tồn tại trong **cùng** công ty — vi phạm `uq_users_email_active`. Cùng một email ở công ty khác thì hợp lệ |
-| `ERR_COMMON_MALFORMED_REQUEST` | `400` | Dữ liệu gửi lên không đọc được | Request **chưa đọc được**: JSON sai cú pháp, body rỗng, query param không ép được về kiểu của field. **Không** kèm `error.fields` |
+| `ERR_COMMON_MALFORMED_REQUEST` | `400` | Dữ liệu gửi lên không đọc được | Thân JSON **chưa đọc được** vì sai cú pháp hoặc body rỗng; hoặc query param không ép được về kiểu của field (`page=abc`) — đường bind này tách riêng khỏi thân JSON và giữ nguyên `400`, cố ý ngoài phạm vi hợp đồng 422/400 dưới đây. Sai kiểu một field **bên trong** thân JSON không còn ở mã này — xem `ERR_COMMON_VALIDATION_FAILED`. **Không** kèm `error.fields` |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
-| `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request; luôn kèm `error.fields` |
+| `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request — từ bind (`binding:"..."`, hoặc sai kiểu một field trong thân JSON) **hoặc** từ validate nghiệp vụ ở tầng service (`apperr.ValidationFailed`). Từ chặng E, cả hai nguồn đều kèm `error.fields`; trước đó chỉ nguồn bind có field |
 | `ERR_COMMON_VERSION_CONFLICT` | `409` | Bản ghi đã được người khác cập nhật, hãy tải lại rồi thử lại | `updated_at` client gửi lên không khớp bản trong DB |
 | `ERR_COMMON_IDEMPOTENCY_KEY_MISSING` | `422` | Thiếu header Idempotency-Key | Endpoint có tên ở bảng 5 của C-API-07 mà request không gửi header |
 | `ERR_COMMON_IDEMPOTENCY_KEY_REUSED` | `422` | Idempotency-Key đã dùng cho một request có nội dung khác | Cùng khóa, payload khác (P-IDEM) |
@@ -570,24 +605,81 @@ Quy ước dùng bảng này:
   chỉ có readiness probe đọc và chỉ đọc mỗi status code. Thêm mã hạ tầng thứ hai phải sửa
   chính dòng này, đúng cách R-13 đóng danh sách ba endpoint hạ tầng.
 
+#### Hợp đồng `422`/`400` sau chặng E
+
+Viết thành một câu để không ai phải suy luận lại từ hai bảng ở trên: **`422` luôn có
+`error.fields`; `400` không bao giờ có.** Trước chặng E câu đó sai ở cả hai vế; bốn thay đổi
+dưới đây là lý do nó đúng từ chặng E:
+
+- **`422` gồm cả lỗi bind lẫn lỗi validate tầng service.** Trước chặng E, chín call site gọi
+  `apperr.ValidationFailed(code, message)` ở tầng service trả `422` **không kèm field**, vì
+  `response.Error` chỉ đọc `Code`/`Message`/`HTTPStatus` của `*apperr.Error` — kiểu đó không
+  có chỗ nào đựng field. Sau chặng E, `shared/errors` mang thêm một kiểu đựng field của
+  riêng nó (package đó cấm import `shared/response`, vì service import `shared/errors` và
+  R-03 cấm service phụ thuộc HTTP), và `response.Error` tự ánh xạ kiểu đó sang
+  `response.FieldError` khi ghi envelope. Cả chín chỗ giờ đều gắn tên field.
+- **Sai kiểu trong THÂN JSON ra `422` có field — với điều kiện `Field` đọc được.**
+  `"repair_cost": 1500000` (số JSON thay vì chuỗi) và `"planned_date": "01/09/2026"` (sai
+  định dạng) — trước chặng E cả hai ra `400` không field, vì `BindFailed` coi mọi lỗi
+  không phải `validator.ValidationErrors` là `400`. Sau chặng E, `*json.UnmarshalTypeError`
+  (ca `repair_cost`) ra `422` với field lấy từ thuộc tính `Field` sẵn có của chính lỗi đó;
+  ca ngày tháng đi lối `planned_date`/`commissioned_date`/`occurred_at` bind thành
+  `string`, handler tự parse và tự đặt tên field khi hỏng — cùng một khuôn cho cả ba, dù
+  `occurred_at` là `TIMESTAMPTZ` (migration `000008_create_breakdowns`) còn hai trường kia
+  là `DATE`: cả ba đòi cùng định dạng chuỗi RFC 3339 đầy đủ giờ phút giây, chỉ khác ở việc
+  phần giờ có được giữ lại làm dữ liệu thật (`occurred_at`) hay bị bỏ sau khi parse xuống
+  cột `DATE` (`planned_date`/`commissioned_date`, xem C-API-02). Điều kiện:
+  `*json.UnmarshalTypeError` cũng sinh ra khi cả thân request là mảng/chuỗi/số
+  (`[1,2,3]`, `"chuoi"`, `123`) thay vì object — lúc
+  đó `Field` là chuỗi rỗng vì lỗi nằm ở hình dạng của cả thân request, không ở một field
+  nào, và ca đó **ở lại `400`** (xem C-API-02).
+- **`400` co lại đúng nghĩa đen: JSON hỏng cú pháp, body rỗng, hoặc thân đọc được về cú
+  pháp nhưng không phải object** (`UnmarshalTypeError` với `Field` rỗng). Không còn gì
+  khác của thân JSON nằm trong `400`.
+- **Query param sai kiểu (`page=abc`) vẫn là `400`** — cố ý ngoài phạm vi chặng này. Nó đi
+  qua `ShouldBindQuery`, một đường bind khác thân JSON, sinh `*strconv.NumError` — kéo nó
+  vào cùng hợp đồng `422` là mở rộng một thay đổi hợp đồng vốn đã đủ rộng.
+
+**Nợ có tên: hai văn phạm khác nhau cho đường dẫn field của phần tử mảng.** `FieldErrors`
+(C-API-03) hứa đường dẫn phần tử mảng có chỉ số — `items.0.quantity` — vì `validator` chạy
+trên struct **đã bind xong**, nơi mỗi phần tử của slice có vị trí biết được qua
+`Namespace()`. Nhưng `*json.UnmarshalTypeError.Field` không mang chỉ số: cùng một ô sai
+kiểu nằm trong một mảng-của-object cho ra `items.quantity`, không phải
+`items.0.quantity` — `Offset` của lỗi đó là vị trí byte trong chuỗi JSON, không phải chỉ số
+phần tử, và suy chỉ số ra từ `Offset` là đoán chứ không phải đọc. Từ chặng E, cùng một ô có
+thể ra hai văn phạm khác nhau tùy lỗi đến từ validator hay từ `encoding/json`. **Chưa có
+hậu quả**: không DTO nào trong `machine`/`auth` hôm nay có mảng-của-object mang field kiểu
+chặt (thứ duy nhất `UnmarshalTypeError` chạm được là field vô hướng). Nhưng nợ này phải có
+tên trước khi có hậu quả — tức trước khi DTO đầu tiên dạng đó xuất hiện — và phải được đóng
+bằng cách tìm ra cơ chế ghép chỉ số **thật** (nếu có), không phải bằng cách đoán từ
+`Offset`.
+
 Ánh xạ từ tên constraint sang mã lỗi (P-ERR: dịch theo **tên constraint**, không theo mã
 lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào bị vi phạm):
 
-| Constraint | Mã lỗi | HTTP |
-|---|---|---|
-| `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` |
-| `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
-| `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` |
-| `uq_machines_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` |
-| `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` |
-| `ck_machines_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
-| `ck_maintenance_plans_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
-| `ck_machines_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
-| `ck_breakdowns_repair_cost_non_negative` | `ERR_COMMON_VALIDATION_FAILED` | `422` |
+| Constraint | Mã lỗi | HTTP | Field |
+|---|---|---|---|
+| `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` | — |
+| `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — |
+| `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | — |
+| `uq_machines_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
+| `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
+| `ck_machines_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `status`\* |
+| `ck_maintenance_plans_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `status`\* |
+| `ck_machines_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
+| `ck_breakdowns_repair_cost_non_negative` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `repair_cost`\* |
+
+\* Bốn dòng CHECK trên là hàng phòng thủ cuối trong `dichViPhamCheck`
+(`modules/machine/internal/service/errors.go`) — không đường chạy bình thường nào chạm tới
+chúng, vì service đã tự chặn giá trị sai trước khi câu SQL chạy tới ràng buộc CHECK. Tên
+field ở các dòng này là **ước lệ**: gán để `422` từ nhánh phòng thủ đó cũng có hình dạng
+nhất quán với mọi `422` khác, không phải tên đã được xác nhận khớp chính xác input nào gây
+ra lỗi. Comment tại chỗ trong `dichViPhamCheck` phải nói rõ điều này, để người sau không
+tưởng nó chính xác.
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
-ánh xạ này dài ra theo từng PR thêm unique index có ý nghĩa nghiệp vụ.
+ánh xạ này dài ra theo từng PR thêm unique index hoặc CHECK có ý nghĩa nghiệp vụ.
 
 ---
 
