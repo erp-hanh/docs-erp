@@ -746,7 +746,7 @@ Ba quy tắc dùng sổ này:
 
 Cột `Ngày duyệt` ghi theo dạng `YYYY-MM-DD`, là ngày PR chứa endpoint đó được merge.
 
-Bảng 2, 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
+Bảng 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
 quên ghi.
 
 #### 1. Endpoint hành động dạng `/actions/<verb>` — ngoại lệ R-10
@@ -760,16 +760,20 @@ R-10 cấm động từ trong path. Endpoint không map được vào CRUD dùng
 | `POST /api/v1/maintenance-plans/:id/actions/complete` | Cùng lý do: **chuyển trạng thái** `dang_lam` → `hoan_thanh` kèm trả máy về `hoat_dong` và đóng dấu `completed_at`. Cặp (trạng thái hiện tại, hành động) hợp lệ hay không do service quyết, không phải do client gửi lên giá trị `status` mới | 2026-08-12 |
 | `POST /api/v1/maintenance-plans/:id/actions/cancel` | Cùng lý do: **chuyển trạng thái** sang `huy` từ `ke_hoach` hoặc `dang_lam`, và hiệu ứng kèm theo khác nhau tùy trạng thái xuất phát. Đó là một hành động nghiệp vụ chứ không phải một phép sửa field, và cũng không phải `DELETE` vì bản ghi vẫn sống | 2026-08-12 |
 
-#### 2. Endpoint trả file hoặc stream, được miễn envelope — ngoại lệ R-11
+#### 2. Endpoint trả file, stream, hoặc bọc thẳng `http.Handler` ngoài, được miễn envelope — ngoại lệ R-11
 
-R-11 buộc mọi response đi qua envelope của `shared/response`. Handler gọi `c.File(`,
-`c.FileAttachment(`, `c.DataFromReader(`, hoặc `c.Stream(` và **không** gọi `c.JSON(`
-trong cùng hàm mới được miễn. Endpoint được miễn vẫn phải trả header `X-Request-Id`
-(R-17), vì nó không còn chỗ nào khác để mang `request_id`.
+R-11 buộc mọi response đi qua envelope của `shared/response`. Hai hình dạng được miễn:
+handler gọi `c.File(`, `c.FileAttachment(`, `c.DataFromReader(`, hoặc `c.Stream(`; hoặc
+handler bọc thẳng một `http.Handler` ngoài qua `gin.WrapH(`/`gin.WrapF(`. Cả hai đều đòi
+**không** gọi `c.JSON(` trong cùng hàm. Endpoint được miễn vẫn phải trả header
+`X-Request-Id` (R-17), vì nó không còn chỗ nào khác để mang `request_id`. Dòng đăng ký
+của hình dạng `gin.WrapH`/`gin.WrapF` phải nêu rõ định dạng response bên thứ ba nào khiến
+envelope không dùng được — cửa này rộng hơn bốn hình dạng kia vì `gin.WrapH` bọc được bất
+kỳ `http.Handler` nào, nên lý do đăng ký phải cụ thể hơn một câu "cần dùng thư viện X".
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| _(chưa có endpoint nào)_ | — | — |
+| `GET /metrics` — `quanTrac.Handler()` (`shared/metrics`, dùng ở `cmd/api/router.go`) | Bọc `promhttp.HandlerFor(...)` qua `gin.WrapH(` — định dạng text của Prometheus có cú pháp riêng, không phải JSON, nên không mang được envelope `{data, error, meta, request_id}`; không scraper Prometheus nào đọc envelope. `/metrics` cũng nằm ngoài `/api/v1` theo danh sách đóng của R-13, nhưng đó là ngoại lệ về **tiền tố đường dẫn**, không phải ngoại lệ về **hình dạng response** — hai việc khác nhau, ngoại lệ này ghi riêng cho R-11 | 2026-08-14 |
 
 #### 3. Endpoint list trả hằng số biên dịch được, miễn phân trang — ngoại lệ R-12
 
