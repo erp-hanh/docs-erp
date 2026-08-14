@@ -25,7 +25,7 @@ Nhưng câu trả lời lần này khác, và khác ở một chỗ quan trọng
 
 1. Gỡ middleware tracing khỏi `cmd/api/router.go` → **test runtime đỏ**, và nó đỏ vì đếm được **0 span** chứ không vì thiếu một chuỗi.
 2. Viết `WithLabelValues(machine.CompanyID)` ở một handler → **checker tĩnh đỏ**, đúng dòng.
-3. Sinh một `request_id` thứ hai ngoài `shared/requestid` → **checker tĩnh đỏ** — trong khi bốn lời gọi `uuid.NewString()` đang có trong repo (không cái nào là request_id) **vẫn xanh**.
+3. Sinh một `request_id` thứ hai ngoài `shared/requestid` → **checker tĩnh đỏ** — trong khi bảy lời gọi `uuid.NewString()` đang có trong repo (không cái nào là request_id) **vẫn xanh**.
 
 Và một phép thử thứ tư, thuộc loại khác hẳn: **`docker compose -f compose/dev.yml up` dựng được cả hệ thống, và frontend ở cổng khác gọi được backend trong trình duyệt thật.** Hôm nay không ai triển khai được hệ thống này ngoài máy dev với ba terminal mở tay.
 
@@ -96,10 +96,26 @@ TestMoiRouteV1SinhDungMotSpan  (cmd/api)
   lap qua r.Routes(), loc cac route duoi /api/v1
   moi route: ban mot request, khang dinh
     - dung MOT span duoc sinh
-    - span.Name == route.Path  (route pattern, khong phai path da dien id)
+    - span.Name == route.Method + " " + route.Path
+      ("{method} {route pattern}", khong phai path da dien id)
 ```
 
-Test đó đóng được **cả hai vế** — "mọi handler" và "tên span là route pattern" — mà không checker tĩnh nào chạm tới.
+Test đó đóng được **cả hai vế** — "mọi handler" và "tên span là `{method} {route pattern}`" — mà không checker tĩnh nào chạm tới.
+
+> **Đính chính, ghi lại vì nó là lỗi của người viết spec này.** Bản đầu của mục này chốt
+> `span.Name == route.Path` — tên span **trần**, không method. F6 hiện thực hóa đúng thế
+> và F7 kiểm đúng thế; cả hai làm đúng theo spec, và **spec sai**.
+>
+> Dữ kiện làm lật quyết định: **quy ước ngữ nghĩa HTTP của OpenTelemetry nói tên span
+> phía server NÊN là `{method} {target}`** với target là route pattern — và chính ví dụ
+> trong `P-OBS` hard check 1 (`GET /api/v1/orders/:id`) đã viết theo quy ước đó từ trước.
+> Tức tài liệu nguyên tắc và hệ sinh thái nói cùng một đằng; chỉ mỗi spec này nói khác.
+> Tên span là trường hiển thị của mọi backend tracing, nên đặt lệch quy ước nghĩa là span
+> của repo này nằm lệch hẳn span do các thư viện có instrument sẵn sinh ra.
+>
+> Cái giá nhỏ vì F6 đã đặt method làm thuộc tính (`http.request.method`): không mất thông
+> tin, chỉ đổi trường hiển thị. `http.route` **giữ nguyên route pattern trần** — nó là
+> trường để truy vấn lọc theo, không phải trường để đọc. Sửa ở F17.
 
 **Cái giá, nói thẳng:** HC-1 không có dòng nào trong `arch/LEVELS.md`. Ai đọc bảng đó sẽ không thấy nó. Đổi lại, ta không ghi vào bảng một dòng `PASS` cho một mệnh đề mà bảng đó **không có tư cách kết luận**. Chặng E vừa cho thấy giá của việc ngược lại: `R-19` khai `N/A` bốn chặng liền và không ai hỏi nó canh bằng gì.
 
@@ -113,7 +129,7 @@ Bù lại bằng hai thứ: `P-OBS-observability.md` ghi đích danh tên test �
 
 Mệnh đề: không nơi nào ngoài middleware R-17 được sinh `request_id`.
 
-Đây là hard check **duy nhất** vừa canh được bằng bộ máy hiện có, vừa có sẵn mẫu thật để chứng minh nó **phân biệt được** chứ không chỉ chạy trên tập rỗng. Repo hiện có bốn lời gọi `uuid.NewString()` trong code sản xuất — `auth_service.go:572`, `user_service.go:201` và `:449`, `token/token.go:127` — và **không cái nào là `request_id`**. Checker phải để cả bốn xanh.
+Đây là hard check **duy nhất** vừa canh được bằng bộ máy hiện có, vừa có sẵn mẫu thật để chứng minh nó **phân biệt được** chứ không chỉ chạy trên tập rỗng. Repo hiện có bảy lời gọi `uuid.NewString()` trong code sản xuất — bốn ở `modules/auth` (`auth_service.go:572`, `user_service.go:201` và `:449`, `token/token.go:127`) và ba ở `modules/machine` (`breakdown_service.go:262`, `machine_service.go:264`, `maintenance_service.go:392`) — và **không cái nào là `request_id`**. Checker phải để cả bảy xanh. Bản đầu của spec này viết "bốn" và bỏ sót ba cái chặng C thêm vào; agent F9 đếm bằng grep và bắt được. Đây là lần thứ tư một con số trong văn xuôi của spec sai và một agent sửa nó bằng cách đếm.
 
 Ba dấu hiệu, độc lập nhau:
 
@@ -173,7 +189,8 @@ infra-erp/
 │   ├── dev.yml              postgres + api + relay + prometheus + grafana
 │   └── staging.yml          nhu dev, khong seed, khong expose postgres ra ngoai
 ├── config/
-│   ├── api.env.example      DATABASE_URL, JWT_SECRET, PORT, LOG_LEVEL, CORS_ALLOWED_ORIGINS
+│   ├── api.env.example      DATABASE_URL, JWT_SECRET, PORT, LOG_LEVEL,
+│   │                        CORS_ALLOWED_ORIGINS, hai bien OTEL_EXPORTER_OTLP_*
 │   ├── relay.env.example    DATABASE_URL, LOG_LEVEL
 │   └── frontend.env.example VITE_API_ORIGIN
 ├── observability/
@@ -193,7 +210,20 @@ infra-erp/
 | `PORT` | `api` | `8080` | Sai định dạng → exit 1, **không** lặng lẽ rơi về mặc định |
 | `LOG_LEVEL` | `api`, `relay` | `info` | Sai giá trị → exit 1 |
 | `CORS_ALLOWED_ORIGINS` | `api` | rỗng = **đóng hoàn toàn** | Không trình duyệt nào gọi được API |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | `api` | rỗng | **Hợp lệ.** Span vẫn được tạo, chỉ không đi đâu. Đã set nhưng sai (thiếu scheme, `grpc://`) → exit 1 |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `api` | rỗng | Như trên, và biến riêng cho trace **thắng** biến chung khi cả hai cùng set (thứ tự của đặc tả OTLP) |
 | `VITE_API_ORIGIN` | frontend | `http://localhost:8080` | Sai origin ở production |
+
+**Hai biến OTLP không phải công tắc bật/tắt tracing** — chúng cấu hình *nơi span đi tới*,
+không cấu hình việc span có tồn tại hay không. Thiếu cả hai thì `api` vẫn tạo đúng một
+span cho mỗi request dưới `/api/v1`, span vẫn ghi, vẫn có `TraceID` hợp lệ. Ranh giới này
+là chủ ý và nó được viết ra ở ba chỗ (`shared/middleware/tracing`, `cmd/api/config.go`,
+`config/api.env.example`) vì đó chính là cách hỏng thứ tư ở mục 3 — *"exporter không được
+cấu hình nên span rơi vào hư không"* — bị đóng: không phải bằng cách bắt span phụ thuộc
+exporter, mà bằng cách tách hẳn hai câu hỏi ra.
+
+Hai biến đó **thiếu trong bản đầu của bảng này và thiếu trong `config/api.env.example`** —
+F1 viết file đó *trước khi* F6 tồn tại. Bổ sung ở F17.
 
 `cmd/relay` cố ý **không** đọc `JWT_SECRET` và **không** đọc `PORT` — comment trong code giải thích: đọc bí mật vào một tiến trình không cần nó là mở rộng phạm vi rò rỉ. Compose phải tôn trọng điều đó, không dùng chung một khối `env_file` cho cả hai.
 
@@ -241,6 +271,10 @@ P-OBS "Ca khó 3" đã chốt sẵn một ràng buộc: `/health`, `/ready`, `/m
 | **P-OBS**: sửa script grep của hard check 5 để loại `_test.go` | Script hiện tại **không sạch** trên chính repo: 3 dòng ở `shared/audit/postgres_db_test.go` |
 | **P-OBS**: hard check 3 bổ sung `prometheus.Labels{}` và chỗ khai `NewCounterVec` | Script hiện tại mù hai hình dạng đó |
 | **P-OBS**: hard check 6 ghi rõ nó không canh được bằng máy, kèm lý do bắt oan | Xem mục 4.4 |
+| **P-OBS**: hard check 1 ghi tên span là `{method} {route}`, kèm ranh giới của test | Xem đính chính ở mục 3; và test đó **không thể** canh "tiến trình có nối exporter không" — nó tiêm provider của chính nó |
+| **P-OBS**: hard check 1 **bỏ** "exporter chưa được cấu hình" khỏi danh sách cách xanh giả | Mục đó lạc hậu so với thiết kế F6: không cấu hình exporter nghĩa là *span vẫn được tạo, chỉ không có nơi đến*, không phải *không có span* |
+| **P-OBS**: hard check 3 sửa văn xuôi cho khớp hai arm của checker `HC-03` | Văn xuôi chốt `Targets: ["modules"]` trong khi chính script của nó quét `modules, shared` — tài liệu tự mâu thuẫn. F8 hiện thực hóa theo script: danh sách **trắng** ở `modules/**`, danh sách **đen theo tên** ở `shared/**` |
+| **P-OBS**: script `2b` — nói thẳng grep không canh được mệnh đề này | Nó tìm chuỗi literal, code thật khai nhãn bằng **hằng có tên**; nó trả 0 dòng và sẽ mãi trả 0. `HC-03` là thứ canh, script chỉ còn là minh họa |
 | ADR-0013, ADR-0014, ADR-0015 | Mục 7 |
 | **C-DB-04 / ADR-0003**: `outbox_dead_letters` vào nhóm bảng nào | Một bảng mới phải có nhóm trước khi có migration |
 
@@ -254,13 +288,33 @@ Mỗi dòng là một phép đột biến hoặc một lần chạy thật, khô
 
 - Gỡ middleware tracing khỏi `router.go` → `TestMoiRouteV1SinhDungMotSpan` **đỏ**, và thông điệp nói **0 span** chứ không nói thiếu một chuỗi.
 - Đăng ký một route `/api/v1` **trước** lời gọi `.Use(tracing)` → test đó **vẫn đỏ**. Đây là ca mà checker tĩnh sẽ bỏ sót, và là lý do test này tồn tại.
-- Đổi tên span thành `c.Request.URL.Path` → test đỏ vì tên span chứa id thật thay vì route pattern.
+- Một request tới `/api/v1/machines/<uuid>` sinh span tên **`GET /api/v1/machines/:id`** — có method, có route pattern, **không** có uuid. Thuộc tính `http.route` của chính span đó là `/api/v1/machines/:id` **trần**, không có `GET ` dính đầu.
+- Đổi nửa route của tên span thành `c.Request.URL.Path` → test đỏ vì tên span chứa id thật thay vì route pattern.
+- Bỏ `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` và `OTEL_EXPORTER_OTLP_ENDPOINT` khỏi môi trường → `api` **vẫn khởi động** và **vẫn sinh span**. Đặt một trong hai thành `collector:4318` (thiếu scheme) → `api` **exit 1**, nêu đích danh tên biến sai.
 - `WithLabelValues(may.CompanyID)` ở một handler → checker HC-3 đỏ đúng dòng. `WithLabelValues(labelKindCNC)` với `const labelKindCNC` → **không đỏ**.
-- Sinh `requestID := uuid.NewString()` ở `modules/machine` → checker HC-5 đỏ. **Bốn lời gọi `uuid.NewString()` đang có trong repo vẫn xanh** — đây là phép thử chứng minh checker phân biệt được chứ không chạy trên tập rỗng.
+- Sinh `requestID := uuid.NewString()` ở `modules/machine` → checker HC-5 đỏ. **Bảy lời gọi `uuid.NewString()` đang có trong repo vẫn xanh** — đây là phép thử chứng minh checker phân biệt được chứ không chạy trên tập rỗng.
 - Gọi `logger.Info(...)` với logger toàn cục trong một **service** (không phải handler) → checker HC-4 đỏ. Trước chặng này nó xanh.
 - `docker compose -f compose/dev.yml up -d` rồi `scripts/up` → cả bốn container healthy, migration chạy, `/health` và `/ready` trả `200`, `/metrics` trả text Prometheus.
 - Frontend ở `localhost:5173` gọi được `/api/v1/machines` trong **trình duyệt thật**, với `CORS_ALLOWED_ORIGINS` lấy từ `config/api.env`.
-- Tắt `cmd/relay` trong compose → một sự kiện outbox nằm lại `published_at IS NULL`, và điều đó **quan sát được** trên `/metrics` chứ không im lặng như hôm nay.
+- Tắt `cmd/relay` trong compose → một sự kiện outbox nằm lại `published_at IS NULL`; bật lại → nó được xử. **Đã chạy thật ở F13 và đạt.**
+
+> **Đính chính — vế thứ hai của dòng này SAI, và nó là lỗi của người viết spec.** Bản đầu
+> viết *"và điều đó **quan sát được** trên `/metrics` chứ không im lặng như hôm nay"*, kèm
+> câu ở plan rằng đây là *"thứ chặng này mua được mà không chặng nào trước có"*.
+>
+> F13 dựng thật rồi tắt `relay`, và đo được điều ngược lại: `cmd/relay` **không có một
+> metric nào** và **không mở cổng nào**, nên Prometheus không thể scrape nó — nó scrape
+> đúng một target là `api`. Không metric nào chạm `outbox`. Trong lúc sự kiện nằm kẹt,
+> `/ready` vẫn `200`, `GET /api/v1/machines` vẫn `200`, `/metrics` không nói gì.
+>
+> **Thiếu `relay` hôm nay vẫn im lặng hoàn toàn, y hệt trước chặng F.** Chặng này mua
+> được quan trắc cho `cmd/api`, không cho `cmd/relay`.
+>
+> Không sửa trong chặng F, và lý do là lý do mà chính spec này đã dùng để hoãn job dọn
+> `outbox`: gauge tồn đọng, dead-letter và job dọn đều động vào cùng bảng `outbox` và cùng
+> câu hỏi *"hàng nào đang ở trạng thái nào"*. Viết gauge trước khi dead-letter thêm trạng
+> thái thứ ba là viết một thứ phải sửa lại. **Nợ có tên, sang chặng G, làm cùng lúc với
+> hai món kia.** Ghi ở `infra-erp/docs/Limits.md` mục 1.
 - `go run ./cmd/dev check` và `test` xanh; `arch-update` cho diff **không dòng nào hạ mức**.
 - `arch/README.md` có dòng ghi HC-1 cố ý sống ngoài bảng, kèm lý do.
 
