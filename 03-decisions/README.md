@@ -1,4 +1,4 @@
-# Decisions — 17 ADR nền
+# Decisions — 18 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Mười bảy ADR hiện có
+## Mười tám ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
@@ -42,6 +42,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0015 | `prometheus/client_golang` cho metric, OTel SDK cho trace | Accepted (2026-08-14) | — | [ADR-0015-thu-vien-quan-trac.md](ADR-0015-thu-vien-quan-trac.md) |
 | ADR-0016 | Kalmar dùng chung module `machine`, không có module riêng | Accepted (2026-08-14) | — | [ADR-0016-kalmar-dung-chung-machine.md](ADR-0016-kalmar-dung-chung-machine.md) |
 | ADR-0017 | Hệ thống gồm đúng mười hai module, tên thư mục viết bằng tiếng Anh | Accepted (2026-08-14) | — | [ADR-0017-muoi-hai-module-va-ten-tieng-anh.md](ADR-0017-muoi-hai-module-va-ten-tieng-anh.md) |
+| ADR-0018 | `idempotency_keys` giữ dấu vân payload và response của lần đầu, để phát lại cho `Idempotency-Key` ở tầng HTTP | Accepted (2026-08-15) | — | [ADR-0018-luu-response-cho-idempotency-key.md](ADR-0018-luu-response-cho-idempotency-key.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong

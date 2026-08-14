@@ -36,7 +36,7 @@ sách hoặc tên module đổi — hai bản mô tả cùng một thứ mà l�
 |---|---|---|---|---|---|
 | 1 | `auth` | `CÓ` | `users`, `refresh_tokens` | — | B |
 | 2 | `machine` | `CÓ` | `machines`, `maintenance_plans`, `breakdowns` | `auth` | C |
-| 3 | `inventory` | `CHỐT` | `warehouses`, `stock_items`, `stock_movements`, `stock_takes` | — | G |
+| 3 | `inventory` | `CHỐT` | `warehouses`, `stock_items`, `stock_movements` | — | G |
 | 4 | `purchasing` | `CHỐT` | `suppliers`, `purchase_orders`, `purchase_order_lines`, `goods_receipts` | `inventory` (qua event) | H |
 | 5 | `sales` | `CHỐT` | `customers`, `sales_orders`, `sales_order_lines`, `deliveries` | `inventory` (qua event) | I |
 | 6 | `yard` | `CHỐT` (phạm vi) | `containers`, `yard_slots`, `service_orders`, `storage_charges` | `machine`, `sales` | J |
@@ -52,6 +52,19 @@ sách hoặc tên module đổi — hai bản mô tả cùng một thứ mà l�
 một module là đổi quyết định đó, tức cần ADR mới. Còn **cột "bảng chính dự kiến", thứ tự
 chặng và ước lượng khối lượng trong file này thì sửa được không cần ADR** — ADR-0017 cố ý
 không khóa chúng.
+
+**`stock_takes` (kiểm kê) đã bị bỏ khỏi cột bảng của `inventory` — hoãn, không phải quên.**
+Hai lý do, xếp theo sức nặng. Nó phá phép đo mà chặng G tồn tại để chạy: năm bảng, bốn
+service và hai mươi tư endpoint so với ba bảng của `machine` cho ra một con số không đọc
+được — lớn hơn thì là vì bộ khung tệ, hay vì module to hơn? Và lỗ nó bịt đã có đường bịt rẻ
+hơn: kiểm kê tồn tại để đưa sổ về khớp thực tế, việc mà `kind = 'dieu_chinh'` của
+`stock_movements` làm được cho từng dòng. Kiểm kê là **bản gộp, có chứng từ** của việc ấy —
+giá trị cộng thêm, không phải điều kiện để module dùng được. **Điều kiện mở lại:** ngày có
+một kho chạy thật cần đối chiếu định kỳ và người vận hành phải gõ hơn mười dòng
+`dieu_chinh` một lần. Ngày đó nó là một chặng riêng hoặc một nửa chặng, và hình dạng bảng
+`stock_take_lines` sẽ do chính lần đối chiếu đó chốt — cụ thể là câu *"số tồn hệ thống được
+chụp lại lúc nào: lúc mở phiếu hay lúc chốt phiếu"*, câu mà hôm nay không ai có dữ kiện để
+trả lời.
 
 Tên tiếng Anh chỉ áp cho thư mục, `module.yaml` và đường import. Giao diện người dùng và
 tài liệu vẫn tiếng Việt: `payroll` hiện ra màn hình là "Tính lương", `yard` là "Bãi

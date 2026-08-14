@@ -585,6 +585,10 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_MACHINE_CODE_DUPLICATED` | `409` | Mã đã tồn tại trong công ty này | Tạo hoặc sửa máy, hoặc kế hoạch bảo trì, với mã đã có trong **cùng** công ty — vi phạm `uq_machines_company_id_code` hoặc `uq_maintenance_plans_company_id_code`. Cùng một mã ở công ty khác thì hợp lệ |
 | `ERR_MACHINE_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, hành động) không có trong bảng chuyển trạng thái của kế hoạch bảo trì: bắt đầu một kế hoạch đang làm, hoàn thành một kế hoạch chưa bắt đầu, hủy một kế hoạch đã hoàn thành |
 | `ERR_MACHINE_ASSIGNEE_INVALID` | `422` | Người phụ trách không hợp lệ | `assigned_to` không phải user còn hoạt động của cùng công ty. User thuộc công ty khác trả **cùng** mã này, không phải `404`: thứ không tồn tại ở đây là một giá trị trong body chứ không phải tài nguyên trên URL |
+| `ERR_INVENTORY_CODE_DUPLICATED` | `409` | Mã đã tồn tại trong công ty này | Tạo hoặc sửa kho, hoặc vật tư, với mã đã có trong **cùng** công ty — vi phạm `uq_warehouses_company_id_code` hoặc `uq_stock_items_company_id_code` |
+| `ERR_INVENTORY_INSUFFICIENT_STOCK` | `409` | Không đủ tồn kho | Chuyển động làm tồn của cặp (kho, vật tư) xuống dưới 0. `dieu_chinh` âm chịu cùng kiểm này — điều chỉnh xuống dưới 0 vẫn là tồn âm |
+| `ERR_INVENTORY_UNIT_INVALID` | `422` | Đơn vị tính không hợp lệ | `unit_id` không phải một đơn vị tính còn sống |
+| `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` | `422` | Vật tư hoặc kho không hợp lệ | `stock_item_id` hoặc `warehouse_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` — cùng lý do với `ERR_MACHINE_ASSIGNEE_INVALID` |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -679,10 +683,15 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_maintenance_plans_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `status`\* |
 | `ck_machines_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_breakdowns_repair_cost_non_negative` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `repair_cost`\* |
+| `uq_warehouses_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `uq_stock_items_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
+| `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
 
-\* Bốn dòng CHECK trên là hàng phòng thủ cuối trong `dichViPhamCheck`
-(`modules/machine/internal/service/errors.go`) — không đường chạy bình thường nào chạm tới
-chúng, vì service đã tự chặn giá trị sai trước khi câu SQL chạy tới ràng buộc CHECK. Tên
+\* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
+hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
+`machine`) — không đường chạy bình thường nào chạm tới chúng, vì service đã tự chặn giá trị
+sai trước khi câu SQL chạy tới ràng buộc CHECK. Tên
 field ở các dòng này là **ước lệ**: gán để `422` từ nhánh phòng thủ đó cũng có hình dạng
 nhất quán với mọi `422` khác, không phải tên đã được xác nhận khớp chính xác input nào gây
 ra lỗi. Comment tại chỗ trong `dichViPhamCheck` phải nói rõ điều này, để người sau không
@@ -757,8 +766,8 @@ Ba quy tắc dùng sổ này:
 
 Cột `Ngày duyệt` ghi theo dạng `YYYY-MM-DD`, là ngày PR chứa endpoint đó được merge.
 
-Bảng 3 và 5 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải
-quên ghi.
+Bảng 3 hiện **rỗng**. Rỗng nghĩa là chưa có ngoại lệ nào được duyệt — không phải quên
+ghi.
 
 #### 1. Endpoint hành động dạng `/actions/<verb>` — ngoại lệ R-10
 
@@ -832,4 +841,4 @@ người dùng bấm F5 rồi gửi lại form.
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| _(chưa có endpoint nào)_ | — | — |
+| `POST /api/v1/stock-movements` | Sinh **chuyển động kho** — mệnh đề thứ hai của P-IDEM, và đây là endpoint đầu tiên của hệ thống khớp nó. Gửi lại một lần xuất kho là xuất hai lần cùng một lô hàng, và dấu vết duy nhất là tồn kho ít đi đúng bằng số hàng chưa ai lấy: không màn hình nào đỏ. Ba ca ở mục "Idempotency" của C-API-02 thi hành được nhờ ba cột `request_hash`, `response_status`, `response_body` mà [ADR-0018](../03-decisions/ADR-0018-luu-response-cho-idempotency-key.md) chốt | 2026-08-15 |
