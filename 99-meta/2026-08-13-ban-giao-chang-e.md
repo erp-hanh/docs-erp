@@ -1,5 +1,9 @@
 # Bàn giao — sau chặng E
 
+> **Đã có bản nối tiếp:** [`2026-08-14-ban-giao-chang-f.md`](2026-08-14-ban-giao-chang-f.md).
+> Mục 0 và mục 1 của file này đã lạc hậu (chặng E nay đã commit; chặng F đã chạy xong).
+> Mục 3.3 (vùng mù của bộ canh frontend) và mục 4 vẫn đúng nguyên.
+
 File này nối tiếp `2026-08-13-ban-giao.md` (viết sau chặng D, cùng ngày). Nó tồn tại vì
 cùng một lý do hẹp: sau chặng E có một bảng kiểm kê việc chưa làm, một tập vùng mù đã đo
 được, và vài câu hỏi chưa quyết — tất cả chỉ sống trong một phiên làm việc.
