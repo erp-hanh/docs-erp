@@ -133,16 +133,27 @@ chuỗi, handler tự parse và tự đặt tên field khi hỏng. Cái giá là
 ở ba trường đó; chỉ trường **người dùng gõ ngày** đi lối này, và mỗi lần thêm một trường
 mới vào danh sách đó phải có dòng giải thích tại chỗ.
 
-`occurred_at` khác hai trường kia ở đúng một điểm, và điểm đó không được gộp chung như thể
-cả ba giống nhau: cột của nó là `TIMESTAMPTZ` (migration `000008_create_breakdowns`), không
-phải `DATE` như `planned_date` và `commissioned_date`. Cả ba vẫn đòi cùng một khuôn chuỗi —
-RFC 3339 đầy đủ giờ phút giây, một `"2026-09-01"` thiếu giờ ở bất kỳ trường nào trong ba
-cũng không qua được `time.Parse(time.RFC3339, ...)` và vẫn ra `422` kèm field, không trường
-nào được nới lỏng thành "chỉ ngày" — nhưng ý nghĩa của phần giờ khác nhau: ở
-`planned_date`/`commissioned_date`, phần giờ chỉ là hình thức để chuỗi qua được
-`time.Parse`, vì service ghi thẳng xuống một cột `DATE` nên phần đó bị bỏ sau khi parse; ở
-`occurred_at`, phần giờ là dữ liệu nghiệp vụ thật — thời điểm trong ngày sự cố xảy ra — và
-được giữ nguyên xuống `TIMESTAMPTZ`.
+`occurred_at` khác hai trường kia ở đúng một điểm, và điểm đó **quyết định định dạng chuỗi
+mà mỗi trường nhận**: cột của nó là `TIMESTAMPTZ` (migration `000008_create_breakdowns`),
+không phải `DATE` như `planned_date` và `commissioned_date`.
+
+| Trường | Cột | Nhận |
+|---|---|---|
+| `planned_date`, `commissioned_date` | `DATE` | `"2026-09-01"` **hoặc** RFC 3339 đầy đủ |
+| `occurred_at` | `TIMESTAMPTZ` | chỉ RFC 3339 đầy đủ |
+
+Ranh giới chạy giữa **kiểu cột**, không giữa các endpoint. Ở `occurred_at`, phần giờ là dữ
+liệu nghiệp vụ thật — thời điểm trong ngày sự cố xảy ra — nên một `"2026-09-01"` gửi vào đó
+vẫn ra `422` kèm field: nhận nó nghĩa là ghi 00:00 cho một sự cố lúc 14:30, và không client
+nào phát hiện được điều đó. Ở hai trường trên cột `DATE` thì phần giờ bị bỏ sau khi parse,
+nên dạng ngắn không mất gì.
+
+**Bản đầu của mục này đòi RFC 3339 đầy đủ cho cả ba** và gọi đó là chủ ý. Lý do đổi không
+phải tiện lợi: dạng đầy đủ buộc client tự nối phần giờ vào ngày người dùng chọn, và **chọn
+múi giờ nào để nối là một quyết định ngữ nghĩa** — nó quyết định ngày nào rơi vào cột `DATE`.
+Bàn giao chặng E ghi lại chính lập luận đó khi giải thích vì sao frontend chọn UTC. Một
+quyết định ngữ nghĩa sống ở frontend là thứ `R-19` và [ADR-0009](../03-decisions/ADR-0009-business-rule-chi-o-backend.md)
+đóng lại, nên nó phải về backend.
 
 **`403` và `404`.** Bản ghi tồn tại nhưng thuộc công ty khác thì trả **`404`**, không phải
 `403`. Với R-06, "không tồn tại" và "tồn tại nhưng của công ty khác" cho ra cùng một
@@ -624,11 +635,11 @@ dưới đây là lý do nó đúng từ chặng E:
   không phải `validator.ValidationErrors` là `400`. Sau chặng E, `*json.UnmarshalTypeError`
   (ca `repair_cost`) ra `422` với field lấy từ thuộc tính `Field` sẵn có của chính lỗi đó;
   ca ngày tháng đi lối `planned_date`/`commissioned_date`/`occurred_at` bind thành
-  `string`, handler tự parse và tự đặt tên field khi hỏng — cùng một khuôn cho cả ba, dù
-  `occurred_at` là `TIMESTAMPTZ` (migration `000008_create_breakdowns`) còn hai trường kia
-  là `DATE`: cả ba đòi cùng định dạng chuỗi RFC 3339 đầy đủ giờ phút giây, chỉ khác ở việc
-  phần giờ có được giữ lại làm dữ liệu thật (`occurred_at`) hay bị bỏ sau khi parse xuống
-  cột `DATE` (`planned_date`/`commissioned_date`, xem C-API-02). Điều kiện:
+  `string`, handler tự parse và tự đặt tên field khi hỏng — cùng một khuôn xử lý cho cả ba,
+  nhưng **không cùng một định dạng**: `occurred_at` là `TIMESTAMPTZ` (migration
+  `000008_create_breakdowns`) nên chỉ nhận RFC 3339 đầy đủ, còn `planned_date` và
+  `commissioned_date` nằm trên cột `DATE` nên nhận thêm dạng `"2026-09-01"` (xem C-API-02).
+  Điều kiện:
   `*json.UnmarshalTypeError` cũng sinh ra khi cả thân request là mảng/chuỗi/số
   (`[1,2,3]`, `"chuoi"`, `123`) thay vì object — lúc
   đó `Field` là chuỗi rỗng vì lỗi nằm ở hình dạng của cả thân request, không ở một field

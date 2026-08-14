@@ -151,6 +151,18 @@ nhất tách được là một danh sách tên prop, tức đúng lối regex-t
 
 ### 3.4 Câu hỏi chưa quyết
 
+> **Ba câu đầu đã được trả lời sau chặng F, và cả ba đã có code.** Giữ nguyên văn bên dưới
+> chứ không xóa: chúng ghi lại điều chưa biết ở thời điểm viết, và đó là thứ duy nhất giải
+> thích được vì sao hợp đồng ban đầu có hình dạng đó.
+>
+> | Câu | Trả lời | Ở đâu |
+> |---|---|---|
+> | 1. Nới date-only | **Có**, nhưng chỉ cho trường trên cột `DATE`; `occurred_at` giữ RFC 3339 | `C-API-02`, `machine/docs/Workflow.md` |
+> | 2. Đường gỡ `commissioned_date` | **Có**, `""` làm sentinel — đúng khuôn `assigned_to` đã dùng | `machine/docs/Workflow.md` |
+> | 3. `PATCH` cho ghi rỗng | **Không**, `422` kèm tên ô; luật nằm ở service chứ không ở tag | `machine/docs/Workflow.md` |
+>
+> Câu 4 đến 7 vẫn mở.
+
 1. **Định dạng ngày: có nới cho date-only không?** Ba trường ngày (`planned_date`,
    `commissioned_date`, `occurred_at`) đòi RFC3339 **đầy đủ giờ**. Cột của hai trường đầu là
    `DATE` nên `"2026-09-01"` nghe rất hợp lý — nhưng nới là nới một hợp đồng công khai.
