@@ -1,0 +1,990 @@
+﻿<!doctype html>
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  MOCKUP ĐIỀU HƯỚNG — dựng ngày 2026-08-14
+
+  File này là BẢN VẼ của docs-erp/99-meta/pham-vi-he-thong.md, không phải code
+  sản phẩm. Nó tồn tại để trả lời một câu hỏi mà văn bản không trả lời nổi:
+  mười hai module sẽ nằm với nhau như thế nào trên màn hình.
+
+  ── KHÔNG ĐƯỢC LÀM ───────────────────────────────────────────────────────────
+  KHÔNG copy code từ đây sang frontend-erp. Repo đó là React 19 + TanStack Query
+  v5, có chín luật ESLint canh R-19, và C-TS-04 cấm fetch/axios ngoài
+  src/shared/api/. File này là HTML/CSS/JS thuần một file — bê nguyên sang là
+  vừa vi phạm bộ canh vừa phải viết lại.
+
+  Thứ đáng mang sang là QUYẾT ĐỊNH, không phải code: điều hướng hai cấp, bốn
+  cụm phân hệ, sơ đồ quy trình làm trang chủ mỗi phân hệ, và cách ẩn theo quyền.
+
+  ── ĐIỀU KIỆN HẾT HẠN ────────────────────────────────────────────────────────
+  1. Phân hệ nào có màn hình THẬT ở frontend-erp thì XÓA phần đó khỏi file này.
+     Hai bản mô tả cùng một màn hình là hai nguồn sự thật, và chúng lệch nhau mà
+     không báo lỗi ở đâu cả — đúng kiểu lỗi mà RULES.md vs C-TS-04 đã dạy.
+  2. Khi cả mười hai phân hệ có màn thật, XÓA hẳn file này.
+  3. Khi pham-vi-he-thong.md đổi danh sách module hoặc đổi tên module, file này
+     PHẢI đổi theo trong cùng một PR. Nếu không kịp, xóa file này còn hơn để nó
+     nói sai.
+
+  ── DỮ LIỆU ──────────────────────────────────────────────────────────────────
+  Mọi con số, tên người, mã máy trong đây là BỊA. Không nối backend, không có
+  form nhập liệu. Bốn tài khoản thử ở màn đăng nhập chỉ để xem danh sách phân hệ
+  đổi theo vai trò.
+
+  Ẩn ở giao diện KHÔNG phải phân quyền — backend vẫn phải chặn (C-TS-05).
+
+  ── SỬA FILE NÀY ─────────────────────────────────────────────────────────────
+  Sau mỗi lần sửa, KIỂM CÚ PHÁP khối JS ở cuối file trước khi tin là nó chạy:
+  trích phần nằm giữa hai thẻ script ra một file .js rồi chạy `node --check`.
+
+  Một dấu ngoặc thừa làm chết toàn bộ JS: trang vẫn hiện khung tĩnh nhưng mọi
+  phần dựng bằng JS biến mất, và console KHÔNG in gì. Đã xảy ra một lần, và mắt
+  thường không bắt được vì trang trông vẫn "gần đúng".
+
+  Lệnh trích bằng regex sẽ khớp nhầm nếu chú thích này nhắc tên thẻ — đó là lý
+  do đoạn trên mô tả bằng lời thay vì dán lệnh.
+  ══════════════════════════════════════════════════════════════════════════════
+-->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERP Cơ khí &amp; Cảng — Mockup phân hệ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1EEE7; --card:#FCFBF8; --ink:#14110D; --ink2:#524B41; --ink3:#8C8375;
+  --rule:#DED8CC; --rule2:#EDE8DE;
+  --steel:#152630; --steel2:#1D3542; --steel3:#2C4C5C; --steelink:#9FB4BE;
+  --orange:#C8480D; --orange2:#E9600F; --orangesoft:#FBEADF;
+  --green:#20694A; --greensoft:#E2F0E7;
+  --amber:#95590A; --ambersoft:#F8EDD9;
+  --red:#9E2A2A; --redsoft:#F6E4E1;
+  --blue:#1B5573; --bluesoft:#E2ECF2;
+  --sans:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --sb:250px; --tb:52px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.screen{position:fixed;inset:0;z-index:60;background:var(--steel);color:#E6EEF2;overflow-y:auto;display:none}
+.screen.on{display:block}
+.screen::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:44px 44px}
+
+/* ═════ ĐĂNG NHẬP ═════ */
+#login .box{position:relative;min-height:100%;display:grid;place-items:center;padding:40px 22px}
+.card{width:100%;max-width:392px}
+.lg-brand{display:flex;align-items:center;gap:13px;margin-bottom:26px}
+.lg-brand h1{font-size:19px;font-weight:800;letter-spacing:-.025em;line-height:1.2}
+.lg-brand p{font-size:10.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--steelink);margin-top:3px}
+.lg-form{background:var(--steel2);border:1px solid rgba(255,255,255,.12);border-radius:3px;padding:24px}
+.lg-form h2{font-size:15px;font-weight:600;margin-bottom:3px}
+.lg-form>p{font-size:12px;color:#8FADBA;margin-bottom:18px}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:#8FADBA;font-weight:600;margin-bottom:5px}
+.fld input{width:100%;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.15);border-radius:2px;
+  padding:9px 11px;color:#fff;font:inherit;font-size:13px;outline:none}
+.fld input:focus{border-color:var(--orange2);background:rgba(0,0,0,.34)}
+.fld input::placeholder{color:#6B8896}
+.sbm{width:100%;background:var(--orange);color:#fff;font-weight:600;font-size:13.5px;
+  padding:10px;border-radius:2px;margin-top:6px}
+.sbm:hover{background:var(--orange2)}
+.demo{margin-top:22px;border-top:1px solid rgba(255,255,255,.11);padding-top:16px}
+.demo h3{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7FA0AF;font-weight:700;margin-bottom:4px}
+.demo>p{font-size:11.5px;color:#7C9AA8;margin-bottom:11px;line-height:1.5}
+.demo button{width:100%;display:flex;align-items:center;gap:11px;padding:9px 11px;text-align:left;
+  border:1px solid rgba(255,255,255,.12);border-radius:2px;margin-bottom:7px;transition:border-color .15s,background .15s}
+.demo button:hover{border-color:var(--orange2);background:rgba(233,96,15,.1)}
+.demo button i{width:30px;height:30px;border-radius:2px;display:grid;place-items:center;font-style:normal;
+  font-size:11px;font-weight:700;color:#fff;flex:none}
+.demo button b{display:block;font-size:12.5px;font-weight:600}
+.demo button span{display:block;font-size:11px;color:#8FADBA}
+.demo button em{font-style:normal;margin-left:auto;font-family:var(--mono);font-size:10px;color:#7FA0AF;
+  border:1px solid rgba(255,255,255,.15);padding:1px 6px;border-radius:2px;flex:none}
+
+/* ═════ LAUNCHER ═════ */
+.lc-in{position:relative;max-width:1180px;margin:0 auto;padding:44px 32px 70px}
+.lc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:26px;
+  padding-bottom:26px;border-bottom:1px solid rgba(255,255,255,.11);flex-wrap:wrap}
+.lc-id{display:flex;align-items:center;gap:14px}
+.lc-id>svg{flex:none}
+.lc-id h1{font-size:23px;font-weight:800;letter-spacing:-.025em;line-height:1.15}
+.lc-id p{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--steelink);margin-top:3px}
+.lc-user{display:flex;align-items:center;gap:11px;padding:8px 11px 8px 13px;border:1px solid rgba(255,255,255,.14);border-radius:2px}
+.lc-user i{width:32px;height:32px;border-radius:2px;display:grid;place-items:center;font-style:normal;
+  font-size:12px;font-weight:700;color:#fff;flex:none}
+.lc-user b{display:block;font-size:13px;font-weight:600}
+.lc-user span{display:block;font-size:11px;color:var(--steelink)}
+.lc-user .out{margin-left:6px;padding:6px 9px;border:1px solid rgba(255,255,255,.15);border-radius:2px;font-size:11.5px;color:#B6CBD5}
+.lc-user .out:hover{border-color:var(--orange2);color:#fff}
+.lc-hd{margin:34px 0 16px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.lc-hd h2{font-size:12px;letter-spacing:.19em;text-transform:uppercase;color:#7FA0AF;font-weight:700}
+.lc-hd span{font-size:11.5px;color:#5E7F8E}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.app{position:relative;text-align:left;background:var(--steel2);border:1px solid rgba(255,255,255,.1);
+  border-radius:3px;padding:17px 17px 15px;display:flex;flex-direction:column;gap:9px;min-height:150px;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.app::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--steel3)}
+.app.built::after{background:var(--orange2)}
+.app:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.28);background:#254050}
+.app.soon{opacity:.62;border-style:dashed}
+.app.soon:hover{opacity:.86}
+.app-ic{width:34px;height:34px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.16);border-radius:2px;color:#BBD2DD}
+.app.built .app-ic{color:var(--orange2);border-color:rgba(233,96,15,.4);background:rgba(233,96,15,.09)}
+.app b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
+.app p{font-size:11.5px;color:#9DB6C2;line-height:1.45;flex:1}
+.app footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:9px;border-top:1px solid rgba(255,255,255,.09)}
+.app footer small{font-family:var(--mono);font-size:10px;color:#7C9AA8;letter-spacing:.03em}
+.st{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 6px;border-radius:2px}
+.st.co{background:var(--orange);color:#fff}
+.st.chot{background:rgba(255,255,255,.12);color:#C3D7E0}
+.st.dx{background:transparent;border:1px solid rgba(255,255,255,.2);color:#7FA0AF}
+.hidden-note{margin-top:16px;display:flex;align-items:center;gap:9px;font-size:12px;color:#7FA0AF;
+  border:1px dashed rgba(255,255,255,.16);border-radius:2px;padding:10px 13px}
+.hidden-note b{color:#C3D7E0;font-weight:600}
+.lc-note{margin-top:30px;padding:15px 18px;border:1px solid rgba(255,255,255,.12);border-left:3px solid var(--orange2);
+  background:rgba(0,0,0,.2);font-size:12.5px;color:#B6CBD5;max-width:78ch;line-height:1.6}
+.lc-note b{color:#fff;font-weight:600}
+.lc-note p+p{margin-top:7px}
+.lc-note code{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.09);padding:1px 5px;border-radius:2px}
+
+/* ═════ APP SHELL ═════ */
+#shell{display:none}
+#shell.on{display:block}
+.topbar{position:fixed;top:0;left:0;right:0;height:var(--tb);z-index:30;background:var(--steel);
+  color:#EDF2F4;display:flex;align-items:center;border-bottom:1px solid #0A1216}
+.switch{display:flex;align-items:center;gap:11px;padding:0 14px;height:100%;flex:none;
+  border-right:1px solid rgba(255,255,255,.09);min-width:var(--sb)}
+.switch:hover{background:rgba(255,255,255,.07)}
+.switch .gr{display:grid;grid-template-columns:repeat(3,3px);gap:2.5px;flex:none}
+.switch .gr i{width:3px;height:3px;background:#E9600F;display:block}
+.switch div{text-align:left;line-height:1.15;min-width:0}
+.switch b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.switch span{display:block;font-size:9.5px;color:var(--steelink);letter-spacing:.14em;text-transform:uppercase}
+.tb-mid{flex:1;display:flex;align-items:center;gap:14px;padding:0 18px;min-width:0}
+.tb-co{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#CFDDE4;border:1px solid rgba(255,255,255,.14);
+  border-radius:2px;padding:5px 9px;white-space:nowrap}
+.tb-co b{color:#fff;font-weight:600}
+.search{flex:1;max-width:380px;position:relative}
+.search input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:2px;
+  padding:6px 10px 6px 30px;color:#fff;font-size:12.5px;outline:none}
+.search input::placeholder{color:#7E97A3}
+.search input:focus{border-color:var(--orange2);background:rgba(255,255,255,.1)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.55}
+.tb-right{display:flex;align-items:center;gap:5px;padding-right:13px}
+.icobtn{width:30px;height:30px;display:grid;place-items:center;border-radius:2px;color:#B9CBD4}
+.icobtn:hover{background:rgba(255,255,255,.09);color:#fff}
+.avatar{display:flex;align-items:center;gap:9px;padding:4px 9px 4px 5px;border-radius:2px;margin-left:3px}
+.avatar:hover{background:rgba(255,255,255,.08)}
+.avatar i{width:26px;height:26px;border-radius:2px;display:grid;place-items:center;font-style:normal;
+  font-size:11px;font-weight:700;flex:none;color:#fff}
+.avatar div{line-height:1.2;text-align:left}
+.avatar b{display:block;font-size:12px;font-weight:600}
+.avatar span{display:block;font-size:10.5px;color:var(--steelink)}
+
+.sidebar{position:fixed;top:var(--tb);bottom:0;left:0;width:var(--sb);z-index:20;background:var(--steel2);
+  color:#C6D6DE;overflow-y:auto;border-right:1px solid #0A1216}
+.sidebar::-webkit-scrollbar{width:7px}
+.sidebar::-webkit-scrollbar-thumb{background:#37596B}
+.back{display:flex;align-items:center;gap:8px;padding:11px 15px;font-size:11.5px;color:#8FADBA;
+  border-bottom:1px solid rgba(255,255,255,.08);width:100%;text-align:left}
+.back:hover{background:rgba(255,255,255,.06);color:#fff}
+.sgroup{padding:13px 0 3px}
+.sgroup h4{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:#6D8B99;padding:0 15px 7px;font-weight:700}
+.sidebar a.pg{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 15px;
+  font-size:12.5px;color:#AFC5CF;border-left:2px solid transparent}
+.sidebar a.pg:hover{color:#fff;background:rgba(255,255,255,.05)}
+.sidebar a.pg.active{color:#fff;background:var(--orange);border-left-color:#FF8B45;font-weight:500}
+.sidebar a.pg small{font-family:var(--mono);font-size:10px;opacity:.75}
+.sb-foot{padding:13px 15px 22px;margin-top:8px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:10.5px;color:#6D8B99;line-height:1.6}
+.sb-foot b{color:#9FB6C0;font-family:var(--mono)}
+
+.main{margin-left:var(--sb);padding-top:var(--tb);min-height:100vh;
+  background-image:linear-gradient(var(--rule2) 1px,transparent 1px),linear-gradient(90deg,var(--rule2) 1px,transparent 1px);
+  background-size:32px 32px;background-position:-1px -1px}
+.crumb{display:flex;align-items:center;gap:7px;padding:11px 26px 0;font-size:11.5px;color:var(--ink3)}
+.crumb b{color:var(--ink2);font-weight:500}
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:6px 26px 16px;
+  border-bottom:1px solid var(--rule);flex-wrap:wrap;background:var(--paper)}
+.phead h1{font-size:22px;font-weight:700;letter-spacing:-.022em;line-height:1.2}
+.phead p{font-size:12.5px;color:var(--ink3);margin-top:3px;max-width:66ch}
+.acts{display:flex;gap:8px;flex:none}
+.btn{border:1px solid var(--rule);background:var(--card);padding:6px 13px;border-radius:2px;font-size:12.5px;
+  font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--ink3);background:#fff}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.pri:hover{background:var(--orange2);border-color:var(--orange2)}
+.wrap{padding:18px 26px 60px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--rule);
+  border:1px solid var(--rule);margin-bottom:22px}
+.tile{background:var(--card);padding:14px 16px}
+.tile h5{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.tile .v{font-family:var(--mono);font-size:25px;font-weight:600;letter-spacing:-.02em;margin-top:5px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.tile .s em{font-style:normal;color:var(--green);font-weight:600}
+.tile .s em.dn{color:var(--red)}
+.panel{background:var(--card);border:1px solid var(--rule);margin-bottom:22px}
+.panel>header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 16px;
+  border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.panel>header h3{font-size:13.5px;font-weight:600}
+.panel>header p{font-size:11.5px;color:var(--ink3)}
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input{font:inherit;font-size:12px;padding:5px 8px;border:1px solid var(--rule);
+  border-radius:2px;background:#fff;color:var(--ink);outline:none}
+.filters select:focus,.filters input:focus{border-color:var(--orange)}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
+thead th{position:sticky;top:0;background:#F7F5F0;text-align:left;font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink2);font-weight:600;padding:8px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+thead th.r{text-align:right}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--rule2);vertical-align:middle}
+tbody tr:hover{background:#FAF7F1}
+tbody tr:last-child td{border-bottom:none}
+td .lk{font-family:var(--mono);color:var(--blue);font-weight:500}
+td .lk:hover{text-decoration:underline}
+td .sub{display:block;font-size:11px;color:var(--ink3);margin-top:1px}
+tfoot td{padding:9px 14px;border-top:2px solid var(--rule);font-weight:600;background:#F7F5F0}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2.5px 8px;border-radius:2px;white-space:nowrap}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--greensoft);color:var(--green)}
+.pill.wait{background:var(--ambersoft);color:var(--amber)}
+.pill.stop{background:var(--redsoft);color:var(--red)}
+.pill.info{background:var(--bluesoft);color:var(--blue)}
+.pill.neutral{background:#EEEAE1;color:var(--ink2)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:1.5px 6px;border:1px solid var(--rule);
+  border-radius:2px;color:var(--ink2);background:#fff}
+.rowacts{display:flex;gap:5px;justify-content:flex-end}
+.mini{font-size:11px;padding:3px 9px;border:1px solid var(--rule);border-radius:2px;background:#fff;
+  font-weight:500;white-space:nowrap}
+.mini:hover{border-color:var(--ink3)}
+.mini.go{border-color:var(--green);color:var(--green)}
+.mini.go:hover{background:var(--greensoft)}
+.mini.no{border-color:var(--rule);color:var(--ink3);cursor:not-allowed}
+.mini.no:hover{border-color:var(--rule)}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink3);flex-wrap:wrap;gap:10px}
+.pgbtns{display:flex;gap:4px}
+.pgbtns button{width:27px;height:27px;border:1px solid var(--rule);border-radius:2px;background:#fff;font-size:12px}
+.pgbtns button.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.note{display:flex;gap:11px;padding:12px 15px;background:var(--orangesoft);border:1px solid #EFD3BE;
+  border-left:3px solid var(--orange);margin-bottom:22px;font-size:12.5px}
+.note svg{flex:none;margin-top:1px;color:var(--orange)}
+.note b{font-weight:600}
+.note p+p{margin-top:5px}
+.pgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:0;background:var(--card);border:1px solid var(--rule)}
+.pgc{background:var(--card);padding:14px 15px;text-align:left;display:flex;flex-direction:column;gap:5px;
+  min-height:96px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.pgc:hover{background:#fff}
+.pgc b{font-size:13.5px;font-weight:600}
+.pgc p{font-size:11.5px;color:var(--ink3);line-height:1.45;flex:1}
+.pgc.rdy{box-shadow:inset 3px 0 0 var(--orange)}
+.pgc small{font-family:var(--mono);font-size:10px;color:var(--ink3)}
+/* so do quy trinh nghiep vu */
+.flow{background:var(--card);border:1px solid var(--rule);margin-bottom:22px}
+.flow>header{padding:11px 16px;border-bottom:1px solid var(--rule);display:flex;
+  align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.flow>header h3{font-size:13.5px;font-weight:600}
+.flow>header span{font-size:11.5px;color:var(--ink3)}
+.fbody{padding:18px 16px;overflow-x:auto}
+.fmo{font-size:12.5px;color:var(--ink2);line-height:1.55;max-width:86ch;margin-bottom:16px}
+.fmo code{font-family:var(--mono);font-size:11.5px;background:#F0ECE3;padding:1px 5px;border-radius:2px}
+.chain{display:flex;align-items:flex-start;min-width:min-content}
+.fcol{display:flex;flex-direction:column;align-items:center;flex:none}
+.fstep{width:162px;border:1px solid var(--rule);background:#fff;padding:10px 11px;text-align:left;
+  display:block;position:relative}
+.fstep .n{position:absolute;top:-8px;left:-8px;width:18px;height:18px;border-radius:50%;
+  background:var(--ink);color:#fff;font-family:var(--mono);font-size:10px;display:grid;place-items:center}
+.fstep b{display:block;font-size:12.5px;font-weight:600;line-height:1.3}
+.fstep small{display:block;font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:4px;line-height:1.4}
+.fstep .fst{display:inline-block;margin-top:7px;font-family:var(--mono);font-size:9.5px;font-weight:600;
+  padding:1.5px 6px;border-radius:2px;background:#EEEAE1;color:var(--ink2)}
+.fstep.go{cursor:pointer}
+.fstep.go:hover{border-color:var(--orange);background:var(--orangesoft)}
+.fstep.go::after{content:"↗";position:absolute;top:7px;right:8px;font-size:11px;color:var(--orange)}
+.fstep.ext{border-style:dashed;background:transparent;color:var(--ink3)}
+.fstep.ext b{font-weight:500}
+.farrow{align-self:flex-start;margin-top:28px;padding:0 9px;color:var(--ink3);flex:none;font-size:15px}
+.falt{display:flex;flex-direction:column;align-items:center;margin-top:3px}
+.falt .fdown{color:var(--ink3);font-size:14px;line-height:1.4}
+.fside{margin-top:20px;padding-top:16px;border-top:1px dashed var(--rule)}
+.fside h4{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);
+  font-weight:600;margin-bottom:11px}
+.empty{background:var(--card);border:1px solid var(--rule);padding:52px 30px;text-align:center}
+.empty .bx{width:46px;height:46px;margin:0 auto 14px;border:2px dashed var(--rule);display:grid;place-items:center;color:var(--ink3)}
+.empty h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.empty p{font-size:12.5px;color:var(--ink3);max-width:54ch;margin:0 auto 4px}
+.empty .meta{margin-top:16px;display:inline-flex;gap:1px;background:var(--rule);border:1px solid var(--rule);flex-wrap:wrap}
+.empty .meta div{background:#fff;padding:8px 16px;text-align:left}
+.empty .meta h6{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.empty .meta b{font-family:var(--mono);font-size:13px;font-weight:600}
+.view{display:none}
+.view.active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:900px){
+  :root{--sb:0px}
+  .sidebar{transform:translateX(-250px);width:250px;transition:transform .2s}
+  .main{margin-left:0}
+  .search{display:none}
+  .switch{min-width:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ 1. ĐĂNG NHẬP ════════════ -->
+<div id="login" class="screen on">
+  <div class="box"><div class="card">
+    <div class="lg-brand">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E9600F" stroke-width="1.6">
+        <path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/><circle cx="12" cy="11" r="1.6" fill="#E9600F" stroke="none"/></svg>
+      <div><h1>Cơ khí &amp; Cảng Tân Phú</h1><p>Hệ thống quản trị nội bộ</p></div>
+    </div>
+
+    <form class="lg-form" id="lgForm">
+      <h2>Đăng nhập</h2>
+      <p>Danh sách phân hệ chỉ hiện ra sau khi đăng nhập.</p>
+      <div class="fld"><label>Email</label><input id="lgMail" type="email" placeholder="ten@congty.test" autocomplete="username"></div>
+      <div class="fld"><label>Mật khẩu</label><input id="lgPass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="sbm" type="submit">Đăng nhập</button>
+
+      <div class="demo">
+        <h3>Tài khoản thử</h3>
+        <p>Bốn vai trò khác nhau. Bấm để đăng nhập và xem <b style="color:#C3D7E0">danh sách phân hệ đổi theo quyền</b>.</p>
+        <div id="demoList"></div>
+      </div>
+    </form>
+  </div></div>
+</div>
+
+<!-- ════════════ 2. CHỌN PHÂN HỆ ════════════ -->
+<div id="launcher" class="screen">
+  <div class="lc-in">
+    <div class="lc-top">
+      <div class="lc-id">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#E9600F" stroke-width="1.6">
+          <path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/><circle cx="12" cy="11" r="1.6" fill="#E9600F" stroke="none"/></svg>
+        <div><h1>Công ty Cơ khí &amp; Cảng Tân Phú</h1><p>Hệ thống quản trị nội bộ</p></div>
+      </div>
+      <div class="lc-user">
+        <i id="luAv">—</i>
+        <div><b id="luName">—</b><span id="luRole">—</span></div>
+        <button class="out" id="btnOut">Đăng xuất</button>
+      </div>
+    </div>
+    <div id="lcGroups"></div>
+    <div id="lcHidden"></div>
+    <div class="lc-note">
+      <p><b>Đây là mockup, không phải ứng dụng thật.</b> Phân hệ viền cam đã có code chạy được; số còn lại mở ra sẽ nói đúng trạng thái — chưa xây, thuộc chặng nào.</p>
+      <p>Tách phân hệ ở đây là tách <b>giao diện</b>: vẫn một lần build, một backend, một lần đăng nhập. Mười hai phân hệ khớp <b>một–một</b> với mười hai module dữ liệu mà ADR-0017 chốt; tên module tiếng Anh in dưới mỗi thẻ.</p>
+      <p><b>Điều kiện hết hạn:</b> phân hệ nào có màn hình thật ở <code>frontend-erp</code> thì xóa phần đó khỏi file này; đủ mười hai thì xóa hẳn file. Để hai bản mô tả cùng một màn hình sống song song là tạo nguồn sự thật thứ hai — đọc khối chú thích ở đầu file để biết đầy đủ.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 3. ỨNG DỤNG ════════════ -->
+<div id="shell">
+  <header class="topbar">
+    <button class="switch" id="btnSwitch" title="Đổi phân hệ">
+      <span class="gr"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <div><b id="curApp">—</b><span>Đổi phân hệ</span></div>
+    </button>
+    <div class="tb-mid">
+      <div class="tb-co">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+        <b>CTY CƠ KHÍ TÂN PHÚ</b>
+      </div>
+      <div class="search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="sinp" placeholder="Tìm trong phân hệ này…">
+      </div>
+    </div>
+    <div class="tb-right">
+      <button class="icobtn" title="Thông báo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 01-3.4 0"/></svg>
+      </button>
+      <button class="avatar" id="tbUser"><i id="tuAv">—</i><div><b id="tuName">—</b><span id="tuRole">—</span></div></button>
+    </div>
+  </header>
+
+  <nav class="sidebar">
+    <button class="back" id="btnBack">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>
+      Tất cả phân hệ
+    </button>
+    <div id="sbnav"></div>
+    <div class="sb-foot">Module dữ liệu: <b id="sbMods">—</b><br>Mockup — không nối backend.</div>
+  </nav>
+
+  <main class="main">
+
+    <section class="view" id="v-home">
+      <div class="crumb"><b id="hCrumb">—</b></div>
+      <div class="phead"><div><h1 id="hTitle">—</h1><p id="hDesc">—</p></div></div>
+      <div class="wrap">
+        <div id="hTiles"></div>
+        <div id="hFlow"></div>
+        <div class="panel"><header><h3>Các trang trong phân hệ</h3><p id="hCount">—</p></header>
+          <div class="pgcards" id="hCards"></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-tb-may">
+      <div class="crumb">Thiết bị <span>›</span> <b>Danh sách máy</b></div>
+      <div class="phead">
+        <div><h1>Danh sách máy</h1><p>Lý lịch thiết bị — máy cơ khí trong xưởng và xe nâng container ở cảng nằm chung một sổ.</p></div>
+        <div class="acts"><button class="btn">Xuất Excel</button><button class="btn pri">+ Nhập máy mới</button></div>
+      </div>
+      <div class="wrap">
+        <div class="panel">
+          <header><div class="filters">
+            <input placeholder="Tìm mã hoặc tên máy…" style="width:200px">
+            <select><option>Mọi trạng thái</option><option>Hoạt động</option><option>Bảo trì</option><option>Ngừng</option></select>
+            <select><option>Mọi loại</option><option>CNC</option><option>Máy cắt</option><option>Máy hàn</option><option>Xe nâng</option></select>
+          </div><p><b>24</b> máy</p></header>
+          <div class="tblwrap"><table style="min-width:1020px">
+            <thead><tr><th style="width:116px">Mã máy</th><th style="min-width:230px">Tên thiết bị</th><th style="width:78px">Loại</th>
+              <th style="width:96px">Vị trí</th><th style="width:110px">Trạng thái</th><th style="width:140px">Người phụ trách</th>
+              <th style="width:100px" class="r">Ngày dùng</th><th style="width:118px"></th></tr></thead>
+            <tbody>
+              <tr><td><a class="lk">MAY-CNC-001</a></td><td>Máy phay CNC Haas VF-2<span class="sub">Trục đứng, bàn 762×356</span></td><td><span class="tag">cnc</span></td><td>Xưởng A</td><td><span class="pill ok">Hoạt động</span></td><td>Trần Quốc Bảo</td><td class="num">12/03/2021</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr><td><a class="lk">MAY-CNC-002</a></td><td>Máy tiện CNC Doosan Puma<span class="sub">Đường kính 350mm</span></td><td><span class="tag">cnc</span></td><td>Xưởng A</td><td><span class="pill wait">Bảo trì</span></td><td>Trần Quốc Bảo</td><td class="num">05/07/2021</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr><td><a class="lk">MAY-CAT-004</a></td><td>Máy cắt plasma CNC 1530<span class="sub">Bàn 1500×3000</span></td><td><span class="tag">cat</span></td><td>Xưởng B</td><td><span class="pill ok">Hoạt động</span></td><td>Lê Minh Tuấn</td><td class="num">22/11/2022</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr><td><a class="lk">MAY-HAN-007</a></td><td>Máy hàn MIG Lincoln 350<span class="sub">Bán tự động</span></td><td><span class="tag">han</span></td><td>Xưởng B</td><td><span class="pill ok">Hoạt động</span></td><td>Phạm Thị Loan</td><td class="num">08/01/2023</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr style="box-shadow:inset 3px 0 0 var(--blue)"><td><a class="lk">XN-KAL-011</a></td><td>Xe nâng container Kalmar DCG90<span class="sub">Sức nâng 9 tấn · 51D-238.44</span></td><td><span class="tag">xe_nang</span></td><td>Bãi cảng</td><td><span class="pill ok">Hoạt động</span></td><td>Võ Thành Trung</td><td class="num">17/06/2023</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr style="box-shadow:inset 3px 0 0 var(--blue)"><td><a class="lk">XN-KAL-012</a></td><td>Xe nâng container Kalmar DCG100<span class="sub">Sức nâng 10 tấn · 51D-241.09</span></td><td><span class="tag">xe_nang</span></td><td>Bãi cảng</td><td><span class="pill stop">Ngừng</span></td><td>Võ Thành Trung</td><td class="num">17/06/2023</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr><td><a class="lk">MAY-CNC-013</a></td><td>Trung tâm gia công Mazak VCN-530<span class="sub">4 trục</span></td><td><span class="tag">cnc</span></td><td>Xưởng A</td><td><span class="pill ok">Hoạt động</span></td><td>Trần Quốc Bảo</td><td class="num">30/09/2024</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+              <tr><td><a class="lk">MAY-CAT-015</a></td><td>Máy cắt laser fiber 3kW<span class="sub">Bàn 1500×3000</span></td><td><span class="tag">cat</span></td><td>Xưởng B</td><td><span class="pill wait">Bảo trì</span></td><td>Lê Minh Tuấn</td><td class="num">14/02/2025</td><td><div class="rowacts"><button class="mini">Sửa</button><button class="mini">Bảo trì</button></div></td></tr>
+            </tbody></table></div>
+          <div class="pager"><span>Hiện 1–8 trong 24 máy</span>
+            <div class="pgbtns"><button>‹</button><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
+        </div>
+        <div class="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z"/><path d="M12 9v4M12 16h.01"/></svg>
+          <div><p>Hai dòng viền xanh là <b>xe nâng Kalmar</b> — nằm chung bảng với máy cơ khí, không tách module riêng. Lý do và điều kiện mở lại ghi ở <span class="mono">ADR-0016</span>.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-tb-bt">
+      <div class="crumb">Thiết bị <span>›</span> <b>Kế hoạch bảo trì</b></div>
+      <div class="phead">
+        <div><h1>Kế hoạch bảo trì</h1><p>Ba nút hành động bật/tắt theo bảng chuyển trạng thái ở backend. Giao diện không giữ bản sao của bảng đó.</p></div>
+        <div class="acts"><button class="btn">Lịch tháng</button><button class="btn pri">+ Lập kế hoạch</button></div>
+      </div>
+      <div class="wrap">
+        <div class="panel">
+          <header><div class="filters">
+            <select><option>Mọi trạng thái</option><option>Kế hoạch</option><option>Đang làm</option><option>Hoàn thành</option><option>Hủy</option></select>
+            <input type="month" value="2026-08"></div><p><b>8</b> kế hoạch trong tháng</p></header>
+          <div class="tblwrap"><table>
+            <thead><tr><th style="width:126px">Mã kế hoạch</th><th>Máy</th><th style="width:110px" class="r">Ngày dự kiến</th>
+              <th style="width:112px">Trạng thái</th><th style="width:140px">Bắt đầu / Xong</th><th style="width:222px" class="r">Hành động</th></tr></thead>
+            <tbody>
+              <tr><td><a class="lk">BT-2026-0031</a></td><td>MAY-CNC-002 — Tiện CNC Doosan<span class="sub">Thay dầu thủy lực, căn chỉnh trục</span></td><td class="num">14/08/2026</td><td><span class="pill info">Đang làm</span></td><td class="mono" style="font-size:11.5px">14/08 08:12<span class="sub">—</span></td><td><div class="rowacts"><button class="mini no">Bắt đầu</button><button class="mini go">Hoàn thành</button><button class="mini">Hủy</button></div></td></tr>
+              <tr><td><a class="lk">BT-2026-0032</a></td><td>MAY-CAT-015 — Cắt laser fiber<span class="sub">Vệ sinh đầu cắt, thay kính bảo vệ</span></td><td class="num">15/08/2026</td><td><span class="pill info">Đang làm</span></td><td class="mono" style="font-size:11.5px">15/08 07:45<span class="sub">—</span></td><td><div class="rowacts"><button class="mini no">Bắt đầu</button><button class="mini go">Hoàn thành</button><button class="mini">Hủy</button></div></td></tr>
+              <tr><td><a class="lk">BT-2026-0033</a></td><td>XN-KAL-011 — Kalmar DCG90<span class="sub">Bảo dưỡng 500 giờ</span></td><td class="num">18/08/2026</td><td><span class="pill neutral">Kế hoạch</span></td><td class="mono" style="font-size:11.5px">—</td><td><div class="rowacts"><button class="mini go">Bắt đầu</button><button class="mini no">Hoàn thành</button><button class="mini">Hủy</button></div></td></tr>
+              <tr><td><a class="lk">BT-2026-0028</a></td><td>MAY-CNC-001 — Phay CNC Haas<span class="sub">Bảo dưỡng định kỳ quý</span></td><td class="num">02/08/2026</td><td><span class="pill ok">Hoàn thành</span></td><td class="mono" style="font-size:11.5px">02/08 08:00<span class="sub">02/08 15:30</span></td><td><div class="rowacts"><button class="mini no">Bắt đầu</button><button class="mini no">Hoàn thành</button><button class="mini no">Hủy</button></div></td></tr>
+              <tr><td><a class="lk">BT-2026-0029</a></td><td>MAY-HAN-007 — Hàn MIG Lincoln<span class="sub">Thay bép hàn</span></td><td class="num">05/08/2026</td><td><span class="pill stop">Hủy</span></td><td class="mono" style="font-size:11.5px">—</td><td><div class="rowacts"><button class="mini no">Bắt đầu</button><button class="mini no">Hoàn thành</button><button class="mini no">Hủy</button></div></td></tr>
+            </tbody></table></div>
+        </div>
+        <div class="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div><p>Bấm <b>Bắt đầu</b> thì máy sang <span class="tag">bảo trì</span>; bấm <b>Hoàn thành</b> thì máy về <span class="tag">hoạt động</span> — <b>hai bảng đổi trong một transaction</b>, nên không bao giờ có kế hoạch đang làm trên một máy đang chạy.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-tl-bang">
+      <div class="crumb">Tính lương <span>›</span> <b>Bảng lương kỳ</b></div>
+      <div class="phead">
+        <div><h1>Bảng lương — kỳ 07/2026</h1><p>Mọi con số tính ở backend bằng số thập phân chính xác. Màn hình chỉ hiển thị, không tự tính lại.</p></div>
+        <div class="acts"><button class="btn">Xuất Excel</button><button class="btn">Gửi phiếu lương</button><button class="btn pri">Khóa kỳ</button></div>
+      </div>
+      <div class="wrap">
+        <div class="tiles">
+          <div class="tile"><h5>Tổng quỹ lương</h5><div class="v" style="font-size:20px">1.284.560.000</div><div class="s">₫ · 42 nhân viên</div></div>
+          <div class="tile"><h5>BHXH doanh nghiệp đóng</h5><div class="v" style="font-size:20px">216.400.000</div><div class="s">₫ · 21,5%</div></div>
+          <div class="tile"><h5>Thuế TNCN khấu trừ</h5><div class="v" style="font-size:20px">38.910.000</div><div class="s">₫ · 11 người chịu thuế</div></div>
+          <div class="tile"><h5>Trạng thái kỳ</h5><div style="margin-top:9px"><span class="pill wait">Đang mở</span></div><div class="s" style="margin-top:7px">Khóa rồi thì sửa chấm công không đổi được số đã trả</div></div>
+        </div>
+        <div class="panel">
+          <header><div class="filters">
+            <select><option>Mọi phòng ban</option><option>Xưởng cơ khí</option><option>Khai thác cảng</option><option>Văn phòng</option></select>
+            <input placeholder="Tìm nhân viên…" style="width:170px"></div><p><b>42</b> nhân viên</p></header>
+          <div class="tblwrap"><table style="min-width:900px">
+            <thead><tr><th style="width:94px">Mã NV</th><th style="width:166px">Nhân viên</th><th style="width:56px" class="r">Công</th>
+              <th style="width:52px" class="r">Tăng ca</th><th class="r">Lương cơ bản</th><th class="r">Phụ cấp</th>
+              <th class="r">BHXH (10,5%)</th><th class="r">Thuế TNCN</th><th class="r">Thực nhận</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">NV-0007</td><td>Trần Quốc Bảo<span class="sub">Tổ trưởng · Xưởng cơ khí</span></td><td class="num">26</td><td class="num">12h</td><td class="num">18.500.000</td><td class="num">2.400.000</td><td class="num">−1.942.500</td><td class="num">−612.000</td><td class="num" style="font-weight:600">21.845.500</td></tr>
+              <tr><td class="mono">NV-0012</td><td>Lê Minh Tuấn<span class="sub">Thợ cắt · Xưởng cơ khí</span></td><td class="num">26</td><td class="num">8h</td><td class="num">13.200.000</td><td class="num">1.800.000</td><td class="num">−1.386.000</td><td class="num">−184.000</td><td class="num" style="font-weight:600">14.630.000</td></tr>
+              <tr><td class="mono">NV-0019</td><td>Võ Thành Trung<span class="sub">Lái xe nâng · Khai thác cảng</span></td><td class="num">25</td><td class="num">22h</td><td class="num">15.800.000</td><td class="num">3.600.000</td><td class="num">−1.659.000</td><td class="num">−398.000</td><td class="num" style="font-weight:600">19.023.000</td></tr>
+              <tr><td class="mono">NV-0023</td><td>Phạm Thị Loan<span class="sub">Thợ hàn · Xưởng cơ khí</span></td><td class="num">24</td><td class="num">—</td><td class="num">12.400.000</td><td class="num">1.200.000</td><td class="num">−1.302.000</td><td class="num">—</td><td class="num" style="font-weight:600">12.298.000</td></tr>
+              <tr><td class="mono">NV-0031</td><td>Nguyễn Thị Hồng<span class="sub">Kế toán · Văn phòng</span></td><td class="num">26</td><td class="num">—</td><td class="num">16.000.000</td><td class="num">1.500.000</td><td class="num">−1.680.000</td><td class="num">−305.000</td><td class="num" style="font-weight:600">15.515.000</td></tr>
+              <tr><td class="mono">NV-0038</td><td>Đặng Văn Sơn<span class="sub">Công nhân bãi · Khai thác cảng</span></td><td class="num">26</td><td class="num">16h</td><td class="num">10.500.000</td><td class="num">2.800.000</td><td class="num">−1.102.500</td><td class="num">—</td><td class="num" style="font-weight:600">12.197.500</td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="4">Tổng 42 nhân viên</td><td class="num">986.400.000</td><td class="num">124.800.000</td><td class="num">−116.572.000</td><td class="num">−38.910.000</td><td class="num">955.718.000</td></tr></tfoot>
+          </table></div>
+          <div class="pager"><span>Hiện 1–6 trong 42 nhân viên</span>
+            <div class="pgbtns"><button>‹</button><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div>
+        </div>
+        <div class="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          <div>
+            <p><b>Màn hình này là chỗ hệ thống hiện chưa đủ.</b> Ai được xem bảng lương của ai cần ba mức: của chính tôi / của phòng tôi / toàn công ty.</p>
+            <p>Phân quyền hôm nay là <span class="mono">Can(actor, "quyền")</span> — chỉ dựa trên vai trò, không dựa trên bản ghi nào. Ẩn cả phân hệ theo vai trò thì làm được (chính là thứ màn chọn phân hệ đang làm); lọc <b>từng dòng</b> theo phòng ban thì chưa. Cần một ADR trước chặng N.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-tl-tp">
+      <div class="crumb">Tính lương <span>›</span> <b>Thành phần lương</b></div>
+      <div class="phead">
+        <div><h1>Thành phần lương</h1><p>Khai báo <b>loại</b> phụ cấp và cách tính. Mức cụ thể của từng người nằm ở hợp đồng lao động, thuộc module Nhân sự.</p></div>
+        <div class="acts"><button class="btn pri">+ Thêm thành phần</button></div>
+      </div>
+      <div class="wrap">
+        <div class="panel">
+          <header><div><h3>9 thành phần đang áp dụng</h3><p>Hiệu lực từ 01/01/2026</p></div></header>
+          <div class="tblwrap"><table>
+            <thead><tr><th style="width:108px">Mã</th><th>Tên thành phần</th><th style="width:104px">Loại</th>
+              <th style="width:148px">Cách tính</th><th style="width:102px">Chịu BHXH</th><th style="width:102px">Chịu thuế</th><th style="width:72px"></th></tr></thead>
+            <tbody>
+              <tr><td class="mono">LCB</td><td>Lương cơ bản<span class="sub">Theo hợp đồng lao động</span></td><td><span class="pill neutral">Thu nhập</span></td><td>Theo hợp đồng</td><td><span class="pill ok">Có</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">PC-AN</td><td>Phụ cấp ăn ca</td><td><span class="pill neutral">Phụ cấp</span></td><td>730.000 ₫/tháng</td><td><span class="pill stop">Không</span></td><td><span class="pill stop">Miễn</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">PC-XE</td><td>Phụ cấp xăng xe</td><td><span class="pill neutral">Phụ cấp</span></td><td>500.000 ₫/tháng</td><td><span class="pill stop">Không</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">PC-TN</td><td>Phụ cấp trách nhiệm</td><td><span class="pill neutral">Phụ cấp</span></td><td>Theo chức danh</td><td><span class="pill ok">Có</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">PC-DH</td><td>Phụ cấp độc hại<span class="sub">Thợ hàn, thợ sơn</span></td><td><span class="pill neutral">Phụ cấp</span></td><td>1.200.000 ₫/tháng</td><td><span class="pill ok">Có</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">TC-150</td><td>Tăng ca ngày thường</td><td><span class="pill info">Tăng ca</span></td><td>150% × đơn giá giờ</td><td><span class="pill stop">Không</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">TC-200</td><td>Tăng ca chủ nhật</td><td><span class="pill info">Tăng ca</span></td><td>200% × đơn giá giờ</td><td><span class="pill stop">Không</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">TC-300</td><td>Tăng ca ngày lễ</td><td><span class="pill info">Tăng ca</span></td><td>300% × đơn giá giờ</td><td><span class="pill stop">Không</span></td><td><span class="pill ok">Có</span></td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+              <tr><td class="mono">KT-BH</td><td>Khấu trừ BHXH/BHYT/BHTN</td><td><span class="pill stop">Khấu trừ</span></td><td>10,5% × lương đóng</td><td>—</td><td>—</td><td><div class="rowacts"><button class="mini">Sửa</button></div></td></tr>
+            </tbody></table></div>
+        </div>
+        <div class="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div><p>Ba con số <b>150% / 200% / 300%</b> và <b>10,5%</b> là quy định pháp luật và <b>đổi theo năm</b>. Chúng phải là dữ liệu có ngày hiệu lực, không phải hằng số trong code — nếu là hằng thì tính lại một kỳ của năm ngoái sẽ ra con số của năm nay.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHIẾU LƯƠNG CỦA TÔI -->
+    <section class="view" id="v-tl-toi">
+      <div class="crumb">Tính lương <span>›</span> <b>Phiếu lương của tôi</b></div>
+      <div class="phead">
+        <div><h1>Phiếu lương của tôi</h1><p id="psWho">—</p></div>
+        <div class="acts"><button class="btn">Tải PDF</button></div>
+      </div>
+      <div class="wrap">
+        <div class="panel" style="max-width:640px">
+          <header><div><h3>Kỳ 07/2026</h3><p>Đã chốt ngày 05/08/2026</p></div><span class="pill ok">Đã trả</span></header>
+          <div class="tblwrap"><table style="min-width:auto">
+            <tbody>
+              <tr><td>Ngày công</td><td class="num">26</td></tr>
+              <tr><td>Giờ tăng ca</td><td class="num">16h</td></tr>
+              <tr><td>Lương cơ bản</td><td class="num">10.500.000</td></tr>
+              <tr><td>Phụ cấp ăn ca</td><td class="num">730.000</td></tr>
+              <tr><td>Phụ cấp độc hại</td><td class="num">1.200.000</td></tr>
+              <tr><td>Tăng ca (150%)</td><td class="num">870.000</td></tr>
+              <tr><td>Khấu trừ BHXH/BHYT/BHTN (10,5%)</td><td class="num">−1.102.500</td></tr>
+              <tr><td>Thuế TNCN</td><td class="num">—</td></tr>
+            </tbody>
+            <tfoot><tr><td>Thực nhận</td><td class="num">12.197.500 ₫</td></tr></tfoot>
+          </table></div>
+        </div>
+        <div class="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          <div><p>Vai trò này <b>chỉ xem được phiếu của chính mình</b> — mức phân quyền mà hệ thống hiện tại làm được, vì nó tách thành một quyền riêng (giống <span class="mono">auth.self_read</span> đang chạy). Mức <b>"xem lương cả phòng tôi"</b> thì chưa, và đó là lý do cần ADR.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-soon">
+      <div class="crumb"><b id="scCrumb">—</b></div>
+      <div class="phead"><div><h1 id="scTitle">—</h1><p id="scDesc">—</p></div></div>
+      <div class="wrap">
+        <div class="empty">
+          <div class="bx"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div>
+          <h3>Màn hình này chưa được xây</h3>
+          <p>Nó nằm trong phạm vi đã chốt, nhưng module chứa nó chưa tới lượt. Bản đồ đầy đủ ở <span class="mono">docs-erp/99-meta/pham-vi-he-thong.md</span>.</p>
+          <div class="meta">
+            <div><h6>Phân hệ</h6><b id="scApp">—</b></div>
+            <div><h6>Module dữ liệu</h6><b id="scMod">—</b></div>
+            <div><h6>Chặng</h6><b id="scChang">—</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+
+const I={
+  inventory:'<path d="M3 9l9-6 9 6v12H3z"/><path d="M9 21v-7h6v7"/>',
+  purchasing:'<path d="M6 2l-3 6v12h18V8l-3-6z"/><path d="M3 8h18M16 12a4 4 0 01-8 0"/>',
+  sales:'<path d="M3 6h18l-2 13H5z"/><path d="M8 6V4a4 4 0 018 0v2"/>',
+  yard:'<path d="M4 21V4l14 3v4"/><path d="M4 11h14M11 21v-6h9v6z"/>',
+  production:'<path d="M3 21V10l6 4V10l6 4V7l6 4v10z"/>',
+  machine:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
+  hr:'<circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0113 0M16 11a3 3 0 100-6M18 20a5.5 5.5 0 00-2-4.3"/>',
+  attendance:'<rect x="3" y="4.5" width="18" height="16.5" rx="1"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
+  payroll:'<rect x="2.5" y="5.5" width="19" height="13" rx="1"/><circle cx="12" cy="12" r="2.8"/><path d="M6 12h.01M18 12h.01"/>',
+  accounting:'<path d="M4 3h16v18H4z"/><path d="M8 7h8M8 11h8M8 15h4"/>',
+  reporting:'<path d="M3 21h18"/><rect x="5" y="11" width="4" height="7"/><rect x="11" y="6" width="4" height="12"/><rect x="17" y="14" width="4" height="4"/>',
+  auth:'<rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 018 0v3"/>'
+};
+
+/* ── người dùng thử ── */
+const USERS=[
+ {id:'admin', ten:'Nguyễn Văn Hải',  mail:'hai.nv@tanphu.test',   vt:'Quản trị hệ thống',   role:'admin',    mau:'#C8480D', tt:'NH'},
+ {id:'xuong', ten:'Trần Quốc Bảo',   mail:'bao.tq@tanphu.test',   vt:'Tổ trưởng xưởng',     role:'quanly',   mau:'#1B5573', tt:'TB'},
+ {id:'ketoan',ten:'Nguyễn Thị Hồng', mail:'hong.nt@tanphu.test',  vt:'Kế toán tiền lương',  role:'ketoan',   mau:'#20694A', tt:'NH'},
+ {id:'congnhan',ten:'Đặng Văn Sơn',  mail:'son.dv@tanphu.test',   vt:'Công nhân bãi',       role:'congnhan', mau:'#95590A', tt:'ĐS'}
+];
+
+/* ── phân hệ. r = vai trò được vào ── */
+const ALL=['admin','quanly','ketoan','congnhan'];
+const APPS=[
+ {id:'inventory',g:1,ten:'Kho',ic:I.inventory,mo:'Vật tư, nhập xuất, kiểm kê, tồn kho.',st:'chot',chang:'G',mods:'inventory',
+  r:['admin','quanly'],
+  flow:{mo:'Kho không tự sinh chứng từ. Hàng vào từ <b>Mua hàng</b>, hàng ra theo <b>Bán hàng</b> hoặc <b>Sản xuất</b>; kho chỉ ghi lại mọi lần vào ra và đối chiếu bằng kiểm kê.',
+   buoc:[{t:'Danh mục vật tư',b:'stock_items',p:'Danh sách vật tư'},
+         {t:'Nhập kho',b:'stock_movements',p:'Nhập kho',tt:'nhap'},
+         {t:'Tồn kho hiện tại',b:'tính từ movements',p:'Báo cáo tồn kho'},
+         {t:'Xuất kho',b:'stock_movements',p:'Xuất kho',tt:'xuat'}],
+   ben:{ten:'Đối chiếu định kỳ, không nằm trên luồng vào ra',
+        buoc:[{t:'Kiểm kê',b:'stock_takes',p:'Kiểm kê'},{t:'Điều chỉnh chênh lệch',b:'stock_movements',tt:'dieu_chinh'}]}},
+  pages:[['Danh sách vật tư'],['Nhập kho'],['Xuất kho'],['Kiểm kê'],['Báo cáo tồn kho']]},
+ {id:'purchasing',g:1,ten:'Mua hàng',ic:I.purchasing,mo:'Nhà cung cấp, đơn mua, nhận hàng.',st:'chot',chang:'H',mods:'purchasing',
+  r:['admin','ketoan'],
+  flow:{mo:'Vòng mua hàng đi qua ba phân hệ. <b>Ba ô nét đứt không thuộc phân hệ này</b> — chúng là bảng của Kho và Kế toán, và mua hàng chỉ phát tín hiệu sang chứ không ghi thẳng (R-02).',
+   buoc:[{t:'Nhà cung cấp',b:'suppliers',p:'Nhà cung cấp'},
+         {t:'Đơn mua hàng',b:'purchase_orders',p:'Đơn mua hàng',tt:'moi'},
+         {t:'Phiếu nhận hàng',b:'goods_receipts',p:'Phiếu nhận hàng',tt:'da_nhan'},
+         {t:'Nhập kho',b:'→ phân hệ Kho',ext:1},
+         {t:'Hóa đơn mua vào',b:'→ phân hệ Kế toán',ext:1},
+         {t:'Thanh toán',b:'→ phân hệ Kế toán',ext:1}]},
+  pages:[['Nhà cung cấp'],['Đơn mua hàng'],['Phiếu nhận hàng'],['Báo cáo mua hàng']]},
+ {id:'sales',g:1,ten:'Bán hàng',ic:I.sales,mo:'Khách hàng, đơn bán, giao hàng.',st:'chot',chang:'I',mods:'sales',
+  r:['admin','ketoan'],
+  flow:{mo:'Gương của luồng mua hàng, chiều hàng ngược lại. <b>`sales` sở hữu bảng `customers`</b>; Bãi container và Kế toán đọc qua `api/`, không JOIN sang (ADR-0017, mục 2.4 của bản đồ phạm vi).',
+   buoc:[{t:'Khách hàng',b:'customers',p:'Khách hàng'},
+         {t:'Đơn bán hàng',b:'sales_orders',p:'Đơn bán hàng',tt:'moi'},
+         {t:'Xuất kho',b:'→ phân hệ Kho',ext:1},
+         {t:'Phiếu giao hàng',b:'deliveries',p:'Phiếu giao hàng',tt:'da_giao'},
+         {t:'Hóa đơn bán ra',b:'→ phân hệ Kế toán',ext:1},
+         {t:'Thu tiền',b:'→ phân hệ Kế toán',ext:1}]},
+  pages:[['Khách hàng'],['Đơn bán hàng'],['Phiếu giao hàng'],['Báo cáo doanh thu']]},
+ {id:'yard',g:1,ten:'Bãi container',ic:I.yard,mo:'Container trong bãi, ô bãi, lệnh nâng hạ, cước lưu bãi. Không có cầu tàu.',st:'chot',chang:'J',mods:'yard',
+  r:['admin','congnhan'],
+  flow:{mo:'Ô số 3 là thứ không phân hệ nào khác có: <b>cước tăng theo ngày trôi, không do ai bấm nút</b>. Nó cần một việc chạy theo lịch — job theo lịch đầu tiên của cả hệ thống — và câu hỏi bắt buộc trả lời trước dòng code đầu tiên là <b>chạy hai lần có tính cước hai lần không</b>.',
+   buoc:[{t:'Tiếp nhận container',b:'containers',p:'Container trong bãi',tt:'trong_bai'},
+         {t:'Xếp ô bãi',b:'yard_slots',p:'Sơ đồ bãi'},
+         {t:'Lưu bãi',b:'storage_charges · job nền',tt:'tinh theo ngay'},
+         {t:'Giao trả container',b:'service_orders',p:'Lệnh nâng hạ',tt:'da_ra'},
+         {t:'Chốt cước',b:'storage_charges',p:'Cước lưu bãi'},
+         {t:'Hóa đơn dịch vụ',b:'→ phân hệ Kế toán',ext:1}],
+   ben:{ten:'Chạy song song suốt thời gian container nằm trong bãi',
+        buoc:[{t:'Lệnh nâng hạ',b:'service_orders',p:'Lệnh nâng hạ'},{t:'Thiết bị thực hiện',b:'→ phân hệ Thiết bị (xe Kalmar)',ext:1}]}},
+  pages:[['Container trong bãi'],['Sơ đồ bãi'],['Lệnh nâng hạ'],['Cước lưu bãi',null,null,['admin']],['Báo cáo sản lượng',null,null,['admin']]]},
+ {id:'production',g:1,ten:'Sản xuất',ic:I.production,mo:'Lệnh sản xuất, định mức, công đoạn.',st:'chot',chang:'K',mods:'production',
+  r:['admin','quanly'],
+  flow:{mo:'Sản xuất là phân hệ duy nhất đọc <b>cả Kho lẫn Thiết bị</b>: nó tiêu thụ vật tư và chiếm máy. Một công đoạn gắn với một máy cụ thể, nên lịch bảo trì và lịch sản xuất tranh nhau cùng một thiết bị.',
+   buoc:[{t:'Lệnh sản xuất',b:'production_orders',p:'Lệnh sản xuất',tt:'moi'},
+         {t:'Định mức vật tư',b:'boms · bom_lines',p:'Định mức vật tư (BOM)'},
+         {t:'Xuất vật tư',b:'→ phân hệ Kho',ext:1},
+         {t:'Công đoạn gia công',b:'work_steps',p:'Công đoạn',tt:'dang_lam'},
+         {t:'Nhập thành phẩm',b:'→ phân hệ Kho',ext:1}]},
+  pages:[['Lệnh sản xuất'],['Định mức vật tư (BOM)'],['Công đoạn'],['Báo cáo sản lượng']]},
+ {id:'machine',g:1,ten:'Thiết bị',ic:I.machine,mo:'Lý lịch máy, bảo trì, sự cố. Gồm cả xe nâng Kalmar.',st:'co',chang:'C',mods:'machine',
+  r:['admin','quanly'],
+  flow:{mo:'<b>Sơ đồ này không phải minh họa — nó là bản vẽ của code đang chạy.</b> Bốn mũi tên tương ứng đúng bốn dòng của biến <code>bangChuyenTrangThai</code> trong <code>maintenance_service.go</code>. Hai ô có chữ "máy →" ghi hai bảng đổi trong <b>một transaction</b>: không bao giờ có kế hoạch đang làm trên một máy đang chạy.',
+   buoc:[{t:'Lý lịch máy',b:'machines',p:'Danh sách máy'},
+         {t:'Lập kế hoạch',b:'maintenance_plans',p:'Kế hoạch bảo trì',tt:'ke_hoach'},
+         {t:'Bắt đầu ca',b:'máy → bảo trì',p:'Kế hoạch bảo trì',tt:'dang_lam',
+          alt:{t:'Hủy ca',b:'máy → hoạt động',tt:'huy'}},
+         {t:'Hoàn thành',b:'máy → hoạt động',p:'Kế hoạch bảo trì',tt:'hoan_thanh'}],
+   ben:{ten:'Sổ riêng — không sinh kế hoạch bảo trì, không đổi trạng thái máy',
+        buoc:[{t:'Ghi sự cố',b:'breakdowns · không sửa, không xóa',p:'Nhật ký sự cố'}]}},
+  pages:[['Danh sách máy','tb-may','24'],['Kế hoạch bảo trì','tb-bt','8'],['Nhật ký sự cố',null,'31'],['Báo cáo thiết bị',null,null,['admin']]]},
+
+ {id:'hr',g:2,ten:'Nhân sự',ic:I.hr,mo:'Hồ sơ nhân viên, phòng ban, hợp đồng lao động, người phụ thuộc.',st:'chot',chang:'L',mods:'hr',
+  r:['admin','ketoan'],
+  flow:{mo:'Phân hệ này <b>không có luồng chứng từ</b> — nó là sổ gốc mà hai phân hệ sau đọc vào. Ô số 4 là chỗ ranh giới mảnh nhất của cả hệ thống: <code>dependents</code> là bảng của Nhân sự mà <b>chỉ Tính lương dùng</b>, và đó là dấu hiệu phải kiểm lại ranh giới một lần ở đầu chặng L chứ đừng mặc định đúng.',
+   buoc:[{t:'Hồ sơ nhân viên',b:'employees',p:'Hồ sơ nhân viên'},
+         {t:'Phòng ban & chức danh',b:'departments · positions',p:'Phòng ban & chức danh'},
+         {t:'Hợp đồng lao động',b:'labor_contracts · mức lương',p:'Hợp đồng lao động'},
+         {t:'Người phụ thuộc',b:'dependents · giảm trừ gia cảnh',p:'Người phụ thuộc'}],
+   ben:{ten:'Hai phân hệ đọc sổ này',
+        buoc:[{t:'Chấm công',b:'→ phân hệ Chấm công',ext:1},{t:'Tính lương',b:'→ phân hệ Tính lương',ext:1}]}},
+  pages:[['Hồ sơ nhân viên'],['Phòng ban & chức danh'],['Hợp đồng lao động'],['Người phụ thuộc']]},
+
+ {id:'attendance',g:2,ten:'Chấm công',ic:I.attendance,mo:'Ca làm việc, phân ca, bảng công, tăng ca, nghỉ phép.',st:'chot',chang:'M',mods:'attendance',
+  r:ALL,
+  flow:{mo:'Đầu ra của phân hệ này là <b>một kỳ công đã chốt</b> — đầu vào bắt buộc của Tính lương. Ba mức tăng ca 150% / 200% / 300% là quy định pháp luật, nên chúng là dữ liệu có ngày hiệu lực chứ không phải hằng trong code.',
+   buoc:[{t:'Ca làm việc',b:'shifts',p:'Ca làm việc'},
+         {t:'Phân ca',b:'shift_assignments',p:'Phân ca'},
+         {t:'Bảng công tháng',b:'timesheets',p:'Bảng công tháng',tt:'dang_mo'},
+         {t:'Chốt kỳ công',b:'→ khóa số giờ của kỳ',tt:'da_chot'},
+         {t:'Tính lương',b:'→ phân hệ Tính lương',ext:1}],
+   ben:{ten:'Ghi bổ sung vào bảng công, chạy suốt trong kỳ',
+        buoc:[{t:'Tăng ca',b:'overtimes · 150/200/300%',p:'Tăng ca'},
+              {t:'Nghỉ phép',b:'leaves · leave_balances',p:'Nghỉ phép'},
+              {t:'Lịch nghỉ lễ',b:'holidays',p:'Lịch nghỉ lễ'}]}},
+  pages:[['Bảng công tháng',null,null,['admin','ketoan','quanly']],['Ca làm việc',null,null,['admin','ketoan','quanly']],
+         ['Phân ca',null,null,['admin','ketoan','quanly']],['Tăng ca',null,null,['admin','ketoan','quanly']],
+         ['Nghỉ phép'],['Lịch nghỉ lễ']]},
+
+ {id:'payroll',g:2,ten:'Tính lương',ic:I.payroll,mo:'Kỳ lương, thành phần lương, BHXH, thuế TNCN, phiếu lương.',st:'chot',chang:'N',mods:'payroll',
+  r:ALL,
+  flow:{mo:'Ô số 3 là ranh giới quan trọng nhất của cả phân hệ: <b>kỳ đã khóa thì sửa chấm công không đổi được số đã trả</b>. Đường sửa đúng là một điều chỉnh ghi vào kỳ sau, không phải sửa tại chỗ kỳ cũ.',
+   buoc:[{t:'Kỳ công đã chốt',b:'← phân hệ Chấm công',ext:1},
+         {t:'Chạy bảng lương',b:'payroll_runs · payslips',p:'Bảng lương kỳ',tt:'dang_mo'},
+         {t:'Khóa kỳ',b:'payroll_periods',tt:'da_khoa'},
+         {t:'Phiếu lương',b:'payslip_lines',p:'Phiếu lương của tôi'},
+         {t:'Chi phí lương',b:'→ phân hệ Kế toán',ext:1}],
+   ben:{ten:'Tham số tính toán — dữ liệu có ngày hiệu lực, không phải hằng trong code',
+        buoc:[{t:'Thành phần lương',b:'salary_components',p:'Thành phần lương'},
+              {t:'Tỷ lệ BHXH & thuế',b:'insurance_rates · tax_brackets',p:'Tỷ lệ BHXH & thuế'},
+              {t:'Người phụ thuộc',b:'← phân hệ Nhân sự',ext:1}]}},
+  pages:[['Bảng lương kỳ','tl-bang','T7/26',['admin','ketoan']],['Thành phần lương','tl-tp','9',['admin','ketoan']],
+         ['Kỳ lương',null,null,['admin','ketoan']],['Tỷ lệ BHXH & thuế',null,null,['admin','ketoan']],
+         ['Báo cáo quỹ lương',null,null,['admin','ketoan']],
+         ['Phiếu lương của tôi','tl-toi']]},
+ {id:'accounting',g:3,ten:'Kế toán',ic:I.accounting,mo:'Hóa đơn, thu chi, công nợ. Phạm vi cơ bản.',st:'chot',chang:'O',mods:'accounting',
+  r:['admin','ketoan'],
+  flow:{mo:'Phân hệ này <b>không tự sinh việc</b> — nó nhận đầu vào từ bốn nơi: hóa đơn bán ra từ Bán hàng và Bãi container, hóa đơn mua vào từ Mua hàng, chi phí lương từ Tính lương. Vì vậy nó làm gần cuối: làm sớm là làm trên một tập đầu vào chưa tồn tại.',
+   buoc:[{t:'Nguồn chứng từ',b:'← Bán hàng · Bãi · Mua hàng · Lương',ext:1},
+         {t:'Hóa đơn',b:'invoices',p:'Hóa đơn bán ra',tt:'chua_thu'},
+         {t:'Thu / Chi',b:'payments',p:'Thu chi'},
+         {t:'Đối chiếu',b:'payments ↔ invoices',tt:'da_doi_chieu'},
+         {t:'Công nợ',b:'receivables · payables',p:'Công nợ phải thu'}]},
+  pages:[['Hóa đơn bán ra'],['Hóa đơn mua vào'],['Thu chi'],['Công nợ phải thu'],['Công nợ phải trả']]},
+ {id:'reporting',g:3,ten:'Báo cáo tổng hợp',ic:I.reporting,mo:'Chỉ báo cáo xuyên phân hệ. Báo cáo trong một phân hệ nằm ở chính nó.',st:'dx',chang:'P',mods:'reporting',
+  r:['admin'],
+  pages:[['Doanh thu & chi phí'],['Chi phí lương / doanh thu']]},
+
+ {id:'auth',g:4,ten:'Quản trị hệ thống',ic:I.auth,mo:'Người dùng, vai trò, phân quyền.',st:'co',chang:'B',mods:'auth',
+  r:['admin'],
+  pages:[['Danh sách người dùng',null,'12'],['Vai trò',null,'3']]}
+];
+const GNAME={1:['Sản xuất & Kinh doanh'],2:['Con người'],3:['Tài chính'],4:['Hệ thống']};
+const STLBL={co:'Có code',chot:'Chốt',dx:'Đề xuất'};
+
+let me=null, cur=null;
+
+/* ═══ đăng nhập ═══ */
+USERS.forEach(u=>{
+  const b=document.createElement('button'); b.type='button';
+  b.innerHTML='<i style="background:'+u.mau+'">'+u.tt+'</i>'+
+    '<span style="min-width:0"><b>'+u.ten+'</b><span>'+u.vt+'</span></span>'+
+    '<em>'+APPS.filter(a=>a.r.includes(u.role)).length+' phân hệ</em>';
+  b.addEventListener('click',()=>login(u));
+  $('demoList').appendChild(b);
+});
+$('lgForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const m=$('lgMail').value.trim().toLowerCase();
+  login(USERS.find(u=>u.mail===m)||USERS[0]);
+});
+
+function login(u){
+  me=u;
+  $('luAv').textContent=u.tt; $('luAv').style.background=u.mau;
+  $('luName').textContent=u.ten;
+  $('luRole').textContent=u.vt+' · vai trò '+u.role;
+  $('tuAv').textContent=u.tt; $('tuAv').style.background=u.mau;
+  $('tuName').textContent=u.ten; $('tuRole').textContent=u.vt;
+  $('psWho').textContent=u.ten+' · '+u.vt;
+  buildLauncher();
+  $('login').classList.remove('on');
+  $('shell').classList.remove('on');
+  $('launcher').classList.add('on');
+  window.scrollTo(0,0);
+}
+$('btnOut').addEventListener('click',()=>{
+  me=null; $('launcher').classList.remove('on'); $('shell').classList.remove('on');
+  $('login').classList.add('on'); $('lgMail').value=''; $('lgPass').value=''; window.scrollTo(0,0);
+});
+
+/* ═══ launcher lọc theo quyền ═══ */
+function buildLauncher(){
+  const host=$('lcGroups'); host.innerHTML='';
+  let shown=0;
+  [1,2,3,4].forEach(g=>{
+    const list=APPS.filter(a=>a.g===g && a.r.includes(me.role));
+    if(!list.length) return;
+    shown+=list.length;
+    const hd=document.createElement('div'); hd.className='lc-hd';
+    hd.innerHTML='<h2>'+GNAME[g][0]+'</h2><span>'+list.length+' phân hệ</span>';
+    host.appendChild(hd);
+    const gr=document.createElement('div'); gr.className='grid';
+    list.forEach(a=>{
+      const b=document.createElement('button');
+      b.className='app'+(a.st==='co'?' built':' soon');
+      b.innerHTML='<span class="app-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">'+a.ic+'</svg></span>'+
+        '<b>'+a.ten+'</b><p>'+a.mo+'</p>'+
+        '<footer><small>modules/'+a.id+' · '+a.chang+'</small><span class="st '+a.st+'">'+STLBL[a.st]+'</span></footer>';
+      b.addEventListener('click',()=>openApp(a.id));
+      gr.appendChild(b);
+    });
+    host.appendChild(gr);
+  });
+  const hid=APPS.length-shown;
+  $('lcHidden').innerHTML = hid ?
+    '<div class="hidden-note"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>'+
+    '<span><b>'+hid+' phân hệ bị ẩn</b> vì vai trò <span class="mono">'+me.role+'</span> không có quyền vào. Ẩn hẳn chứ không hiện rồi khóa — không cho người dùng thấy thứ họ không dùng được.</span></div>' : '';
+}
+
+/* ═══ vào một phân hệ ═══ */
+function visiblePages(a){
+  return a.pages.filter(p=>p[0].startsWith('SEP:')||!p[3]||p[3].includes(me.role));
+}
+function openApp(id){
+  cur=APPS.find(x=>x.id===id);
+  if(!cur.r.includes(me.role)) return;
+  $('launcher').classList.remove('on');
+  $('shell').classList.add('on');
+  $('curApp').textContent=cur.ten;
+  $('sbMods').textContent=cur.mods;
+  $('sinp').placeholder='Tìm trong '+cur.ten+'…';
+
+  const nav=$('sbnav'); nav.innerHTML='';
+  let box=document.createElement('div'); box.className='sgroup'; nav.appendChild(box);
+  const home=document.createElement('a');
+  home.className='pg active'; home.href='#'; home.innerHTML='<span>Trang chủ phân hệ</span>';
+  home.addEventListener('click',e=>{e.preventDefault();mark(home);show('home');});
+  box.appendChild(home);
+
+  let pending=null;
+  visiblePages(cur).forEach(p=>{
+    if(p[0].startsWith('SEP:')){ pending=p[0].slice(4); return; }
+    if(pending){ box=document.createElement('div'); box.className='sgroup';
+      box.innerHTML='<h4>'+pending+'</h4>'; nav.appendChild(box); pending=null; }
+    const a=document.createElement('a');
+    a.className='pg'; a.href='#';
+    a.innerHTML='<span>'+p[0]+'</span>'+(p[2]?'<small>'+p[2]+'</small>':'');
+    a.addEventListener('click',e=>{e.preventDefault();mark(a);goPage(p);});
+    box.appendChild(a);
+  });
+
+  buildHome(); show('home'); window.scrollTo(0,0);
+}
+function mark(el){document.querySelectorAll('.sidebar a.pg').forEach(x=>x.classList.remove('active'));el.classList.add('active');}
+function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  const el=$('v-'+v); if(el)el.classList.add('active'); window.scrollTo(0,0);}
+function goPage(p){
+  if(p[1]){show(p[1]);return;}
+  $('scCrumb').textContent=cur.ten+' › '+p[0];
+  $('scTitle').textContent=p[0];
+  $('scDesc').innerHTML='Thuộc phân hệ <b>'+cur.ten+'</b>.';
+  $('scApp').textContent=cur.ten;
+  $('scMod').textContent=cur.mods;
+  $('scChang').textContent='Chặng '+cur.chang;
+  show('soon');
+}
+/* ═══ so do quy trinh nghiep vu ═══ */
+function trangThayDuoc(ten){
+  const p=cur.pages.find(x=>x[0]===ten);
+  return (p && (!p[3]||p[3].includes(me.role))) ? p : null;
+}
+function oBuoc(s,n){
+  const moDuoc = s.p && trangThayDuoc(s.p);
+  const cls='fstep'+(s.ext?' ext':'')+(moDuoc?' go':'');
+  return '<button class="'+cls+'"'+(moDuoc?' data-pg="'+s.p+'"':'')+'>'+
+    (n?'<span class="n">'+n+'</span>':'')+
+    '<b>'+s.t+'</b>'+(s.b?'<small>'+s.b+'</small>':'')+
+    (s.tt?'<span class="fst">'+s.tt+'</span>':'')+'</button>';
+}
+function chuoiBuoc(list,danhSo){
+  let h='<div class="chain">';
+  list.forEach((s,i)=>{
+    if(i) h+='<span class="farrow">→</span>';
+    h+='<span class="fcol">'+oBuoc(s,danhSo?i+1:0);
+    if(s.alt) h+='<span class="falt"><span class="fdown">↓</span>'+oBuoc(s.alt,0)+'</span>';
+    h+='</span>';
+  });
+  return h+'</div>';
+}
+function renderFlow(){
+  if(!cur.flow) return '';
+  let h='<div class="flow"><header><h3>Quy trình nghiệp vụ</h3>'+
+        '<span>Ô có dấu ↗ mở được trang tương ứng · ô nét đứt thuộc phân hệ khác</span></header>'+
+        '<div class="fbody"><p class="fmo">'+cur.flow.mo+'</p>'+chuoiBuoc(cur.flow.buoc,true);
+  if(cur.flow.ben) h+='<div class="fside"><h4>'+cur.flow.ben.ten+'</h4>'+chuoiBuoc(cur.flow.ben.buoc,false)+'</div>';
+  return h+'</div></div>';
+}
+
+function buildHome(){
+  $('hCrumb').textContent=cur.ten;
+  $('hTitle').textContent=cur.ten;
+  $('hDesc').textContent=cur.mo;
+  const vis=visiblePages(cur), real=vis.filter(p=>!p[0].startsWith('SEP:'));
+  const tot=cur.pages.filter(p=>!p[0].startsWith('SEP:')).length;
+  $('hCount').innerHTML='<b>'+real.length+'</b>/'+tot+' trang bạn xem được · module dữ liệu: <span class="mono">'+cur.mods+'</span>';
+
+  const t=$('hTiles');
+  if(cur.id==='machine'){
+    t.innerHTML='<div class="tiles">'+
+      '<div class="tile"><h5>Thiết bị đang có</h5><div class="v">24</div><div class="s">19 hoạt động · 3 bảo trì · 2 ngừng</div></div>'+
+      '<div class="tile"><h5>Bảo trì tháng này</h5><div class="v">8</div><div class="s"><em class="dn">2 quá hạn</em> · 3 đang làm</div></div>'+
+      '<div class="tile"><h5>Sự cố 30 ngày</h5><div class="v">6</div><div class="s">Chi phí sửa 47.200.000 ₫</div></div>'+
+      '<div class="tile"><h5>Xe nâng Kalmar</h5><div class="v">2</div><div class="s">Nằm chung sổ với máy cơ khí</div></div></div>';
+  } else if(cur.id==='auth'){
+    t.innerHTML='<div class="tiles">'+
+      '<div class="tile"><h5>Người dùng</h5><div class="v">12</div><div class="s">11 đang hoạt động</div></div>'+
+      '<div class="tile"><h5>Vai trò</h5><div class="v">4</div><div class="s">admin · quanly · ketoan · congnhan</div></div>'+
+      '<div class="tile"><h5>Quyền đang khai</h5><div class="v">20</div><div class="s">12 của Thiết bị · 8 của Người dùng</div></div></div>';
+  } else {
+    t.innerHTML='<div class="note">'+
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 16H3z"/><path d="M12 9v4M12 16h.01"/></svg>'+
+      '<div><p><b>Phân hệ này chưa được xây.</b> Nó nằm ở chặng '+cur.chang+', module dữ liệu <span class="mono">'+cur.mods+
+      '</span>. Các trang bên dưới là danh sách dự kiến — và đã lọc theo quyền của bạn.</p></div></div>';
+  }
+
+  $('hFlow').innerHTML=renderFlow();
+  $('hFlow').querySelectorAll('.fstep.go').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const p=trangThayDuoc(b.dataset.pg); if(!p) return;
+      const link=[...document.querySelectorAll('.sidebar a.pg')].find(x=>x.textContent.trim().startsWith(p[0]));
+      if(link) mark(link);
+      goPage(p);
+    });
+  });
+
+  const c=$('hCards'); c.innerHTML=''; let sub='';
+  vis.forEach(p=>{
+    if(p[0].startsWith('SEP:')){sub=p[0].slice(4);return;}
+    const b=document.createElement('button');
+    b.className='pgc'+(p[1]?' rdy':'');
+    b.innerHTML='<b>'+p[0]+'</b><p>'+(p[1]?'Có dữ liệu mẫu — bấm để xem.':'Chưa xây.')+'</p>'+
+      '<small>'+(sub?sub+' · ':'')+(p[2]?p[2]+' bản ghi':'—')+'</small>';
+    b.addEventListener('click',()=>{
+      const link=[...document.querySelectorAll('.sidebar a.pg')].find(x=>x.textContent.trim().startsWith(p[0]));
+      if(link)mark(link);
+      goPage(p);
+    });
+    c.appendChild(b);
+  });
+}
+function back(){ $('shell').classList.remove('on'); $('launcher').classList.add('on'); window.scrollTo(0,0); }
+$('btnSwitch').addEventListener('click',back);
+$('btnBack').addEventListener('click',back);
+})();
+</script>
+</body>
+</html>

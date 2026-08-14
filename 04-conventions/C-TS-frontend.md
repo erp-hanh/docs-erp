@@ -354,7 +354,16 @@ import type { ApiErrorBody, Envelope, FieldError, ListParams, Meta, Page } from 
 
 // /api/v1 khai ĐÚNG MỘT LẦN ở đây, không rải vào từng lời gọi (C-API-06). Sang v2 từng
 // phần thì phần đó khai đường dẫn đầy đủ, phần còn lại giữ nguyên base URL này.
-const BASE_URL = '/api/v1';
+//
+// Origin cua backend doc tu bien moi truong `VITE_API_ORIGIN` (Vite bat buoc tien to
+// VITE_), mac dinh http://localhost:8080. TEN BIEN NAY LA HOP DONG - dat ten khac o repo
+// khac se cho ra hai ten cho mot thu.
+//
+// Vi sao khong dung duong dan tuong doi + server.proxy cua Vite: proxy bien moi thu thanh
+// same-origin o dev, nen middleware CORS cua backend khong bao gio duoc thu cho toi luc
+// len production. Origin cau hinh duoc thi cross-origin la that ngay tu may dev.
+const API_ORIGIN = (import.meta.env.VITE_API_ORIGIN ?? '').trim().replace(/\/+$/, '') || 'http://localhost:8080';
+const BASE_URL = `${API_ORIGIN}/api/v1`;
 
 // ApiError mang trọn thông tin lỗi từ envelope. Tầng trên rẽ nhánh theo `status` và
 // `code`; `requestId` đi vào thông báo lỗi để người dùng đọc cho tổng đài (R-17).
@@ -522,6 +531,14 @@ mảng: mảng chỉ chứa một trang.
 | Viết chuỗi `'/api/v1'` ngoài `client.ts` | C-API-06 đòi tiền tố version khai đúng một lần |
 | Trả `any` từ hàm trong `api/` | Type DTO là chỗ duy nhất frontend biết hình dạng dữ liệu backend; `any` xóa nó đi |
 
+**Ngoại lệ khi kiểm bằng máy — đường lên `v2` không bị bắt oan.** Luật ESLint canh dòng cấm
+`/api/v1` ở trên (`c-ts-04-base-url-once`, [ADR-0012](../03-decisions/ADR-0012-r19-canh-o-frontend-eslint.md))
+chỉ khớp đúng chuỗi `/api/v1`, không khớp mọi đường dẫn đầy đủ bắt đầu bằng `/api/`. C-API-06
+đã chừa sẵn đường sang `v2` từng phần: *"Sang v2 từng phần thì phần đó khai đường dẫn đầy
+đủ, phần còn lại giữ base URL cũ."* Một file `api/` viết `/api/v2/orders` cho một tài nguyên
+đã version không vi phạm gì; chỉ `/api/v1` viết tay ngoài `client.ts` mới đỏ. Luật viết chặt
+theo đúng chuỗi `/api/v1`, không phải theo tiền tố `/api/v`, để không bắt oan `v2`.
+
 ---
 
 ### C-TS-05 — Form, validate, hiển thị lỗi
@@ -645,7 +662,10 @@ export interface FormErrorResult {
 
 export function toFormErrors(err: unknown, knownPaths: ReadonlySet<string>): FormErrorResult {
   if (!(err instanceof ApiError)) {
-    return { fieldErrors: [], formMessage: 'Lỗi không xác định', shouldReload: false };
+    // Khong phai ApiError nghia la request khong bao gio toi duoc may chu: mat mang,
+    // backend chua len, hoac CORS chan o preflight. Ba nguyen nhan, MOT hanh dong sua
+    // giong nhau - nen thong diep noi ra hanh dong do, khong noi "khong xac dinh".
+    return { fieldErrors: [], formMessage: 'Khong ket noi duoc toi may chu', shouldReload: false };
   }
 
   // 422: sai HÌNH DẠNG request. Giữ nguyên form, highlight từng ô (C-API-02).
@@ -703,6 +723,14 @@ const idempotencyKeyRef = useRef(crypto.randomUUID());
 Khóa chỉ đổi khi người dùng bắt đầu một thao tác nghiệp vụ **mới** — mở form trắng lần
 nữa, không phải sửa lại một ô rồi gửi lại.
 
+**Nợ có tên: backend chưa thi hành `Idempotency-Key` trên bất kỳ route HTTP nào.**
+`shared/idempotency` tồn tại ở backend nhưng chỉ phục vụ consumer outbox nội bộ — không
+handler nào đọc header đó, và bảng 5 của C-API-07 (endpoint bắt buộc nhận header) đang
+**rỗng**. Frontend vẫn sinh và gửi `Idempotency-Key` đúng quy ước ở trên, nhưng cho tới khi
+có endpoint đọc và validate nó, header đó không chặn được double-submit hay retry trùng ở
+phía server — nó đi vào request và bị bỏ qua. Hình dạng đúng của việc đóng nợ này là backend
+thi hành, không phải frontend ngừng gửi.
+
 ---
 
 ### C-TS-06 — Hiển thị theo quyền
@@ -734,6 +762,20 @@ lại tự động** (lần nào cũng `403`, chỉ thêm tải cho server), và
 lọt lên error boundary gốc.
 
 #### Bật/tắt theo field API trả về, không tự suy luận từ role
+
+**Trạng thái thật hôm nay: `allowed_actions` chưa tồn tại ở bất kỳ response nào của
+backend.** Không endpoint nào trả field này tính tới cuối chặng E — đây là hình dạng đích
+mà C-TS-06 mô tả cho ngày field đó có mặt, không phải cái đang chạy. Xây nó đòi một thiết
+kế cho việc rò quyền từ `authz.Checker` ra DTO mà không phá R-04 và ADR-0010 (bảng vai trò
+cố ý nhốt trong composition root) — một quyết định về mô hình quyền, chưa thuộc chặng nào
+đã đóng.
+
+Đường hợp lệ cho tới lúc đó **không phải** chờ có field rồi mới cho nút hoạt động, và cũng
+không phải đoán bằng `role` để lấp chỗ trống. Nó là dòng cuối của bảng ba cấp bên dưới: **để
+nút hiện, không kiểm gì cả, và xử lý `403` cho tử tế khi nó tới.** Đó không phải một trạng
+thái tạm bợ chờ sửa — chính C-TS-06 (dòng ~798) đã gọi tên nó là cách đúng: *"khi chưa có dữ
+liệu quyền cho một thao tác, cách đúng là để nút đó hiện và xử lý `403` cho tử tế, chứ không
+phải đoán bằng role."* Cái bị cấm là **đoán**, không phải **không biết**.
 
 ```tsx
 // SAI: frontend tự suy luận quyền từ role và tự dựng bảng chuyển trạng thái hợp lệ.

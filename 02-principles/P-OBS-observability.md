@@ -78,37 +78,159 @@ bước nào → log kèm `request_id` chỉ ra *vì sao* → `audit_logs` cùng
 ## Hard check
 
 1. **Mọi handler dưới `/api/v1` chạy qua middleware tracing tạo span.** Span name là
-   **route pattern** (`GET /api/v1/orders/:id`), không phải path đã điền id — path thật
-   làm nổ cardinality của mọi hệ thống trace ở phía sau.
+   **`{method} {route pattern}`** (`GET /api/v1/orders/:id`), không phải path đã điền id
+   — path thật làm nổ cardinality của mọi hệ thống trace ở phía sau. Hình dạng hai phần
+   là **quy ước ngữ nghĩa HTTP của OpenTelemetry**, không phải sáng tạo riêng của dự
+   án: tên span là trường hiển thị của mọi backend tracing, nên đặt khác quy ước nghĩa
+   là span của repo này nằm lệch hẳn span do các thư viện có instrument sẵn chạy cạnh
+   nó sinh ra. Method **không** vì thế mà rời khỏi thuộc tính: `http.request.method` vẫn
+   được gắn, và `http.route` vẫn là route pattern **trần** — đó là trường để truy vấn
+   lọc theo, và một truy vấn `http.route = "/api/v1/orders/:id"` không được phép vấp
+   phải chuỗi có `GET ` dính đầu.
+
+   Canh bằng **`TestMoiRouteV1SinhDungMotSpan`** ở `cmd/api` — test dựng router thật
+   cộng một exporter span trong bộ nhớ, bắn một request qua từng route đọc được từ
+   `r.Routes()` dưới `/api/v1`, và đếm span sinh ra. Không có ID trong bảng `arch/`:
+   động từ của mệnh đề là **"chạy qua"** — một sự kiện xảy ra lúc thực thi — trong khi
+   mọi checker tĩnh trong `arch/` chỉ đọc được hình dạng khai báo trong văn bản (route
+   có `.Use(tracing)` hay không). Hình dạng khai đúng vẫn có thể sinh ra **0 span**
+   (route đăng ký trước lời gọi `.Use()`, middleware `return` sớm trên một nhánh) — một
+   checker tĩnh xanh trong ca đó là xanh giả, và không cơ chế nào của `arch/` phân biệt
+   được "checker có gặp code" với "điều checker kết luận có đúng".
+
+   **Ranh giới của test đó, đọc trước khi tin nó.** Nó tiêm nhà cung cấp span của chính
+   nó, nên cái nó canh là *"**router** có nối middleware tracing vào mọi route dưới
+   `/api/v1` không"* — **không** phải *"**tiến trình** có nối một exporter vào router
+   không"*. Xóa dòng nối exporter khỏi `main.go` thì test này vẫn xanh. Và đó là trạng
+   thái đúng chứ không phải một lỗ hổng: middleware cố ý làm "không cấu hình exporter"
+   có nghĩa là *span vẫn được tạo, chỉ không có nơi đến* — cấu hình được là **nơi span
+   đi tới**, không phải việc span có tồn tại hay không (`shared/middleware/tracing`).
+   Vế "tiến trình có nối exporter không" có triệu chứng nhìn thấy được ở phía khác
+   (không trace nào tới collector) và hôm nay **không test nào trong repo canh nó**;
+   đóng được nó cần một test chạy `run()` thật với một collector OTLP giả, tức một test
+   phụ thuộc cổng mạng và môi trường.
 2. **Mọi lời gọi ra ngoài tiến trình đi qua wrapper có ghi cả latency histogram lẫn
    error counter.** DB, Redis, HTTP client, bus. Cấm gọi thẳng client gốc trong
    `modules/**`: một `http.Client{}` hoặc `redis.NewClient(` khai báo trong
    `modules/**` là vi phạm.
 3. **Label metric chỉ lấy từ danh sách hằng khai báo tĩnh.** Cấm truyền `company_id`,
-   `user_id`, hay bất kỳ id bản ghi nào vào `WithLabelValues(`. Kiểm được bằng grep tên
-   biến đi vào lời gọi đó.
+   `user_id`, hay bất kỳ id bản ghi nào vào `WithLabelValues(` **hoặc** vào dạng map
+   `prometheus.Labels{...}` — hai API khác nhau, cùng một cách phá cardinality, nên một
+   dấu hiệu chỉ khớp `WithLabelValues(` bỏ sót hoàn toàn nửa còn lại. Hai chỗ phải nhìn:
+   chỗ **gọi** (tên biến đi vào lời gọi) và chỗ **khai**
+   (`NewCounterVec(..., []string{"company_id"})`) — bắt ở chỗ khai rẻ hơn và chắc hơn
+   rải rác bắt tại từng chỗ gọi, vì một giá trị chỉ nổ cardinality khi **có** một nhãn
+   để nó đi vào. Cả hai chỗ đều đòi giải hằng, nên cả hai đều là việc của checker
+   `HC-03` chứ không của grep — xem ghi chú cuối mục này.
+
+   **Độ chặt khác nhau theo vị trí, và đó là một sự thật kiến trúc chứ không phải một
+   thỏa hiệp.** Checker `HC-03` quét **cả `modules/**` lẫn `shared/**`**, nhưng hỏi hai
+   câu hỏi khác nhau ở hai nơi — vì mệnh đề "chỉ lấy từ hằng khai báo tĩnh" đúng ở nơi
+   này và sai ở nơi kia:
+
+   - **Trong `modules/**` — danh sách trắng.** Mọi đối số phải là hằng chuỗi khai tĩnh;
+     `x.CompanyID`, một lời gọi hàm, một biến tham số đều là vi phạm. Ở đây phép thử
+     chặt nhất có **đúng 0 khả năng bắt oan**, vì ở đây **không lời gọi dựng nhãn nào
+     được phép tồn tại**: module cần đếm thêm thứ gì thì thêm một method vào
+     `shared/metrics`, và module không được import `prometheus` (hard check 2).
+   - **Trong `shared/**` — danh sách đen theo tên.** Dựng nhãn **là** việc hợp lệ ở
+     đây: `shared/metrics` chính là tầng wrapper, chỗ duy nhất được phép dựng nhãn (xem
+     đầu `shared/metrics/metrics.go`). Nhãn `route` của nó đến từ `c.FullPath()` — một
+     **lời gọi hàm** lúc chạy, không phải hằng đọc được lúc biên dịch. Chạy danh sách
+     trắng lên đó cho **9 vi phạm trên 9 đối số**, tức 100% bắt oan đúng dòng code mà
+     nó có nhiệm vụ bảo vệ. Nên ở đây checker chỉ hỏi hai câu hẹp hơn và đo được: **tên
+     nhãn** không được là tên một id (đọc tại chỗ khai `NewXVec` và tại khóa của
+     `prometheus.Labels`), và **giá trị** đi vào nhãn không được mang tên một id bản
+     ghi.
+
+   Bất biến **thật** của mệnh đề này không phải "đối số là hằng" — đó chỉ là cách kiểm
+   rẻ nhất **khi kiểm được** — mà là **cardinality bị chặn**, và cardinality bị chặn ở
+   đúng **một cổng** bên trong `shared/metrics`: hàm `nhanRouteCua()` luôn trả
+   `c.FullPath()`, với nhánh mặc định là một **hằng** (`khong_khop`), không bao giờ là
+   path thật đã điền id.
+
+   Cái giá phải nói thẳng: arm `shared/**` là danh sách **đen theo tên**, nên một
+   `WithLabelValues` sai viết ngay trong `shared/metrics` mà **không mang tên một id**
+   sẽ đi qua sạch sẽ — ví dụ lỡ đổi `nhanRouteCua(c)` thành `c.Request.URL.Path`.
+   Chuỗi đó nổ cardinality y hệt `company_id` và không tên nào trong nó đọc ra là một
+   id. Thứ canh đúng chỗ đó là một test lúc chạy:
+   **`TestNhanRouteLaRoutePatternChuKhongPhaiPathThat`** (`shared/metrics`), bắn ba
+   request mang ba id khác nhau và khẳng định cả ba gộp vào đúng **một** chuỗi thời
+   gian, không phải ba — cùng hình dạng "checker tĩnh xanh nhưng kết luận có thể sai"
+   mà mục 3 của spec thiết kế chặng F đã nêu cho HC-1.
+
+   **Script `2b` bên dưới không phải thứ canh mệnh đề này — checker `HC-03` mới là.**
+   Nhãn trong code thật khai bằng **hằng có tên**, và trả lời "tên hằng này mang giá trị
+   gì" đòi một bước **giải hằng** mà grep không làm được; `HC-03` gom `const` cấp
+   package rồi so khớp trên giá trị đã giải, grep thì so khớp trên văn bản dòng code.
+   Script giữ lại làm **minh họa** cho hình dạng chuỗi literal, và **0 dòng của nó không
+   phải bằng chứng sạch**.
 4. **Log trong `modules/**` lấy logger dẫn xuất từ `ctx`** (`log.FromContext(ctx)`),
    không gọi logger toàn cục (R-17); **tham số log chỉ là cặp key-value nguyên thủy**
    (R-16).
-5. **Không nơi nào ngoài middleware của R-17 được sinh `request_id`.** Grep cả repo:
-   chuỗi gán giá trị cho `request_id` chỉ được xuất hiện đúng một chỗ. Một
-   `uuid.NewString()` cạnh chữ `trace` hay `request` ở bất kỳ file nào khác là dấu hiệu
-   của id song song.
+
+   Canh bằng **R-16** (nửa "tham số log chỉ là cặp key-value nguyên thủy") và **R-17**
+   (nửa "logger dẫn xuất từ `ctx`" — hàm `loggerToanCuc`, phạm vi nới ra `modules/**` ở
+   chặng F). Không có dòng `HC-04` riêng trong bảng `arch/`: bảng `hardChecks` trong
+   `arch/rules.go` khai rõ điều đó, và `TestHardCheckKhaiDungBang` canh nó.
+5. **Không nơi nào ngoài middleware của R-17 được sinh `request_id`, trong code sản
+   xuất.** **Việc SINH** ra giá trị chỉ được xuất hiện đúng một chỗ (`shared/requestid`).
+   Chính cái TÊN `request_id` thì ngược lại — nó phải xuất hiện ở mọi tầng tiêu thụ và
+   phải giống hệt nhau: `shared/log` đặt nó làm trường log, `shared/middleware/tracing`
+   đặt nó làm thuộc tính span, subscriber đọc nó ra khỏi payload event (P-EVT). Dấu hiệu
+   vi phạm là một tên THỨ HAI cho cùng một id (`trace_id`, `correlation_id`, `req_id`,
+   `X-Trace-Id`), hoặc một chỗ thứ hai GHI header `X-Request-Id` — không phải sự có mặt
+   của chính chữ `request_id`. Một `uuid.NewString()` cạnh chữ `trace` hay `request` ở
+   bất kỳ file sản xuất nào khác cũng là dấu hiệu của id song song. Dữ liệu giả gán cho
+   một trường tên `RequestID` trong fixture test không phải id song song — nó không đi
+   vào middleware nào cả — nên script phải loại `_test.go` trước khi kết luận. Canh bằng
+   `HC-05` trong `backend-erp/arch/`.
 6. **Lỗi nghiệp vụ cấm đi vào `logger.Error(`.** Giá trị dựng từ bảng mã lỗi
    `shared/errors` mà xuất hiện làm tham số của `logger.Error(` là vi phạm.
 
+   **Không canh được bằng máy — cố ý, không phải chưa làm.** Hình dạng hẹp bắt được
+   (`errors.As(err, &appErr)` rồi gọi `.Error` trong thân `if`) sẽ **bắt oan** đúng ca
+   mà chính Ca khó 1 dưới đây nói là đúng: `internal_error` cũng dựng từ bảng mã lỗi,
+   cũng đi qua `errors.As`, và checker tĩnh không phân biệt được lúc đọc code
+   `appErr.Code == CodeInternal` với một mã nghiệp vụ khác — cả hai chỉ là cùng một
+   hình dạng `errors.As` + `.Error`. Bắt oan ở đây là **cố hữu của mệnh đề**, không
+   phải lỗi hiện thực sửa được bằng viết checker khéo hơn, nên câu trả lời trung thực
+   là không viết nó. Xét bằng người, đối chiếu với Ca khó 1.
+
 ```powershell
-# 1) Sinh request_id/trace_id ngoai middleware cua R-17
-Get-ChildItem -Path modules, shared -Recurse -Filter *.go |
-    Where-Object { $_.FullName -notmatch '\\shared\\requestid\\' } |
+# 1) Sinh request_id/trace_id ngoai middleware cua R-17. Loai _test.go: du lieu gia
+# gan cho mot truong ten RequestID trong fixture test khong phai id song song - no
+# khong di vao middleware nao ca (xem shared/audit/postgres_db_test.go).
+Get-ChildItem -Path cmd, modules, shared, relay -Recurse -Filter *.go |
+    Where-Object { $_.FullName -notmatch '\\shared\\requestid\\' -and $_.Name -notmatch '_test\.go$' } |
     Select-String -Pattern 'uuid\.NewString\(\)|uuid\.New\(\)' |
     Where-Object { $_.Line -match '(?i)request|trace' } |
     ForEach-Object { "{0}:{1}: sinh id truy vet ngoai middleware R-17" -f $_.Path, $_.LineNumber }
 
-# 2) Label metric co cardinality khong chan duoc
+# 2) Label metric co cardinality khong chan duoc - hai hinh dang goi khac nhau:
+# WithLabelValues( va dang map prometheus.Labels{...}
 Get-ChildItem -Path modules, shared -Recurse -Filter *.go |
-    Select-String -Pattern 'WithLabelValues\([^)]*(company_id|CompanyID|user_id|UserID|\w+ID)\b' |
+    Select-String -Pattern 'WithLabelValues\([^)]*(company_id|CompanyID|user_id|UserID|\w+ID)\b|prometheus\.Labels\{[^}]*(company_id|CompanyID|user_id|UserID|\w+ID)\b' |
     ForEach-Object { "{0}:{1}: id bien thien lam label metric -> chuyen sang span attribute" -f $_.Path, $_.LineNumber }
+
+# 2b) Ten label la id, khai ngay tai cho dung metric: []string{"company_id", ...}.
+#
+# GIOI HAN - doc truoc khi tin ket qua 0 dong. Script nay chi thay CHUOI LITERAL, va
+# grep KHONG the lam hon the: code that cua shared/metrics khai nhan bang HANG CO TEN
+# ([]string{nhanMethod, nhanRoute, nhanStatus}), nen tra loi "ten nhan nay co phai ten
+# mot id khong" doi mot buoc GIAI HANG ma PowerShell khong lam duoc. Ban truoc cua
+# script nay con doi ca "NewXVec(" nam cung dong voi "[]string{" - hai thu do o code
+# that cach nhau sau dong - nen no tra 0 dong va se MAI tra 0 du co mot hang
+# nhanCongTy = "company_id" nam ngay canh. Dung loai loi ma script 5 da mac.
+#
+# Thu CANH menh de nay la checker HC-03 (backend-erp/arch/checks_metrics.go): no gom
+# const cap package roi so khop tren GIA TRI DA GIAI, o ca cho khai lan cho goi. Script
+# duoi day chi con la MINH HOA cho hinh dang literal - hinh dang nguoi moi viet dau
+# tien - chu khong phai thu canh menh de.
+Get-ChildItem -Path modules, shared -Recurse -Filter *.go |
+    Where-Object { $_.Name -notmatch '_test\.go$' } |
+    Select-String -Pattern '\[\]string\{[^}]*"(\w+_)?id(_\w+)?"' |
+    ForEach-Object { "{0}:{1}: ten label bien thien khai bang chuoi literal -> bo khoi danh sach []string" -f $_.Path, $_.LineNumber }
 
 # 3) Goi thang client goc, khong qua wrapper co metric
 Get-ChildItem -Path modules -Recurse -Filter *.go |
@@ -145,7 +267,16 @@ func (h *OrderHandler) Approve(c *gin.Context) {
 			logger.Info("approve order bi tu choi", "code", appErr.Code, "order_id", c.Param("id"))
 			// Label "code" lấy từ tập mã lỗi khai báo tĩnh — hữu hạn, an toàn cho
 			// cardinality. order_id thì KHÔNG được làm label, nó chỉ nằm ở log.
-			h.metrics.BusinessRejected.WithLabelValues("order.approve", appErr.Code).Inc()
+			//
+			// GhiNhanTuChoiNghiepVu là một METHOD của shared/metrics (h.metrics có kiểu
+			// *metrics.Registry, không phải *prometheus.CounterVec lộ thẳng ra ngoài).
+			// Handler KHÔNG được tự gọi WithLabelValues, và module KHÔNG import
+			// "github.com/prometheus/client_golang/prometheus": nhãn chỉ được dựng bên
+			// trong shared/metrics — nơi DUY NHẤT được phép biết tới prometheus (P-OBS
+			// hard check 2 và 3; xem đầu shared/metrics/metrics.go). Module cần đếm
+			// thêm thứ gì thì thêm một method vào đó, đúng khuôn wrapper DB và wrapper
+			// HTTP client dùng.
+			h.metrics.GhiNhanTuChoiNghiepVu("order.approve", appErr.Code)
 			response.Error(c, err)
 			return
 		}
