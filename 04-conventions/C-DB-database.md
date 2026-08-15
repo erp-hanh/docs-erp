@@ -423,11 +423,12 @@ naming_exempt:
 > nên nó **không** thỏa tiêu chí "chỉ ghi thêm" của `append_only_tables`. Nhưng xếp nó là
 > bảng nghiệp vụ trọn vẹn cũng chưa chắc đúng: theo R-17, mỗi lần tăng `attempts` sẽ sinh
 > một bản ghi audit, và chưa ai biết đó có phải chi phí đáng trả cho một hàng vận hành nội
-> bộ hay không. Câu hỏi chỉ trả lời được khi có ca dùng thật — chặng G viết migration và
-> biết chính xác cột nào cần `UPDATE`, tần suất ghi, và ai đọc bảng này — nên chốt nhóm ở
-> đây, lúc chưa có migration nào, là chốt trong lúc thiếu dữ kiện đúng như ADR-0003 đã từ
-> chối làm với `document_counters`. Cho tới khi chặng G trả lời bằng một ADR riêng (hoặc
-> một entry ở registry này với trường `adr` trỏ tới một ADR có sẵn mà bảng thỏa tiêu chí),
+> bộ hay không. Câu hỏi chỉ trả lời được khi có ca dùng thật — chặng nào viết migration của
+> nó sẽ biết chính xác cột nào cần `UPDATE`, tần suất ghi, và ai đọc bảng này — nên chốt
+> nhóm ở đây, lúc chưa có migration nào, là chốt trong lúc thiếu dữ kiện đúng như ADR-0003
+> đã từ chối làm với `document_counters`. Cho tới khi chặng đó trả lời bằng một ADR riêng
+> (hoặc một entry ở registry này với trường `adr` trỏ tới một ADR có sẵn mà bảng thỏa tiêu
+> chí),
 > `outbox_dead_letters` **không có tên ở registry này**; nếu migration của nó được viết
 > trước khi câu hỏi này được trả lời, mặc định của một bảng không tên trong bốn danh sách
 > là **bảng nghiệp vụ** — không được miễn thứ gì.
