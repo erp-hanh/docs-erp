@@ -75,7 +75,7 @@ chốt xe nâng container dùng chung `machine`, và ghi rõ hai điều kiện 
 lại dòng đó vào bảng trên mà không đọc ADR đó trước.
 
 **Ước lượng khối lượng.** Mốc đo được từ `machine` — module nghiệp vụ đầy đủ duy nhất
-tới giờ, ba thực thể: **~14.700 dòng / 75 file** (backend 4.925 src + 4.269 test, docs
+tới giờ, ba thực thể: **14.680 dòng / 75 file** (backend 4.925 src + 4.269 test, docs
 module 1.188, migration 375, frontend 2.423 src + 1.500 test).
 
 Mười chặng còn lại ≈ **145–185k dòng**, tức gấp 8–10 lần toàn bộ phần mềm chạy thật hiện
