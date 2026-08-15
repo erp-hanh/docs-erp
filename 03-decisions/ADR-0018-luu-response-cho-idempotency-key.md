@@ -152,6 +152,14 @@ nghĩa là merge một endpoint **có tên trong bảng 5** mà không thi hành
   JSONB chụp lại DTO tại thời điểm ghi; đổi DTO response rồi phát lại một khóa cũ sẽ trả ra
   hình dạng cũ. Điều này không tạo luật mới — C-API-06 vốn đã coi đổi field response là
   breaking change — nhưng nó làm hậu quả xuất hiện sớm hơn và ở một chỗ không ai nhìn.
+- **Body phát lại giống lần đầu theo NGHĨA, không theo từng byte.** Dòng "cùng body" ở bảng
+  ba ca trên phải đọc như vậy. `JSONB` lưu ở dạng đã phân tích: `{"id":"a1"}` ghi xuống rồi
+  đọc lên thành `{"id": "a1"}` — mất khoảng trắng, thứ tự khóa sắp lại, khóa trùng bị bỏ.
+  Hai vế "cột JSONB" và "cùng body từng byte" không đứng chung được; ADR này chọn vế cột.
+  Hai hệ quả cụ thể: test so sánh response phát lại phải so bằng nghĩa (giải mã rồi so),
+  và một endpoint ký response bằng chữ ký trên chuỗi JSON thô sẽ vỡ chữ ký ở lần phát lại.
+  Đường lấy lại từng byte có tồn tại — đổi cột sang `TEXT` — và giá của nó là mất mọi phép
+  truy vấn vào trong body; chưa ai cần phép đó nên chưa đổi.
 - Bảng lớn thêm ba cột, trong đó một cột JSONB, và nó vẫn chưa có job dọn nào.
 - Mọi lời gọi `Claim` hiện có phải sửa, kể cả đường event không cần gì trong ba cột mới.
 
