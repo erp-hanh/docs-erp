@@ -25,15 +25,25 @@ Phép đo phải khai **trước** khi viết dòng code đầu tiên, nếu kh�
 biết kết quả. Mốc của `machine` (`99-meta/pham-vi-he-thong.md` mục 1) chia theo sáu hạng
 mục, và chặng G đo lại **đúng sáu hạng mục đó**:
 
-| Hạng mục | `machine` | `inventory` (điền cuối chặng) |
-|---|---|---|
-| backend `src` | 4.925 | |
-| backend `test` | 4.269 | |
-| docs module | 1.188 | |
-| migration | 375 | |
-| frontend `src` | 2.423 | |
-| frontend `test` | 1.500 | |
-| **Tổng / số file** | **14.700 / 75** | |
+| Hạng mục | `machine` (mốc, đo ở `1aaa3c6`) | `machine` @HEAD cuối chặng G | `inventory` @HEAD cuối chặng G |
+|---|---|---|---|
+| backend `src` | 4.925 | 5.081 | **4.870** |
+| backend `test` | 4.269 | 4.485 | 4.919 |
+| docs module | 1.188 | 1.214 | 1.213 |
+| migration | 375 | 377 | 291 |
+| frontend `src` | 2.423 | 2.423 | 4.400 |
+| frontend `test` | 1.500 | 1.500 | 2.895 |
+| **Tổng / số file** | **14.680 / 75** | **15.080 / 76** | **18.588 / 103** |
+
+**Đọc bảng này theo cột thứ hai, không theo cột thứ nhất.** Cột mốc được đo ở một cây code
+cũ hơn (commit `51a9d75` sửa `machine` sau khi mốc được ghi), nên so `inventory` @HEAD với
+nó là so hai cây khác nhau. `tools/dem-dong.ps1` chạy được cho cả hai module ở cùng một
+thời điểm, và đó là phép so duy nhất có nghĩa.
+
+Hai sai số của cột mốc, phát hiện khi viết công cụ: sáu hạng mục cộng lại ra **14.680** chứ
+không phải 14.700 (dấu `~` là làm tròn), và hàng `migration` ghi 375 trong khi đếm lại ra
+377. Công cụ khớp **tuyệt đối** năm trên sáu hạng mục và khớp tuyệt đối 75 file khi chạy
+trên đúng cây code sinh ra mốc.
 
 **Điều kiện để con số đó có nghĩa: hai module phải cùng hình dạng.** Đó là lý do mục 2 cắt
 `stock_takes` — không phải để chặng nhẹ đi.
