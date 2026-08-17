@@ -10,8 +10,8 @@ thật sự dựng vẫn phải đi qua `06-checklists/CL-NEWMOD-new-module.md`,
 đó gây tranh cãi thì qua một ADR riêng.
 
 **Có một bản vẽ của file này:** [mockup-dieu-huong.html](mockup-dieu-huong.html) — mở
-bằng trình duyệt, không cần chạy gì. Nó dựng mười hai phân hệ thành giao diện bấm được,
-kèm sơ đồ quy trình nghiệp vụ cho tám phân hệ và bốn tài khoản thử để thấy danh sách đổi
+bằng trình duyệt, không cần chạy gì. Nó dựng mười một phân hệ thành giao diện bấm được,
+kèm sơ đồ quy trình nghiệp vụ cho chín phân hệ và ba tài khoản thử để thấy danh sách đổi
 theo phân quyền. Dùng nó để **kiểm chứng phạm vi với người dùng thật trước khi viết
 migration đầu tiên**: một dòng sai phát hiện ở đó tốn một dòng sửa markdown, phát hiện ở
 chặng G tốn một migration đã merge mà R-07 không cho sửa.
@@ -36,7 +36,7 @@ sách hoặc tên module đổi — hai bản mô tả cùng một thứ mà l�
 |---|---|---|---|---|---|
 | 1 | `auth` | `CÓ` | `users`, `refresh_tokens` | — | B |
 | 2 | `machine` | `CÓ` | `machines`, `maintenance_plans`, `breakdowns` | `auth` | C |
-| 3 | `inventory` | `CHỐT` | `warehouses`, `stock_items`, `stock_movements` | — | G |
+| 3 | `inventory` | `CÓ` | `warehouses`, `stock_items`, `stock_movements` | — | G |
 | 4 | `purchasing` | `CHỐT` | `suppliers`, `purchase_orders`, `purchase_order_lines`, `goods_receipts` | `inventory` (qua event) | H |
 | 5 | `sales` | `CHỐT` | `customers`, `sales_orders`, `sales_order_lines`, `deliveries` | `inventory` (qua event) | I |
 | 6 | `yard` | `CHỐT` (phạm vi) | `containers`, `yard_slots`, `service_orders`, `storage_charges` | `machine`, `sales` | J |
