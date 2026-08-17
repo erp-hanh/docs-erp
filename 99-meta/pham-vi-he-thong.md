@@ -10,8 +10,8 @@ thật sự dựng vẫn phải đi qua `06-checklists/CL-NEWMOD-new-module.md`,
 đó gây tranh cãi thì qua một ADR riêng.
 
 **Có một bản vẽ của file này:** [mockup-dieu-huong.html](mockup-dieu-huong.html) — mở
-bằng trình duyệt, không cần chạy gì. Nó dựng mười hai phân hệ thành giao diện bấm được,
-kèm sơ đồ quy trình nghiệp vụ cho tám phân hệ và bốn tài khoản thử để thấy danh sách đổi
+bằng trình duyệt, không cần chạy gì. Nó dựng mười một phân hệ thành giao diện bấm được,
+kèm sơ đồ quy trình nghiệp vụ cho chín phân hệ và ba tài khoản thử để thấy danh sách đổi
 theo phân quyền. Dùng nó để **kiểm chứng phạm vi với người dùng thật trước khi viết
 migration đầu tiên**: một dòng sai phát hiện ở đó tốn một dòng sửa markdown, phát hiện ở
 chặng G tốn một migration đã merge mà R-07 không cho sửa.
