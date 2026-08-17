@@ -569,6 +569,8 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
 | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email đã được dùng trong công ty này | Tạo hoặc sửa user với email đã tồn tại trong **cùng** công ty — vi phạm `uq_users_email_active`. Cùng một email ở công ty khác thì hợp lệ |
+| `ERR_AUTH_COMPANY_CODE_DUPLICATED` | `409` | Mã phân vùng đã được dùng | Tạo phân vùng với mã đã có ở một phân vùng còn sống - vi phạm `uq_companies_code` |
+| `ERR_AUTH_COMPANY_IN_USE` | `409` | Phân vùng còn người dùng đang hoạt động, không vô hiệu hoá được | Vô hiệu hoá một phân vùng còn ít nhất một người dùng chưa bị xoá mềm |
 | `ERR_COMMON_MALFORMED_REQUEST` | `400` | Dữ liệu gửi lên không đọc được | Thân JSON **chưa đọc được** vì sai cú pháp hoặc body rỗng; hoặc query param không ép được về kiểu của field (`page=abc`) — đường bind này tách riêng khỏi thân JSON và giữ nguyên `400`, cố ý ngoài phạm vi hợp đồng 422/400 dưới đây. Sai kiểu một field **bên trong** thân JSON không còn ở mã này — xem `ERR_COMMON_VALIDATION_FAILED`. **Không** kèm `error.fields` |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
 | `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request — từ bind (`binding:"..."`, hoặc sai kiểu một field trong thân JSON) **hoặc** từ validate nghiệp vụ ở tầng service (`apperr.ValidationFailed`). Từ chặng E, cả hai nguồn đều kèm `error.fields`; trước đó chỉ nguồn bind có field |
@@ -677,6 +679,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` | — |
 | `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — |
 | `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | — |
+| `uq_companies_code` | `ERR_AUTH_COMPANY_CODE_DUPLICATED` | `409` | — |
 | `uq_machines_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
 | `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
 | `ck_machines_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `status`\* |
