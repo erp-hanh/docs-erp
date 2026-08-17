@@ -27,7 +27,7 @@
 
   ── DỮ LIỆU ──────────────────────────────────────────────────────────────────
   Mọi con số, tên người, mã máy trong đây là BỊA. Không nối backend, không có
-  form nhập liệu. Bốn tài khoản thử ở màn đăng nhập chỉ để xem danh sách phân hệ
+  form nhập liệu. Ba tài khoản thử ở màn đăng nhập chỉ để xem danh sách phân hệ
   đổi theo vai trò.
 
   Ẩn ở giao diện KHÔNG phải phân quyền — backend vẫn phải chặn (C-TS-05).
@@ -358,7 +358,7 @@ tfoot td{padding:9px 14px;border-top:2px solid var(--rule);font-weight:600;backg
 
       <div class="demo">
         <h3>Tài khoản thử</h3>
-        <p>Bốn vai trò khác nhau. Bấm để đăng nhập và xem <b style="color:#C3D7E0">danh sách phân hệ đổi theo quyền</b>.</p>
+        <p>Ba vai trò khác nhau. Bấm để đăng nhập và xem <b style="color:#C3D7E0">danh sách phân hệ đổi theo quyền</b>.</p>
         <div id="demoList"></div>
       </div>
     </form>
@@ -650,27 +650,16 @@ const I={
 
 /* ── người dùng thử ── */
 const USERS=[
- {id:'admin', ten:'Nguyễn Văn Hải',  mail:'hai.nv@tanphu.test',   vt:'Quản trị hệ thống',   role:'admin',    mau:'#C8480D', tt:'NH'},
- {id:'xuong', ten:'Trần Quốc Bảo',   mail:'bao.tq@tanphu.test',   vt:'Tổ trưởng xưởng',     role:'quanly',   mau:'#1B5573', tt:'TB'},
- {id:'ketoan',ten:'Nguyễn Thị Hồng', mail:'hong.nt@tanphu.test',  vt:'Kế toán tiền lương',  role:'ketoan',   mau:'#20694A', tt:'NH'},
- {id:'congnhan',ten:'Đặng Văn Sơn',  mail:'son.dv@tanphu.test',   vt:'Công nhân bãi',       role:'congnhan', mau:'#95590A', tt:'ĐS'}
+ {id:'admin',   ten:'Nguyễn Văn Hải', mail:'hai.nv@tanphu.test',  vt:'Quản trị hệ thống',   role:'admin',    mau:'#C8480D', tt:'NH'},
+ {id:'member',  ten:'Trần Quốc Bảo',  mail:'bao.tq@tanphu.test',  vt:'Nhân viên nghiệp vụ', role:'member',   mau:'#1B5573', tt:'TB'},
+ {id:'ky_thuat',ten:'Đặng Văn Sơn',   mail:'son.dv@tanphu.test',  vt:'Kỹ thuật bảo trì',    role:'ky_thuat', mau:'#95590A', tt:'ĐS'}
 ];
 
 /* ── phân hệ. r = vai trò được vào ── */
-const ALL=['admin','quanly','ketoan','congnhan'];
+const ALL=['admin','member','ky_thuat'];
 const APPS=[
- {id:'inventory',g:1,ten:'Kho',ic:I.inventory,mo:'Vật tư, nhập xuất, kiểm kê, tồn kho.',st:'chot',chang:'G',mods:'inventory',
-  r:['admin','quanly'],
-  flow:{mo:'Kho không tự sinh chứng từ. Hàng vào từ <b>Mua hàng</b>, hàng ra theo <b>Bán hàng</b> hoặc <b>Sản xuất</b>; kho chỉ ghi lại mọi lần vào ra và đối chiếu bằng kiểm kê.',
-   buoc:[{t:'Danh mục vật tư',b:'stock_items',p:'Danh sách vật tư'},
-         {t:'Nhập kho',b:'stock_movements',p:'Nhập kho',tt:'nhap'},
-         {t:'Tồn kho hiện tại',b:'tính từ movements',p:'Báo cáo tồn kho'},
-         {t:'Xuất kho',b:'stock_movements',p:'Xuất kho',tt:'xuat'}],
-   ben:{ten:'Đối chiếu định kỳ, không nằm trên luồng vào ra',
-        buoc:[{t:'Kiểm kê',b:'stock_takes',p:'Kiểm kê'},{t:'Điều chỉnh chênh lệch',b:'stock_movements',tt:'dieu_chinh'}]}},
-  pages:[['Danh sách vật tư'],['Nhập kho'],['Xuất kho'],['Kiểm kê'],['Báo cáo tồn kho']]},
  {id:'purchasing',g:1,ten:'Mua hàng',ic:I.purchasing,mo:'Nhà cung cấp, đơn mua, nhận hàng.',st:'chot',chang:'H',mods:'purchasing',
-  r:['admin','ketoan'],
+  r:['admin','member'],
   flow:{mo:'Vòng mua hàng đi qua ba phân hệ. <b>Ba ô nét đứt không thuộc phân hệ này</b> — chúng là bảng của Kho và Kế toán, và mua hàng chỉ phát tín hiệu sang chứ không ghi thẳng (R-02).',
    buoc:[{t:'Nhà cung cấp',b:'suppliers',p:'Nhà cung cấp'},
          {t:'Đơn mua hàng',b:'purchase_orders',p:'Đơn mua hàng',tt:'moi'},
@@ -680,7 +669,7 @@ const APPS=[
          {t:'Thanh toán',b:'→ phân hệ Kế toán',ext:1}]},
   pages:[['Nhà cung cấp'],['Đơn mua hàng'],['Phiếu nhận hàng'],['Báo cáo mua hàng']]},
  {id:'sales',g:1,ten:'Bán hàng',ic:I.sales,mo:'Khách hàng, đơn bán, giao hàng.',st:'chot',chang:'I',mods:'sales',
-  r:['admin','ketoan'],
+  r:['admin','member'],
   flow:{mo:'Gương của luồng mua hàng, chiều hàng ngược lại. <b>`sales` sở hữu bảng `customers`</b>; Bãi container và Kế toán đọc qua `api/`, không JOIN sang (ADR-0017, mục 2.4 của bản đồ phạm vi).',
    buoc:[{t:'Khách hàng',b:'customers',p:'Khách hàng'},
          {t:'Đơn bán hàng',b:'sales_orders',p:'Đơn bán hàng',tt:'moi'},
@@ -690,7 +679,7 @@ const APPS=[
          {t:'Thu tiền',b:'→ phân hệ Kế toán',ext:1}]},
   pages:[['Khách hàng'],['Đơn bán hàng'],['Phiếu giao hàng'],['Báo cáo doanh thu']]},
  {id:'yard',g:1,ten:'Bãi container',ic:I.yard,mo:'Container trong bãi, ô bãi, lệnh nâng hạ, cước lưu bãi. Không có cầu tàu.',st:'chot',chang:'J',mods:'yard',
-  r:['admin','congnhan'],
+  r:['admin','member'],
   flow:{mo:'Ô số 3 là thứ không phân hệ nào khác có: <b>cước tăng theo ngày trôi, không do ai bấm nút</b>. Nó cần một việc chạy theo lịch — job theo lịch đầu tiên của cả hệ thống — và câu hỏi bắt buộc trả lời trước dòng code đầu tiên là <b>chạy hai lần có tính cước hai lần không</b>.',
    buoc:[{t:'Tiếp nhận container',b:'containers',p:'Container trong bãi',tt:'trong_bai'},
          {t:'Xếp ô bãi',b:'yard_slots',p:'Sơ đồ bãi'},
@@ -702,7 +691,7 @@ const APPS=[
         buoc:[{t:'Lệnh nâng hạ',b:'service_orders',p:'Lệnh nâng hạ'},{t:'Thiết bị thực hiện',b:'→ phân hệ Thiết bị (xe Kalmar)',ext:1}]}},
   pages:[['Container trong bãi'],['Sơ đồ bãi'],['Lệnh nâng hạ'],['Cước lưu bãi',null,null,['admin']],['Báo cáo sản lượng',null,null,['admin']]]},
  {id:'production',g:1,ten:'Sản xuất',ic:I.production,mo:'Lệnh sản xuất, định mức, công đoạn.',st:'chot',chang:'K',mods:'production',
-  r:['admin','quanly'],
+  r:['admin','member'],
   flow:{mo:'Sản xuất là phân hệ duy nhất đọc <b>cả Kho lẫn Thiết bị</b>: nó tiêu thụ vật tư và chiếm máy. Một công đoạn gắn với một máy cụ thể, nên lịch bảo trì và lịch sản xuất tranh nhau cùng một thiết bị.',
    buoc:[{t:'Lệnh sản xuất',b:'production_orders',p:'Lệnh sản xuất',tt:'moi'},
          {t:'Định mức vật tư',b:'boms · bom_lines',p:'Định mức vật tư (BOM)'},
@@ -711,7 +700,7 @@ const APPS=[
          {t:'Nhập thành phẩm',b:'→ phân hệ Kho',ext:1}]},
   pages:[['Lệnh sản xuất'],['Định mức vật tư (BOM)'],['Công đoạn'],['Báo cáo sản lượng']]},
  {id:'machine',g:1,ten:'Thiết bị',ic:I.machine,mo:'Lý lịch máy, bảo trì, sự cố. Gồm cả xe nâng Kalmar.',st:'co',chang:'C',mods:'machine',
-  r:['admin','quanly'],
+  r:['admin','ky_thuat'],
   flow:{mo:'<b>Sơ đồ này không phải minh họa — nó là bản vẽ của code đang chạy.</b> Bốn mũi tên tương ứng đúng bốn dòng của biến <code>bangChuyenTrangThai</code> trong <code>maintenance_service.go</code>. Hai ô có chữ "máy →" ghi hai bảng đổi trong <b>một transaction</b>: không bao giờ có kế hoạch đang làm trên một máy đang chạy.',
    buoc:[{t:'Lý lịch máy',b:'machines',p:'Danh sách máy'},
          {t:'Lập kế hoạch',b:'maintenance_plans',p:'Kế hoạch bảo trì',tt:'ke_hoach'},
@@ -720,10 +709,10 @@ const APPS=[
          {t:'Hoàn thành',b:'máy → hoạt động',p:'Kế hoạch bảo trì',tt:'hoan_thanh'}],
    ben:{ten:'Sổ riêng — không sinh kế hoạch bảo trì, không đổi trạng thái máy',
         buoc:[{t:'Ghi sự cố',b:'breakdowns · không sửa, không xóa',p:'Nhật ký sự cố'}]}},
-  pages:[['Danh sách máy','tb-may','24'],['Kế hoạch bảo trì','tb-bt','8'],['Nhật ký sự cố',null,'31'],['Báo cáo thiết bị',null,null,['admin']]]},
+  pages:[['Danh sách máy','tb-may','24'],['Nhật ký sự cố',null,'31']]},
 
  {id:'hr',g:2,ten:'Nhân sự',ic:I.hr,mo:'Hồ sơ nhân viên, phòng ban, hợp đồng lao động, người phụ thuộc.',st:'chot',chang:'L',mods:'hr',
-  r:['admin','ketoan'],
+  r:['admin','member'],
   flow:{mo:'Phân hệ này <b>không có luồng chứng từ</b> — nó là sổ gốc mà hai phân hệ sau đọc vào. Ô số 4 là chỗ ranh giới mảnh nhất của cả hệ thống: <code>dependents</code> là bảng của Nhân sự mà <b>chỉ Tính lương dùng</b>, và đó là dấu hiệu phải kiểm lại ranh giới một lần ở đầu chặng L chứ đừng mặc định đúng.',
    buoc:[{t:'Hồ sơ nhân viên',b:'employees',p:'Hồ sơ nhân viên'},
          {t:'Phòng ban & chức danh',b:'departments · positions',p:'Phòng ban & chức danh'},
@@ -745,8 +734,8 @@ const APPS=[
         buoc:[{t:'Tăng ca',b:'overtimes · 150/200/300%',p:'Tăng ca'},
               {t:'Nghỉ phép',b:'leaves · leave_balances',p:'Nghỉ phép'},
               {t:'Lịch nghỉ lễ',b:'holidays',p:'Lịch nghỉ lễ'}]}},
-  pages:[['Bảng công tháng',null,null,['admin','ketoan','quanly']],['Ca làm việc',null,null,['admin','ketoan','quanly']],
-         ['Phân ca',null,null,['admin','ketoan','quanly']],['Tăng ca',null,null,['admin','ketoan','quanly']],
+  pages:[['Bảng công tháng',null,null,['admin','member']],['Ca làm việc',null,null,['admin','member']],
+         ['Phân ca',null,null,['admin','member']],['Tăng ca',null,null,['admin','member']],
          ['Nghỉ phép'],['Lịch nghỉ lễ']]},
 
  {id:'payroll',g:2,ten:'Tính lương',ic:I.payroll,mo:'Kỳ lương, thành phần lương, BHXH, thuế TNCN, phiếu lương.',st:'chot',chang:'N',mods:'payroll',
@@ -761,12 +750,12 @@ const APPS=[
         buoc:[{t:'Thành phần lương',b:'salary_components',p:'Thành phần lương'},
               {t:'Tỷ lệ BHXH & thuế',b:'insurance_rates · tax_brackets',p:'Tỷ lệ BHXH & thuế'},
               {t:'Người phụ thuộc',b:'← phân hệ Nhân sự',ext:1}]}},
-  pages:[['Bảng lương kỳ','tl-bang','T7/26',['admin','ketoan']],['Thành phần lương','tl-tp','9',['admin','ketoan']],
-         ['Kỳ lương',null,null,['admin','ketoan']],['Tỷ lệ BHXH & thuế',null,null,['admin','ketoan']],
-         ['Báo cáo quỹ lương',null,null,['admin','ketoan']],
+  pages:[['Bảng lương kỳ','tl-bang','T7/26',['admin','member']],['Thành phần lương','tl-tp','9',['admin','member']],
+         ['Kỳ lương',null,null,['admin','member']],['Tỷ lệ BHXH & thuế',null,null,['admin','member']],
+         ['Báo cáo quỹ lương',null,null,['admin','member']],
          ['Phiếu lương của tôi','tl-toi']]},
  {id:'accounting',g:3,ten:'Kế toán',ic:I.accounting,mo:'Hóa đơn, thu chi, công nợ. Phạm vi cơ bản.',st:'chot',chang:'O',mods:'accounting',
-  r:['admin','ketoan'],
+  r:['admin','member'],
   flow:{mo:'Phân hệ này <b>không tự sinh việc</b> — nó nhận đầu vào từ bốn nơi: hóa đơn bán ra từ Bán hàng và Bãi container, hóa đơn mua vào từ Mua hàng, chi phí lương từ Tính lương. Vì vậy nó làm gần cuối: làm sớm là làm trên một tập đầu vào chưa tồn tại.',
    buoc:[{t:'Nguồn chứng từ',b:'← Bán hàng · Bãi · Mua hàng · Lương',ext:1},
          {t:'Hóa đơn',b:'invoices',p:'Hóa đơn bán ra',tt:'chua_thu'},
@@ -947,7 +936,7 @@ function buildHome(){
   } else if(cur.id==='auth'){
     t.innerHTML='<div class="tiles">'+
       '<div class="tile"><h5>Người dùng</h5><div class="v">12</div><div class="s">11 đang hoạt động</div></div>'+
-      '<div class="tile"><h5>Vai trò</h5><div class="v">4</div><div class="s">admin · quanly · ketoan · congnhan</div></div>'+
+      '<div class="tile"><h5>Vai trò</h5><div class="v">3</div><div class="s">admin · member · ky_thuat</div></div>'+
       '<div class="tile"><h5>Quyền đang khai</h5><div class="v">20</div><div class="s">12 của Thiết bị · 8 của Người dùng</div></div></div>';
   } else {
     t.innerHTML='<div class="note">'+
