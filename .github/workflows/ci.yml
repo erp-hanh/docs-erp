@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  # Không khai `paths-ignore` như `ci.yml` bên `backend-erp`. Ở đó tài liệu là thứ đi
+  # kèm nên bỏ qua được; ở đây tài liệu LÀ sản phẩm, và `check-ids.ps1` chỉ đọc `*.md`.
+  # Một mẫu bỏ qua `*.md` ở repo này sẽ bỏ qua đúng thứ duy nhất cần kiểm.
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check-ids:
+    # `windows-latest` chứ không phải `ubuntu-latest`, và đây là hạn chế của script chứ
+    # không phải một lựa chọn. `tools/check-ids.ps1` nối đường dẫn bằng dấu `\`
+    # (`Join-Path $root '01-rules\RULES.md'`) và loại trừ thư mục bằng regex
+    # `'\\(05-templates|99-meta\\specs)\\'`. Trên Linux, `\` là ký tự hợp lệ trong TÊN
+    # file chứ không phải dấu phân cách thư mục, nên `pwsh` trên `ubuntu-latest` sẽ
+    # không thấy `RULES.md`, coi toàn bộ `R-xx` là chưa định nghĩa, rồi đỏ trên một cây
+    # hoàn toàn sạch. Một cổng gác đỏ oan còn tệ hơn không có cổng nào.
+    #
+    # Sửa được bằng hai dòng trong script (đổi `\` thành `/`, đổi regex loại trừ sang
+    # `[\\/]`). Khi nào script đổi thì đổi dòng này về `ubuntu-latest` cho rẻ phút chạy.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Repo này là nguồn sự thật của cả bốn repo: `backend-erp` đọc registry nhóm bảng ở
+      # đây qua `ERP_DOCS_PATH`, nên một tham chiếu treo trong tài liệu này làm bộ kiểm
+      # kiến trúc bên đó đỏ. Trước workflow này repo không có `.github/workflows/` nào,
+      # tức mọi PR xanh vì KHÔNG CÓ CHECK NÀO CHẠY, không phải vì check đã qua.
+      #
+      # `shell: powershell` là Windows PowerShell 5.1, đúng bằng `#Requires -Version 5.1`
+      # mà script khai, và đúng bằng phiên bản đã chạy thử tại máy (xanh trên cây sạch,
+      # đỏ khi cố ý bẻ một tham chiếu). Không dùng `pwsh` (PowerShell 7) vì script chưa
+      # từng được chạy dưới bản đó, và một khác biệt nhỏ ở đó là một lần đỏ oan.
+      #
+      # Không cần đọc đầu ra hay thêm bước kiểm: script `exit 1` khi có lỗi và `exit 0`
+      # khi sạch, nên mã thoát tự nó đã đủ làm cổng. Đây là chỗ khác `gofmt -l` bên
+      # `backend-erp`: lệnh đó liệt kê file sai rồi vẫn thoát 0 nên phải đọc đầu ra.
+      - run: ./tools/check-ids.ps1
+        shell: powershell
