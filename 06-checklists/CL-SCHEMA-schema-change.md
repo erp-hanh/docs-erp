@@ -33,6 +33,7 @@ sửa nhất sau khi có dữ liệu thật — mọi dòng bỏ qua ở đây �
 - [ ] CL-SCHEMA-14 — Mọi câu đọc bảng nghiệp vụ hoặc bảng trong `reference_tables` có `deleted_at IS NULL`; method xóa nghiệp vụ dùng `UPDATE ... SET deleted_at = now()` chứ không `DELETE FROM` (Verifies: R-18, C-GO-03)
 - [ ] CL-SCHEMA-15 — Mọi cột mới xuất hiện trong `WHERE` hoặc `ORDER BY` của repository — và mọi cột mới mở cho `sort` — là cột thứ nhất hoặc thứ hai của ít nhất một index (Verifies: R-09, C-API-04)
 - [ ] CL-SCHEMA-16 — `Database.md` của module đã cập nhật bảng, cột, index và bảng ánh xạ constraint sang mã lỗi; `tables` trong `module.yaml` đã thêm hoặc bỏ đúng tên bảng (Verifies: R-02, C-GO-05)
+- [ ] CL-SCHEMA-17 — Bảng mới có cột trỏ tới một tài nguyên phân phạm vi được — ví dụ `warehouse_id` — thì bảng đó đã có mục trong `scoped_tables` của `module.yaml`, khai đúng tên cột bị lọc (Verifies: R-06, C-GO-09)
 
 ---
 
