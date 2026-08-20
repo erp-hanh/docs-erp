@@ -32,6 +32,7 @@ việc đã được kiểm.
 - [ ] CL-NEWMOD-13 — Không dòng nào trong `modules/<A>/**` khớp `.Publish(`; event đi ra bằng `outboxRepo.Append(ctx, tx, ...)` gọi từ service, trong cùng transaction với dữ liệu nghiệp vụ (Verifies: R-05, C-DB-07)
 - [ ] CL-NEWMOD-14 — Route của module đăng ký qua group `/api/v1` ở composition root, và mọi đường ra của handler đi qua `shared/response` (Verifies: R-11, R-13, C-API-01)
 - [ ] CL-NEWMOD-15 — Mỗi method public của service có ít nhất một test gọi thẳng nó, truyền `auth.Actor` qua tham số chứ không dựng `ctx` giả (Verifies: R-15, C-GO-06)
+- [ ] CL-NEWMOD-16 — Module có bảng mà một người dùng chỉ được nhìn thấy một phần các dòng — ví dụ lọc theo kho được cấp — thì bảng đó có mục trong `scoped_tables` của `module.yaml`, và repository nhận `scope.Pham` qua tham số rồi lọc bằng `<cột> = ANY($n)` chứ không tự lọc bằng tay (Verifies: R-06, C-GO-09)
 
 ---
 

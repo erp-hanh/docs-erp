@@ -24,6 +24,7 @@ mỹ — đặt tên khác là làm mù bộ kiểm, và mọi Rule dựa vào n
 | C-GO-06 | Chữ ký method service, actor và kiểm quyền | R-15, R-17 |
 | C-GO-07 | SQL phải là một hằng chuỗi đơn | R-02, R-06, R-09, R-18 |
 | C-GO-08 | Bảng vai trò tới được composition root bằng đường nào | R-15, R-04, R-01 |
+| C-GO-09 | Bảng chịu phạm vi | R-06 |
 
 ---
 
@@ -1564,4 +1565,56 @@ Select-String -Path cmd\*\*.go -Pattern 'authz\.Bang\{'
 
 # shared/ khong duoc import modules/ - R-04 canh san
 Select-String -Path shared\*\*.go -Pattern 'erp/modules/'
+```
+
+---
+
+### C-GO-09 — Bảng chịu phạm vi
+
+**Implements:** R-06, R-02
+
+R-06 chốt rằng mọi câu SQL trên bảng nghiệp vụ phải mang `company_id = $`. Đó là ranh giới
+giữa **các công ty**. Mục này chốt ranh giới thứ hai, nằm *bên trong* một công ty: có những
+bảng mà một người dùng chỉ được nhìn thấy một phần các dòng — ví dụ chỉ những kho họ được
+cấp. Cơ chế hạ tầng là `shared/scope`; quy ước này là phần khai báo đi kèm nó.
+
+Module nào có bảng như vậy phải khai chúng trong `module.yaml`, dưới khoá **tuỳ chọn**
+`scoped_tables`:
+
+```yaml
+scoped_tables:
+  - table: warehouses
+    column: id
+  - table: stock_movements
+    column: warehouse_id
+```
+
+Mỗi mục nói đúng hai điều: bảng nào chịu phạm vi, và **cột nào** mang giá trị bị lọc. Khoá
+này là tuỳ chọn — phần lớn module không có bảng nào chịu phạm vi, và bắt chúng viết
+`scoped_tables: []` chỉ để khai một cái rỗng là thêm một dòng nghi thức không ai đọc. Nó
+khác hẳn bốn khoá bắt buộc của C-GO-05.
+
+#### Ba vế được kiểm
+
+Checker `arch/checks_scope.go` (ID `C-GO-09`) canh ba vế:
+
+1. **Xuôi** — câu SQL `SELECT`/`UPDATE`/`DELETE` trong repository của module mà chạm một
+   bảng đã khai thì phải mang mệnh đề `<cột> = ANY($n)`. `INSERT` được miễn, cùng lý do
+   R-06 miễn nó: một `INSERT ... VALUES` không có mệnh đề lọc nào theo đúng cú pháp SQL.
+   Ca `INSERT` phải được chặn ở tầng service, trước khi mở transaction.
+2. **Ngược** — bảng đã khai mà không câu SQL nào của module chạm tới là một dòng thừa, và
+   phải bị báo. Một dòng như vậy không làm gì cả hôm nay, nhưng nó là một lời hứa không ai
+   giữ: người đọc `module.yaml` tin rằng bảng đó đã được lọc.
+3. **Chống dùng lén** — module nhận tham số kiểu `scope.Pham` vào chữ ký mà **không** khai
+   `scoped_tables` (thiếu khoá, hoặc khai rỗng) là vi phạm. Nhận một `Pham` nghĩa là module
+   đang *tiêu thụ* cơ chế phạm vi, và lúc đó cả hai vế trên mất tập đối chiếu.
+
+Vế 3 đọc **chữ ký**, không đọc dòng import. Module cài đặt `scope.Doc` hoặc `scope.Nguon` là
+người *cung cấp* dữ liệu phạm vi — hai hợp đồng đó nhận `scope.Loai` và trả `[]string`,
+không nhắc tới kiểu `Pham`. Bắt theo dòng import sẽ đỏ oan mọi module cung cấp.
+
+#### Cách kiểm
+
+```powershell
+go run ./cmd/dev arch
 ```
