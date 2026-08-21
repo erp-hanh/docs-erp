@@ -70,7 +70,9 @@ trò "thành viên" chung là chỗ mọi quyền đọc của mọi module dồ
 do composition root khai.**
 
 `PUT /api/v1/users/:id/roles`, câu lệnh **đầu tiên** của method service là
-`Can(actor, PermUserAssignRoles)`. Trường `roles` bị bỏ khỏi `PATCH /users/:id`.
+`Can(actor, PermUserAssignRoles)`. Trường `roles` bị bỏ khỏi `PATCH /users/:id` — đây là một
+thay đổi **phá hợp đồng API**, và nó chấp nhận được vì chưa màn hình nào gửi trường đó; chỗ duy
+nhất dùng là test đầu-cuối.
 
 Đây là chỗ dễ đi sai nhất, và lý do phải tách hẳn một endpoint chứ không dùng lại đường cũ:
 `PATCH /users/:id` mở đầu bằng `Can(actor, PermUserUpdate)`, không phải `PermUserAssignRoles`.
@@ -85,6 +87,12 @@ Không phải leo quyền gián tiếp, mà là mạo danh. Một endpoint riên
 `CreateUser` vẫn nhận `roles`, vì tạo người và gán vai trò đầu tiên là một thao tác; nhưng nó
 phải chạy **cùng phép kiểm module** cho từng vai trò trong danh sách. Thiếu chỗ đó thì
 `auth.admin` gán được vai trò của mọi module ngay lúc tạo.
+
+Hệ quả cho người vận hành, phải nói trước kẻo nó hiện ra thành một lần 403 khó hiểu:
+`auth.admin` **một mình không tạo được** một user kèm vai trò kho, vì nó không có
+`inventory.role_assign`. Luồng đúng là tạo người trước với danh sách vai trò rỗng, rồi
+`inventory.admin` gán vai trò của module mình. Đó là hệ quả trực tiếp của mệnh đề "không đụng
+module khác", không phải một chỗ vướng cần vá.
 
 **Phép kiểm chạy trên HIỆU ĐỐI XỨNG, không trên tập gửi lên.** Đường ghi vai trò là THAY chứ
 không phải THÊM — nó xoá mềm sạch rồi chèn lại — nên một vai trò bị **gỡ** không nằm trong thân
@@ -127,6 +135,12 @@ Khi cửa nằm ở mọi admin, nó đổi nghĩa: từ "được gán bất c�
 nói chung". Nó vẫn có việc thật — `inventory.viewer` không bao giờ qua nổi câu kiểm thứ nhất —
 còn quyết định gán được CÁI GÌ thuộc về permission module.
 
+Nói cho hết: cửa là điều kiện **cần nhưng không đủ**, nên trong một vai trò không có
+`<module>.scope_assign` nào đi kèm thì `auth.user_assign_scopes` là một dòng **không dùng
+được**. Hôm nay điều đó đúng với cả `auth.admin` lẫn `machine.admin`, vì loại phạm vi duy nhất
+đang có thuộc `inventory`. Đó là cái giá của việc giữ một cửa chung để R-15 có câu lệnh đầu
+tiên không phụ thuộc thân request.
+
 **5. Module admin mang `auth.user_list` và `auth.user_read`.** Muốn gán vai trò cho ai thì phải
 tìm ra người đó, mà hai quyền ấy thuộc `auth`. Ba nhánh trong sơ đồ vì vậy không tách rời: cả
 ba đều chạm `auth` ở gốc.
@@ -160,11 +174,21 @@ nên câu đó phải được ghi lại thành một điều khoản.
 `auth.admin` + `machine.admin` + `inventory.admin`; `member` → `machine.viewer` +
 `inventory.viewer`; `ky_thuat` → `machine.ky_thuat` + `machine.viewer`.
 
+**Ánh xạ áp cho TẬP vai trò của một cặp (người, phân vùng), không nở từng hàng một.** Đây không
+phải chi tiết kỹ thuật mà là điều kiện để migration chạy được: `ky_thuat` vốn được gán **kèm**
+`member` — đúng cách dùng mà `vaitro.go` khuyến nghị — nên nở từng hàng sẽ sinh `machine.viewer`
+hai lần và đâm vào `uq_user_company_roles_company_id_user_company_id_role_code`. Kết quả phải là
+**hợp** của các tập ảnh, đã khử trùng.
+
 Ba hậu điều kiện, thiếu cái nào thì dừng và không commit một nửa:
 
 - Mọi cặp (người, phân vùng) từng có hàng `admin` còn sống phải có **đủ ba** hàng admin mới;
-  từng có `member` phải có **đủ hai** hàng viewer; từng có `ky_thuat` phải có **đủ hai** hàng.
-- Số hàng `user_company_role_scopes` **còn sống** trước và sau phải bằng nhau.
+  từng có `member` phải có **đủ hai** hàng viewer; từng có `ky_thuat` phải có `machine.ky_thuat`
+  và `machine.viewer`.
+- Số hàng phạm vi **CÓ HIỆU LỰC** trước và sau phải bằng nhau — đếm hàng
+  `user_company_role_scopes` còn sống mà hàng `user_company_roles` của nó cũng còn sống. Đếm
+  riêng hàng phạm vi thì không bắt được ca nó vẫn sống nhưng treo trên một hàng vai trò vừa bị
+  xoá mềm; lúc đó nó vô hiệu mà con số vẫn khớp.
 - Hàng vai trò **đã xoá mềm** phải giữ nguyên `deleted_at`, không được hồi sinh thành hàng đang
   sống. Partial unique index chỉ áp cho hàng còn sống nên không có gì chặn việc đó, và đây là
   ca duy nhất trong migration hỏng về phía **mở**: một `admin` đã bị thu hồi sống lại thành ba
