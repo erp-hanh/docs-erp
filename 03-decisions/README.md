@@ -1,4 +1,4 @@
-# Decisions — 20 ADR nền
+# Decisions — 21 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Hai mươi ADR hiện có
+## Hai mươi mốt ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|

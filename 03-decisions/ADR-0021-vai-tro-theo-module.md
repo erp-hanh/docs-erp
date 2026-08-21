@@ -5,7 +5,7 @@
 ## Context
 
 Ở thời điểm quyết, hệ có **ba vai trò gán được** và mỗi cái là một bó quyền trải ngang mọi
-module: `admin` mang ba mươi sáu permission của cả `auth`, `machine` lẫn `inventory`;
+module: `admin` mang ba mươi bảy permission của cả `auth`, `machine` lẫn `inventory`;
 `member` mang mười bảy; `ky_thuat` mang ba. Tên chúng nằm ở `cmd/internal/vaitro/vaitro.go`,
 đúng chỗ [ADR-0010](ADR-0010-bang-vai-tro-o-cmd-internal.md) đã chốt, và được gán theo cặp
 (người, phân vùng) vào `user_company_roles` theo [ADR-0019](ADR-0019-phan-vung-la-cong-ty.md)
@@ -56,7 +56,7 @@ mục module theo ADR-0017.
 | `machine.admin` | mười hai permission của `machine`, `machine.role_assign`, `auth.user_list`, `auth.user_read`, hai quyền cửa ở mục 4 — `machine.scope_assign` chưa có vì `machine` chưa có bảng chịu phạm vi |
 | `machine.viewer` | `machine_list/read`, `plan_list/read`, `breakdown_read` |
 | `machine.ky_thuat` | `plan_execute`, `breakdown_create` |
-| `quan_tri_he_thong` | năm quyền `PermCompany*`, mọi `<module>.role_assign`, mọi `<module>.scope_assign`, `auth.user_list`, `auth.user_read` — dẫn xuất, không ai gán được |
+| `quan_tri_he_thong` | năm quyền `PermCompany*`, mọi `<module>.role_assign`, mọi `<module>.scope_assign`, `auth.user_list`, `auth.user_read`, hai quyền cửa ở mục 4 — dẫn xuất, không ai gán được |
 
 `inventory.viewer` **không** có `warehouse_scope_all`: nó là vai trò chịu phạm vi, và người
 mang nó phải được cấp kho ở màn gán phạm vi thì mới thấy gì.
@@ -65,17 +65,38 @@ mang nó phải được cấp kho ở màn gán phạm vi thì mới thấy gì
 trò "thành viên" chung là chỗ mọi quyền đọc của mọi module dồn vào, và nó lớn dần mà không ai
 đứng ra chịu trách nhiệm cho lần lớn tiếp theo.
 
-**4. Thẩm quyền gán vai trò là permission `<module>.role_assign`, không suy từ tên vai trò.**
-Đường gán kiểm hai bước, đúng khuôn `UpdateUser` đang chạy: câu lệnh **đầu tiên** vẫn là
-`Can(actor, PermUserAssignRoles)` — giữ R-15 nguyên vẹn; rồi với **mỗi** vai trò trong danh
-sách gửi lên, kiểm thêm `Can(actor, "<module>.role_assign")` với `module` lấy từ tiền tố của
-chính vai trò đó.
+**4. Thẩm quyền gán vai trò là permission `<module>.role_assign`, và permission đó do
+composition root KHAI chứ không do service đọc tên vai trò suy ra.**
 
-Đường bị loại là suy thẩm quyền từ chuỗi: "ai mang `inventory.admin` thì gán được mọi vai trò
-tiền tố `inventory.`". Nó rẻ hơn một permission, nhưng nó bắt tầng service **đọc tên vai trò để
-suy ra quyền** — đúng lối mà `C-TS-06` cấm ở frontend và ADR-0019 mục 5 đã từ chối khi chọn vai
-trò dẫn xuất thay vì đọc thẳng một cờ. Với permission thì bảng vai trò vẫn nói thật ai làm được
-gì; với suy diễn thì một lần đổi tên vai trò lặng lẽ đổi thẩm quyền.
+Đường gán kiểm hai bước: câu lệnh **đầu tiên** là `Can(actor, PermUserAssignRoles)` — giữ R-15
+nguyên vẹn vì nó không phụ thuộc thân request; rồi với **mỗi** vai trò trong danh sách gửi lên,
+kiểm thêm `Can(actor, <permission gán của chính vai trò đó>)`.
+
+Permission gán của từng vai trò đến từ một **danh mục tiêm từ `cmd/internal/vaitro` xuống module
+`auth`**, đứng cạnh `Bang()` và dựng từ chính hằng permission của module sở hữu. Module `auth`
+tra danh mục, nó không ghép chuỗi và không cắt tiền tố.
+
+Đây là chỗ dễ đi sai nhất của cả quyết định. Ghép `"inventory" + ".role_assign"` lúc chạy thì
+rẻ hơn một danh mục, nhưng nó là **chuỗi chép tay** đúng nghĩa mà `C-GO-08` cấm: đổi tên một
+permission vẫn build xanh, và lỗi chỉ lộ ra ở môi trường thật dưới dạng một lần từ chối sai
+hoặc một lần cho qua sai. Với danh mục thì xoá một hằng permission làm **vỡ build của
+composition root**, đúng hành vi mà C-GO-08 mua bằng cách bắt permission đi ra qua package gốc
+của module.
+
+Hệ quả đi kèm, phải nói rõ: tiền tố `<module>.` trong tên vai trò là quy ước cho **người đọc**,
+không phải một phép phân tích chuỗi gánh trách nhiệm an ninh. Một ngày ai đó đặt tên vai trò
+lệch khuôn thì hệ vẫn chạy đúng — nó chỉ khó đọc hơn.
+
+Đường bị loại là suy thẩm quyền từ chính vai trò của actor: "ai mang `inventory.admin` thì gán
+được mọi vai trò tiền tố `inventory.`". Nó rẻ hơn một permission, nhưng nó bắt tầng service
+**đọc tên vai trò để suy ra quyền** — đúng lối mà `C-TS-06` cấm ở frontend và ADR-0019 mục 5 đã
+từ chối khi chọn vai trò dẫn xuất thay vì đọc thẳng một cờ. Với permission thì bảng vai trò vẫn
+nói thật ai làm được gì; với suy diễn thì một lần đổi tên vai trò lặng lẽ đổi thẩm quyền.
+
+Khuôn hai bước này có tiền lệ đang chạy, nhưng phải trích cho đúng: `UpdateUser` mở đầu bằng
+`Can(actor, PermUserUpdate)`, còn `PermUserAssignRoles` được kiểm ở bước sau, bên trong helper
+private `kiemGanVaiTro` — chỗ mà `checkR15` không quét vì nó không xuất khẩu. Đường phạm vi thì
+`ThayPhamVi` mở đầu thẳng bằng `Can(actor, PermUserAssignScopes)`.
 
 **Gán PHẠM VI đi cùng khuôn đó**, bằng permission `<module>.scope_assign`. Cửa chung
 `auth.user_assign_scopes` — đã chạy từ chặng ADR-0020 — vẫn là câu kiểm **thứ nhất**, vì R-15
@@ -92,7 +113,7 @@ quyền nào ở `inventory`, tức đúng thứ quyết định này sinh ra đ
 phạm vi thay vì ngả vai trò.
 
 **Hai quyền cửa — `auth.user_assign_roles` và `auth.user_assign_scopes` — nằm trong MỌI
-`<module>.admin`, không riêng `auth.admin`.** Đây là điều kiện để cả quyết định này chạy được,
+`<module>.admin` và trong `quan_tri_he_thong`, không riêng `auth.admin`.** Đây là điều kiện để cả quyết định này chạy được,
 không phải một chi tiết cấp phát.
 
 Khuôn hai bước bê từ `UpdateUser` có một khác biệt dễ bỏ sót: ở đó hai permission nằm trong
@@ -102,6 +123,11 @@ thì cửa thành cái chốt khoá ngoài — `inventory.admin` đứng một m
 Muốn nó làm được việc thì phải gán kèm `auth.admin`, mà `auth.admin` là quyền tạo sửa xoá MỌI
 user của phân vùng. Như vậy là phá đúng mệnh đề "không đụng module khác".
 
+`quan_tri_he_thong` phải có hai quyền cửa vì cùng lý do, và ở nó thì hậu quả của việc thiếu
+còn nặng hơn: nó là vai trò **dẫn xuất**, `laVaiTroDanXuat` chặn mọi lần gán nó cho ai, nên
+không có đường vá bằng cách gán kèm `auth.admin`. Thiếu cửa thì mục 7 tự mâu thuẫn — nó mô tả
+một vai trò quản trị việc gán của mọi module mà vai trò đó trượt ngay câu kiểm đầu tiên.
+
 Khi cửa nằm ở mọi module admin, nó đổi nghĩa: từ "được gán bất cứ thứ gì" thành "được dùng
 đường gán nói chung". Nó vẫn có việc thật — `inventory.viewer` không bao giờ qua nổi câu kiểm
 thứ nhất — còn quyết định gán được CÁI GÌ thì thuộc về permission module.
@@ -110,7 +136,9 @@ thứ nhất — còn quyết định gán được CÁI GÌ thì thuộc về p
 tìm ra người đó, mà hai quyền ấy thuộc `auth`. Ba nhánh trong sơ đồ vì vậy không tách rời: cả
 ba đều chạm `auth` ở gốc. Tiền lệ có sẵn là `ky_thuat` mang `auth.self_read` vì cùng loại lý do.
 
-**6. Mọi vai trò mang `auth.self_read` và `auth.change_password`.** Đây là sàn chung, không phải
+**6. Mọi vai trò mang `auth.self_read` và `auth.change_password`, kể cả vai trò dẫn xuất.**
+Bảng ở mục 2 và danh sách ở mục 7 liệt kê phần **cộng thêm** trên sàn này, không phải liệt kê
+đóng. Đây là sàn chung, không phải
 phần thưởng: một phiên đăng nhập phải nói được nó thuộc về ai, và một người phải đổi được mật
 khẩu của chính mình. Quyết định này **vá một khiếm khuyết đang có**: `ky_thuat` hôm nay có
 `self_read` nhưng không có `change_password`, nên một người chỉ mang vai trò kỹ thuật không đổi
@@ -118,8 +146,8 @@ khẩu của chính mình. Quyết định này **vá một khiếm khuyết đa
 
 **7. `quan_tri_he_thong` quản trị được việc GÁN của mọi module, nhưng không đọc được dữ liệu
 nghiệp vụ của module nào.** Nó giữ năm quyền `PermCompany*` và **thêm** mọi
-`<module>.role_assign`, mọi `<module>.scope_assign`, cùng `auth.user_list` và `auth.user_read`
-— tức nó đứng trên các module admin ở trục *quản trị phân quyền*, và đứng **ngoài** trục dữ
+`<module>.role_assign`, mọi `<module>.scope_assign`, hai quyền cửa ở mục 4, cùng
+`auth.user_list` và `auth.user_read` — tức nó đứng trên các module admin ở trục *quản trị phân quyền*, và đứng **ngoài** trục dữ
 liệu nghiệp vụ. Muốn đọc một cái máy hay một dòng sổ kho thì người đó vẫn phải được gán vai trò
 của chính phân vùng đó như mọi người khác.
 
@@ -132,7 +160,13 @@ hành, và nó là tập nhỏ nhất đủ để làm đúng việc mà mục n
 
 Điều này **thay mệnh đề "giữ đúng năm quyền `PermCompany*`" của ADR-0019 mục 5**, và thay một
 cách hẹp nhất có thể: phần bị bỏ là con số năm, phần được giữ nguyên là câu "quản trị hệ thống
-KHÔNG phải siêu quyền". Vai trò này vẫn là vai trò **dẫn xuất** từ cờ `users.is_system_admin`,
+KHÔNG phải siêu quyền".
+
+Nó cũng chạm mệnh đề "quản trị hệ thống đứng ngoài mọi phân vùng" của cùng mục đó, và chỗ này
+phải khai chứ không được để im: hai quyền đọc user là hai permission **của một module**, tức
+vai trò hành chính này từ nay có một chân trong dữ liệu danh tính của phân vùng đang đăng nhập.
+Bất biến còn giữ được là bất biến hẹp hơn: nó không có permission nào của `machine` hay
+`inventory`, nên nó không đọc được dữ liệu **vận hành** của phân vùng nào. Vai trò này vẫn là vai trò **dẫn xuất** từ cờ `users.is_system_admin`,
 vẫn không bao giờ nằm trong `user_company_roles`, và `laVaiTroDanXuat` vẫn là chỗ chặn nó ở
 đường gán.
 
@@ -233,10 +267,26 @@ buộc (R-06); ở đây không có lý do nào tương đương.
   trò đổi — vì không có gì nối hai bên.
 - Mười hai module của ADR-0017 sẽ cần hai đến ba vai trò mỗi cái. Quyết định này chốt **khuôn**,
   không chốt danh sách; mỗi module mở ra sau này tự khai vai trò của nó theo khuôn đó.
+- **`cmd/dev` là composition root thứ hai và nó cũng phải đổi.** Ba hằng `QuanTri` /
+  `ThanhVien` / `KyThuat` ở `cmd/internal/vaitro` thành bảy tên mới; và cờ `-roles` của
+  `bootstrap-user` đang mặc định `"admin"`, tức sau quyết định này lệnh chạy mặc định sẽ bị
+  chính `VaiTroTonTai` từ chối. Đó đúng là lý do ADR-0010 tồn tại, nên bỏ sót nó là bỏ sót
+  ngay chỗ ADR-0010 chỉ vào.
+- **Khuôn tên vai trò chưa có nhà ở tầng Convention.** `C-GO-02` chốt hình dạng chuỗi
+  permission, không chốt gì về tên vai trò; chỗ duy nhất nhắc tên vai trò là `C-GO-08`, và nó
+  chỉ nói tên vai trò là dữ liệu mà không compiler nào kiểm được. Quyết định này đẻ ra khuôn
+  `<module>.<vai_trò>` nên phải thêm một dòng vào một trong hai mục đó, và ví dụ `Bang()` trong
+  `C-GO-08` (`"admin"` / `"sale"` / `"viewer"`) trở thành ví dụ lệch khuôn, phải sửa theo.
+- **Chuỗi vai trò và chuỗi permission từ nay cùng hình dạng**, và không gì trong hệ phân biệt
+  được chúng: `inventory.role_assign` là một permission, nhưng không có gì chặn ai đó đặt một
+  vai trò trùng tên. Hôm nay hai tập sống ở hai chỗ khác nhau trong cùng một package nên chưa
+  đụng; ngày có một cửa đọc chung cho cả hai thì phải có cách phân biệt.
 - Ngày có loại phạm vi **thứ hai**, phải cân lại việc chẻ `PUT /users/:id/scopes` theo loại.
   Giữ nguyên hình dạng phủ-cả-người thì một actor thiếu một `<module>.scope_assign` sẽ bị chặn
-  toàn bộ; chẻ ra thì mất tính nguyên tử mà ADR-0020 đã chọn có ý thức. Đây là một đánh đổi
-  chưa tới hạn, không phải một chỗ quên.
+  toàn bộ; chẻ ra thì mất tính nguyên tử của một lần lưu. Tính nguyên tử đó là lựa chọn ở tầng
+  **code** — ghi trong khối comment của `ScopeService.ThayPhamVi` — chứ không phải một mệnh đề
+  của ADR-0020; ADR đó chỉ nói chưa có API nào. Đây là một đánh đổi chưa tới hạn, không phải
+  một chỗ quên.
 - Chưa quyết `<module>.admin` của module này có gán được `<module>.admin` của chính module đó
   không — tức một quản trị kho có tự nhân bản được quyền quản trị kho cho người khác không.
   Mục 4 cho phép, vì `inventory.role_assign` không phân biệt vai trò nào trong module. Ngày cần
