@@ -53,6 +53,16 @@ service ngay sau `authz.Can`, và đi xuống repository dưới dạng một ki
 
 Chín điều làm rõ phạm vi:
 
+**1b. Sửa (2026-08-21, sau ADR-0021):** câu "một người mang hai vai trò có hai bộ phạm vi tách
+biệt" ở mục 1 và ở phần Được **đúng ở đường ghi, sai ở đường đọc**. `selectScopeIDsTheoActorSQL`
+lọc theo người, phân vùng và loại; nó **không** lọc theo `role_code`, nên một hàng phạm vi treo
+ở hàng vai trò nào cũng cho ra cùng kết quả, miễn hàng vai trò đó còn sống. Phạm vi có hiệu lực
+là **hợp** qua mọi hàng vai trò còn sống của người đó.
+
+Việc treo vào `user_company_roles.id` vẫn giữ, và giữ vì một lý do khác lý do ghi ở mục 1: nó là
+**mốc vòng đời**. Gỡ hết vai trò của một module thì phạm vi cấp qua chúng hết hiệu lực, vì câu
+đọc đòi hàng vai trò còn sống. Nó là mốc, không phải một ngăn chứa riêng.
+
 **1. Một bảng đa hình.** `user_company_role_scopes(company_id, user_company_role_id,
 scope_type TEXT, scope_id UUID)`, partial unique trên cả bốn cột nghiệp vụ. Một bảng cho mọi
 loại tài nguyên, không phải một bảng cho mỗi loại. `scope_type` là **chuỗi**, không enum,
