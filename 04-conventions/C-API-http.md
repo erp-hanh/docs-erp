@@ -806,7 +806,12 @@ trả **hằng số biên dịch được** — enum khai ngay trong code Go, kh
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| _(chưa có endpoint nào)_ | — | — |
+| `GET /api/v1/roles` — `handler.UserRoleHandler.DanhMuc` (`modules/auth/internal/handler/user_role_handler.go`) | Danh mục vai trò gán được của hệ thống, đọc từ `vaitro.DanhMuc()` ở `cmd/internal/vaitro` — **hằng số biên dịch được**, không một câu truy vấn nào. Tập là toàn bộ vai trò của hệ thống trừ vai trò dẫn xuất, tức nó bị chặn trên bởi số module chứ không bởi dữ liệu người dùng nhập; `page`/`page_size`/`sort` không có gì để làm và một `meta.total` ở đây chỉ lặp lại `len(data)`. Màn gán vai trò cần **cả** danh mục cùng lúc để dựng bộ ô chọn — một trang thiếu vài dòng là một màn hình gán thiếu vai trò mà không ai biết | 2026-08-21 |
+
+Dòng trên miễn đúng **một** endpoint, và điều kiện của nó là câu "không truy vấn DB" chứ
+không phải câu "danh sách ngắn". Ngày danh mục vai trò được đọc từ một bảng — vai trò do
+người dùng tự định nghĩa — dòng này phải bị gỡ và endpoint phải nhận đủ ba tham số, dù số
+dòng lúc đó vẫn là bảy.
 
 #### 4. DTO response được phép serialize token — ngoại lệ R-16
 
