@@ -51,9 +51,9 @@ mục module theo ADR-0017.
 | Vai trò | Gồm gì |
 |---|---|
 | `auth.admin` | năm quyền CRUD user, `auth.user_assign_roles`, `auth.user_assign_scopes`, `auth.role_assign` |
-| `inventory.admin` | mười sáu permission của `inventory` (kể cả `inventory.warehouse_scope_all`), `inventory.role_assign`, `inventory.scope_assign`, `auth.user_list`, `auth.user_read` |
+| `inventory.admin` | mười sáu permission của `inventory` (kể cả `inventory.warehouse_scope_all`), `inventory.role_assign`, `inventory.scope_assign`, `auth.user_list`, `auth.user_read`, hai quyền cửa ở mục 4 |
 | `inventory.viewer` | `warehouse_list/read`, `item_list/read`, `movement_list/read`, `balance_read`, `unit_list` |
-| `machine.admin` | mười hai permission của `machine`, `machine.role_assign`, `auth.user_list`, `auth.user_read` — `machine.scope_assign` chưa có vì `machine` chưa có bảng chịu phạm vi |
+| `machine.admin` | mười hai permission của `machine`, `machine.role_assign`, `auth.user_list`, `auth.user_read`, hai quyền cửa ở mục 4 — `machine.scope_assign` chưa có vì `machine` chưa có bảng chịu phạm vi |
 | `machine.viewer` | `machine_list/read`, `plan_list/read`, `breakdown_read` |
 | `machine.ky_thuat` | `plan_execute`, `breakdown_create` |
 | `quan_tri_he_thong` | năm quyền `PermCompany*`, mọi `<module>.role_assign`, mọi `<module>.scope_assign`, `auth.user_list`, `auth.user_read` — dẫn xuất, không ai gán được |
@@ -90,6 +90,21 @@ root **khai** module, service không đoán module — cùng lập luận với 
 Nếu không có nửa này thì `auth.admin` cấp được kho cho người khác mà không có một mẩu thẩm
 quyền nào ở `inventory`, tức đúng thứ quyết định này sinh ra để chặn, chỉ khác là rò qua ngả
 phạm vi thay vì ngả vai trò.
+
+**Hai quyền cửa — `auth.user_assign_roles` và `auth.user_assign_scopes` — nằm trong MỌI
+`<module>.admin`, không riêng `auth.admin`.** Đây là điều kiện để cả quyết định này chạy được,
+không phải một chi tiết cấp phát.
+
+Khuôn hai bước bê từ `UpdateUser` có một khác biệt dễ bỏ sót: ở đó hai permission nằm trong
+**cùng một vai trò**, nên cửa và phép kiểm thật luôn đi cùng nhau. Tách chúng sang hai vai trò
+thì cửa thành cái chốt khoá ngoài — `inventory.admin` đứng một mình sẽ không gán nổi
+`inventory.viewer` lẫn phạm vi kho của chính module nó, vì nó không qua được câu kiểm thứ nhất.
+Muốn nó làm được việc thì phải gán kèm `auth.admin`, mà `auth.admin` là quyền tạo sửa xoá MỌI
+user của phân vùng. Như vậy là phá đúng mệnh đề "không đụng module khác".
+
+Khi cửa nằm ở mọi module admin, nó đổi nghĩa: từ "được gán bất cứ thứ gì" thành "được dùng
+đường gán nói chung". Nó vẫn có việc thật — `inventory.viewer` không bao giờ qua nổi câu kiểm
+thứ nhất — còn quyết định gán được CÁI GÌ thì thuộc về permission module.
 
 **5. Module admin mang `auth.user_list` và `auth.user_read`.** Muốn gán vai trò cho ai thì phải
 tìm ra người đó, mà hai quyền ấy thuộc `auth`. Ba nhánh trong sơ đồ vì vậy không tách rời: cả
@@ -132,6 +147,16 @@ hàng phạm vi phải bám vào **hàng kế thừa của module sở hữu tà
 màn hình trống mà không thông điệp nào giải thích. Gặp một `scope_type` không ánh xạ được về
 module nào, migration **dừng lại và báo lỗi**, không đoán — cùng cách ADR-0019 mục 2 bắt
 migration gộp email dừng khi gặp một email trùng ở nhiều phân vùng.
+
+**Migration tự kiểm một hậu điều kiện trước khi `COMMIT`: không ai mất khả năng đang có.** Cụ
+thể, mọi cặp (người, phân vùng) từng có một hàng `admin` còn sống phải có **đủ ba** hàng admin
+mới sau khi đổi; thiếu một cặp thì dừng, không commit một nửa.
+
+Mệnh đề đó kiểm được bằng SQL vì ánh xạ vai trò là cố định và biết trước — khác với "quyền",
+thứ sống trong code nên một câu SQL không tính ra được. Và nó cần được kiểm chứ không cần được
+hứa: người mang `admin` cũ gán được phạm vi nhờ có ĐỒNG THỜI cửa ở một hàng và
+`inventory.scope_assign` ở một hàng khác, nên một migration rút gọn xuống hai hàng "cho gọn"
+sẽ cắt mất khả năng đó mà không câu lệnh nào báo.
 
 **9. Quyết định này không đổi ADR-0010.** Bảng vai trò vẫn là dữ liệu ở composition root, vẫn
 dựng từ hằng permission của module, vẫn không có bảng `roles` trong database. Thứ đổi là tập
@@ -190,7 +215,11 @@ buộc (R-06); ở đây không có lý do nào tương đương.
   mới cần — hôm nay đúng một cái, `inventory`.
 - `auth.admin` **không còn** cấp được kho cho ai: từ nay việc đó đòi `inventory.scope_assign`.
   Đây là siết quyền so với thứ đang chạy trên dev, nơi `auth.user_assign_scopes` một mình là
-  đủ. Người đang làm cả hai việc phải mang cả hai vai trò.
+  đủ. Người đang làm cả hai việc phải mang cả hai vai trò — và người mang `admin` cũ nhận đủ ba
+  hàng nên họ không mất gì, xem hậu điều kiện ở mục 8.
+- Hai quyền cửa có mặt trong mọi `<module>.admin`, nên chúng **không còn** trả lời được câu
+  "ai được gán vai trò". Câu đó từ nay do `<module>.role_assign` trả lời. Ai đọc bảng vai trò
+  mà dừng ở dòng cửa sẽ đọc ra một kết luận rộng hơn sự thật.
 - `PUT /users/:id/scopes` phủ cả người trong một transaction, nên nó là **tất cả hoặc không**
   xuyên module: một actor chỉ có `inventory.scope_assign` sẽ không lưu được gì một khi thân
   request mang thêm một loại phạm vi của module khác. Hôm nay chưa cắn vì chỉ có một loại.
