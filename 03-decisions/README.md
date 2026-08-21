@@ -1,4 +1,4 @@
-# Decisions — 21 ADR nền
+# Decisions — 23 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Hai mươi mốt ADR hiện có
+## Hai mươi ba ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
@@ -34,7 +34,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0007 | Truy vết bắt buộc — audit cùng transaction, `request_id` xuyên suốt | Accepted (2026-08-10) | R-17 | [ADR-0007-traceability-bat-buoc.md](ADR-0007-traceability-bat-buoc.md) |
 | ADR-0008 | Soft Delete mặc định — xóa là đánh dấu `deleted_at` | Accepted (2026-08-10) | R-18 | [ADR-0008-soft-delete-by-default.md](ADR-0008-soft-delete-by-default.md) |
 | ADR-0009 | Backend là nơi duy nhất giữ business rule | Accepted (2026-08-10) | R-15, R-19 | [ADR-0009-business-rule-chi-o-backend.md](ADR-0009-business-rule-chi-o-backend.md) |
-| ADR-0010 | Bảng vai trò ở `cmd/internal/vaitro`, dùng chung cho mọi composition root | Accepted (2026-08-12) | — | [ADR-0010-bang-vai-tro-o-cmd-internal.md](ADR-0010-bang-vai-tro-o-cmd-internal.md) |
+| ADR-0010 | Bảng vai trò ở `cmd/internal/vaitro`, dùng chung cho mọi composition root | Superseded by ADR-0023 | — | [ADR-0010-bang-vai-tro-o-cmd-internal.md](ADR-0010-bang-vai-tro-o-cmd-internal.md) |
 | ADR-0011 | TanStack Query v5 là thư viện data-fetching duy nhất cho server state ở frontend | Accepted (2026-08-13) | — | [ADR-0011-tanstack-query-v5.md](ADR-0011-tanstack-query-v5.md) |
 | ADR-0012 | `R-19` canh bằng ESLint ở `frontend-erp`, không mở rộng `backend-erp/arch` | Accepted (2026-08-13) | — | [ADR-0012-r19-canh-o-frontend-eslint.md](ADR-0012-r19-canh-o-frontend-eslint.md) |
 | ADR-0013 | `cmd/api` chạy đúng một instance | Accepted (2026-08-14) | — | [ADR-0013-cmd-api-mot-instance.md](ADR-0013-cmd-api-mot-instance.md) |
@@ -46,6 +46,8 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0019 | Phân vùng là một công ty, vai trò tính theo cặp (người, phân vùng) | Accepted (2026-08-17) | — | [ADR-0019-phan-vung-la-cong-ty.md](ADR-0019-phan-vung-la-cong-ty.md) |
 | ADR-0020 | Data Scope là một tập bản ghi treo vào một hàng gán vai trò, giải ở tầng service, không đi vào token | Accepted (2026-08-20) | — | [ADR-0020-data-scope-theo-ban-ghi.md](ADR-0020-data-scope-theo-ban-ghi.md) |
 | ADR-0021 | Vai trò mang tên module, quyền gán vai trò và gán phạm vi là permission của module sở hữu | Accepted (2026-08-21) | — | [ADR-0021-vai-tro-theo-module.md](ADR-0021-vai-tro-theo-module.md) |
+| ADR-0022 | Bảng `units` có đúng một đường ghi công khai là tạo mới, không sửa và không xoá | Accepted (2026-08-21) | — | [ADR-0022-mo-duong-ghi-cho-bang-units.md](ADR-0022-mo-duong-ghi-cho-bang-units.md) |
+| ADR-0023 | Ánh xạ vai trò → quyền xuống database, vai trò là dữ liệu cấp công ty do người quản trị tự khai | Accepted (2026-08-21) | — | [ADR-0023-vai-tro-xuong-database.md](ADR-0023-vai-tro-xuong-database.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
