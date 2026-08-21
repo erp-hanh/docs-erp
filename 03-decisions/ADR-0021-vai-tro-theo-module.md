@@ -1,6 +1,6 @@
 # ADR-0021: Vai trò mang tên module, quyền gán vai trò và gán phạm vi là permission của module sở hữu
 
-**Status:** Proposed (2026-08-21)
+**Status:** Accepted (2026-08-21)
 
 ## Context
 
