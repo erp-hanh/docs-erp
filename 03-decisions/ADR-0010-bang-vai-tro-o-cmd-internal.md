@@ -1,6 +1,6 @@
 # ADR-0010: Bảng vai trò sống ở `cmd/internal/vaitro`, dùng chung cho mọi composition root
 
-**Status:** Accepted (2026-08-12)
+**Status:** Superseded by [ADR-0023](ADR-0023-vai-tro-xuong-database.md)
 
 ## Context
 
