@@ -1,4 +1,4 @@
-# Decisions — 20 ADR nền
+# Decisions — 21 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Hai mươi ADR hiện có
+## Hai mươi mốt ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
@@ -45,6 +45,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0018 | `idempotency_keys` giữ dấu vân payload và response của lần đầu, để phát lại cho `Idempotency-Key` ở tầng HTTP | Accepted (2026-08-15) | — | [ADR-0018-luu-response-cho-idempotency-key.md](ADR-0018-luu-response-cho-idempotency-key.md) |
 | ADR-0019 | Phân vùng là một công ty, vai trò tính theo cặp (người, phân vùng) | Accepted (2026-08-17) | — | [ADR-0019-phan-vung-la-cong-ty.md](ADR-0019-phan-vung-la-cong-ty.md) |
 | ADR-0020 | Data Scope là một tập bản ghi treo vào một hàng gán vai trò, giải ở tầng service, không đi vào token | Accepted (2026-08-20) | — | [ADR-0020-data-scope-theo-ban-ghi.md](ADR-0020-data-scope-theo-ban-ghi.md) |
+| ADR-0021 | Vai trò mang tên module, quyền gán vai trò và gán phạm vi là permission của module sở hữu | Accepted (2026-08-21) | — | [ADR-0021-vai-tro-theo-module.md](ADR-0021-vai-tro-theo-module.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
