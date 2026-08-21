@@ -81,6 +81,52 @@ _Avoid_: lịch sử kho, nhật ký kho, thẻ kho
 
 ### Người dùng
 
+**Người dùng**:
+Một người đăng nhập được vào hệ, thuộc một phân vùng. Là **đối tượng** được phân quyền, nên
+đừng lấy chữ này đặt tên cho màn hình làm việc phân quyền.
+_Avoid_: tài khoản, nhân viên, nhân sự
+
+**Quản trị hệ thống**:
+Vai trò cao nhất, thấy mọi phân vùng. **Không ai gán được** — nó suy ra từ một cờ trên
+chính người dùng, nên không bao giờ có một hàng trong bảng gán vai trò.
+_Avoid_: super admin, quản trị viên (chữ này chỉ chung, lẫn ngay với quản trị của một ứng dụng)
+
+**Quản trị ứng dụng**:
+Người quản trị một ứng dụng, ví dụ quản trị kho vận. Gán được vai trò **của ứng dụng mình**
+cho người khác, không đụng được vai trò của ứng dụng khác.
+_Avoid_: admin, trưởng phân hệ
+
 **Thủ kho**:
 Người ghi chuyển động hằng ngày. Người dùng chính của `inventory`.
 _Avoid_: nhân viên kho, người giữ kho
+
+### Phân quyền
+
+**Phân quyền chức năng**:
+Trục quyết định một người **được làm gì**. Đi qua Vai trò.
+_Avoid_: quyền hạn, RBAC, phân quyền (một mình chữ này không nói được đang bàn trục nào)
+
+**Phạm vi dữ liệu**:
+Trục quyết định một người **được làm trên dữ liệu nào**. Hôm nay chỉ có một loại phạm vi
+là kho.
+_Avoid_: phân quyền dữ liệu, quyền xem dữ liệu, mức truy cập, data scope
+
+**Phân quyền**:
+Từ bao trùm **cả hai** trục trên. Chỉ dùng khi thật sự nói về cả hai; bàn về một trục thì
+gọi đúng tên trục đó.
+_Avoid_: cấp quyền, quyền truy cập
+
+**Vai trò**:
+Một tập quyền chức năng có tên, gán cho một người trong một phân vùng. Sau ADR-0023, vai
+trò là **dữ liệu cấp công ty do quản trị tự khai**, không còn là hằng trong code.
+_Avoid_: nhóm quyền, chức danh, group
+
+**Quyền**:
+Một hành động đơn lẻ hệ kiểm được, ví dụ "tạo vật tư". Không gán trực tiếp cho người —
+quyền chỉ tới qua vai trò. Tập mã quyền ở lại trong code kể cả sau ADR-0023.
+_Avoid_: permission, chức năng, thao tác
+
+**Toàn phạm vi**:
+Trạng thái một người thấy mọi bản ghi của một loại phạm vi, do vai trò của họ mang theo
+quyền đó chứ không do được cấp từng cái.
+_Avoid_: full quyền, xem tất cả, không giới hạn
