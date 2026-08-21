@@ -5,16 +5,16 @@ kia nói về đợt vai trò theo module, file này nói về đợt giao diệ
 
 ## Đang ở đâu
 
-`v0.1.0-rc.24` chạy trên dev (103.179.172.110). `frontend-erp/main` đã đi thêm một commit
-nữa (`53c4189`) **chưa lên dev**.
+`v0.1.0-rc.26` chạy trên dev (103.179.172.110), và nó **đã chứa toàn bộ việc của phiên
+này** — kể cả `53c4189`.
 
 Trạng thái ba repo lúc bàn giao:
 
-| Repo | `main` | Có trong `rc.24` |
+| Repo | `main` | Có trong `rc.26` |
 |---|---|---|
-| `frontend-erp` | `53c4189` | không — rc.24 là `e0f2e15` |
+| `frontend-erp` | `53c4189` | có |
 | `backend-erp` | `6dcb825` | có |
-| `infra-erp` | `cd4ed99` | có |
+| `infra-erp` | `bae5b8b` | có |
 
 `docs-erp` **đang ở nhánh `docs/context-tu-dien`, chưa merge về `main`**. Nhánh đó giữ
 ADR-0022, ADR-0023, `CONTEXT.md` và sáu spec. Việc merge thuộc về phiên đã tạo nhánh, tôi
@@ -98,7 +98,7 @@ Vòng soi cuối chỉ ra hai dòng gánh việc mà không bài nào canh. Tôi
 Bài học chung: **một bài test đọc trạng thái cuối không khoá được cơ chế đưa tới trạng thái
 đó.** Khi nghi ngờ, gỡ dòng ra và chạy.
 
-### Bẫy vùng bấm tái sinh hai lần trong một ngày
+### Bẫy vùng bấm tái sinh BA lần trong một ngày
 
 `co-so.css` cấp `min-height` 32px chuột / 44px cảm ứng cho **`button, input, select`** —
 không cấp cho `<a>`. Và bất cứ lớp đơn nào đặt `min-height` thấp hơn đều **thắng** vì độ
@@ -110,18 +110,36 @@ nguy nhất vì nó nằm trong component dùng chung nên sẽ lan ra mọi mà
 
 `kiem-giao-dien.mjs` **không bắt được** nhóm lỗi này. Chỉ mắt người đọc ra.
 
-### Ba phát hiện về phiên chạy song song
+### Bốn phát hiện về phiên chạy song song
 
-1. **Số rc bị phiên khác lấy mất.** Tôi định tag `rc.22`, nó đã tồn tại; `rc.23` cũng vậy,
-   và họ đã deploy `rc.23`. Bản của tôi thành `rc.24`. **Luôn `fetch --tags` rồi tính lại
-   ngay trước khi tag**, đừng tính một lần rồi đi làm việc khác.
+1. **Số rc bị phiên khác lấy mất — hai lần trong một buổi.** Lần đầu: tôi định tag
+   `rc.22`, nó đã tồn tại, `rc.23` cũng vậy và họ đã deploy nó; bản của tôi thành `rc.24`.
+   Lần hai: tôi tính `rc.25`, đi kiểm CI, quay lại thì cả `rc.25` lẫn `rc.26` đã có chủ —
+   may là `rc.26` cuốn luôn commit của tôi nên không phải tag thêm.
+   **Luôn `fetch --tags` rồi tính lại NGAY TRƯỚC khi tag**, đừng tính một lần rồi đi làm
+   việc khác. Và trước khi tag, kiểm xem bản mới nhất đã chứa commit của mình chưa —
+   `git merge-base --is-ancestor <sha> <tag>^{}` — để khỏi tag một bản thừa.
 2. **Một thay đổi hạ tầng suýt xoá database dev.** `infra-erp` thêm volume đặt tên cho
    Postgres. Trước đó Postgres chạy trên **volume ẩn danh**, nên về lý thuyết lần đầu
    triển khai là một lần đổi chỗ chứa dữ liệu: database rỗng trên volume mới, dữ liệu cũ
    nằm lại trên volume cũ không còn được gắn. Tôi đếm trước (**7 người / 2 kho / 3 phạm vi
    / 21 dòng gán**), đếm lại sau: **đúng bằng nhau** — vì container đã được gắn sẵn
    `compose_erp_pgdata` từ trước bằng một lệnh chạy tay.
-3. **Container từng lệch với repo.** Lúc tôi kiểm, `/opt/erp/infra-erp` ở `rc.21` (compose
+3. **Dữ liệu Postgres đổi chỗ HAI lần trong một ngày, cả hai lần đều nguyên.** Sáng:
+   volume ẩn danh → volume đặt tên `compose_erp_pgdata`. Chiều (`rc.26`): volume → bind
+   mount `/srv/erp/postgres`, kèm sao lưu định kỳ — trước đó máy dev **không có bản sao lưu
+   nào**. Cả hai lần đều là ca "database rỗng trên chỗ chứa mới" nếu làm sai thứ tự. Đếm
+   trước và sau mỗi lần: **7 / 2 / 3 / 21**, khớp cả ba lượt đo.
+   Lệnh đếm, để lần sau khỏi nghĩ lại:
+   ```
+   docker exec compose-postgres-1 psql -U erp -d erp_dev -tAc "
+     select 'users='||count(*) from users
+     union all select 'warehouses='||count(*) from warehouses
+     union all select 'scopes='||count(*) from user_company_role_scopes
+     union all select 'roles_gan='||count(*) from user_company_roles;"
+   ```
+   Chú ý tên database là **`erp_dev`**, không phải `erp`.
+4. **Container từng lệch với repo.** Lúc tôi kiểm, `/opt/erp/infra-erp` ở `rc.21` (compose
    cũ, không có volume đặt tên) trong khi container lại chạy volume đặt tên. Dấu vết của
    một lệnh chạy tay ngoài script deploy. Nó tự khỏi khi `rc.23` lên, nhưng kiểu lệch này
    làm câu "máy dev đang chạy chính xác cái gì" không trả lời được.
@@ -139,8 +157,9 @@ sự thật về backend, và một trường API bịa.
 
 ## Việc tiếp theo, theo thứ tự tôi đề nghị
 
-1. **Đóng `rc.25`.** `frontend-erp/main` đã đi thêm `53c4189` (bảy điểm vòng soi cuối) mà
-   dev chưa có.
+1. ~~Đóng `rc.25`~~ — **xong, không cần làm gì.** Phiên song song tag `rc.25` và `rc.26`
+   sau khi tôi push `53c4189`, nên `rc.26` cuốn luôn commit đó vào và đã chạy trên dev.
+   Đã kiểm trên máy thật: đường quay lại của `TieuDeTrang` cao **32px** (trước ~20px).
 2. **Merge nhánh `docs/context-tu-dien` của `docs-erp` về `main`.** ADR-0023 và sáu spec
    đang nằm ngoài `main`, nên người đọc `main` không thấy quyết định vai trò xuống
    database.
