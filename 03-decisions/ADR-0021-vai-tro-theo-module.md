@@ -38,8 +38,9 @@ nó thì gán được mọi vai trò trong bảng.
 
 ## Decision
 
-**Vai trò mang tên module, thẩm quyền gán vai trò là một permission của chính module đó, và
-quản trị hệ thống đứng ngoài thứ bậc ấy chứ không đứng trên nó.**
+**Vai trò mang tên module; thẩm quyền gán vai trò VÀ gán phạm vi là permission của chính
+module sở hữu; quản trị hệ thống đứng trên ở trục quản trị phân quyền và đứng ngoài ở trục dữ
+liệu nghiệp vụ.**
 
 **1. Tên vai trò theo khuôn `<module>.<vai_trò>`.** Cùng hình dạng với chuỗi permission mà
 `C-GO-02` đã chốt, và cùng lý do: nhìn một chuỗi là biết nó thuộc về ai. `module` là tên thư
@@ -50,12 +51,12 @@ mục module theo ADR-0017.
 | Vai trò | Gồm gì |
 |---|---|
 | `auth.admin` | năm quyền CRUD user, `auth.user_assign_roles`, `auth.user_assign_scopes`, `auth.role_assign` |
-| `inventory.admin` | mười sáu permission của `inventory` (kể cả `inventory.warehouse_scope_all`), `inventory.role_assign`, `auth.user_list`, `auth.user_read` |
+| `inventory.admin` | mười sáu permission của `inventory` (kể cả `inventory.warehouse_scope_all`), `inventory.role_assign`, `inventory.scope_assign`, `auth.user_list`, `auth.user_read` |
 | `inventory.viewer` | `warehouse_list/read`, `item_list/read`, `movement_list/read`, `balance_read`, `unit_list` |
-| `machine.admin` | mười hai permission của `machine`, `machine.role_assign`, `auth.user_list`, `auth.user_read` |
+| `machine.admin` | mười hai permission của `machine`, `machine.role_assign`, `auth.user_list`, `auth.user_read` — `machine.scope_assign` chưa có vì `machine` chưa có bảng chịu phạm vi |
 | `machine.viewer` | `machine_list/read`, `plan_list/read`, `breakdown_read` |
 | `machine.ky_thuat` | `plan_execute`, `breakdown_create` |
-| `quan_tri_he_thong` | năm quyền `PermCompany*` — dẫn xuất, không ai gán được |
+| `quan_tri_he_thong` | năm quyền `PermCompany*`, mọi `<module>.role_assign`, mọi `<module>.scope_assign`, `auth.user_list`, `auth.user_read` — dẫn xuất, không ai gán được |
 
 `inventory.viewer` **không** có `warehouse_scope_all`: nó là vai trò chịu phạm vi, và người
 mang nó phải được cấp kho ở màn gán phạm vi thì mới thấy gì.
@@ -76,6 +77,20 @@ suy ra quyền** — đúng lối mà `C-TS-06` cấm ở frontend và ADR-0019 
 trò dẫn xuất thay vì đọc thẳng một cờ. Với permission thì bảng vai trò vẫn nói thật ai làm được
 gì; với suy diễn thì một lần đổi tên vai trò lặng lẽ đổi thẩm quyền.
 
+**Gán PHẠM VI đi cùng khuôn đó**, bằng permission `<module>.scope_assign`. Cửa chung
+`auth.user_assign_scopes` — đã chạy từ chặng ADR-0020 — vẫn là câu kiểm **thứ nhất**, vì R-15
+đòi câu lệnh đầu tiên không được phụ thuộc thân request; rồi với **mỗi loại phạm vi** có trong
+thân, kiểm thêm `Can(actor, "<module>.scope_assign")`.
+
+Module của một loại phạm vi **không** suy ra bằng cách đọc chuỗi: danh mục `LoaiPhamVi` mà
+`cmd/api` tiêm xuống module `auth` đã mang sẵn tên permission toàn phạm vi của module sở hữu
+(`inventory.warehouse_scope_all`), nên nó chỉ cần mang thêm tên permission gán. Composition
+root **khai** module, service không đoán module — cùng lập luận với đoạn ngay trên.
+
+Nếu không có nửa này thì `auth.admin` cấp được kho cho người khác mà không có một mẩu thẩm
+quyền nào ở `inventory`, tức đúng thứ quyết định này sinh ra để chặn, chỉ khác là rò qua ngả
+phạm vi thay vì ngả vai trò.
+
 **5. Module admin mang `auth.user_list` và `auth.user_read`.** Muốn gán vai trò cho ai thì phải
 tìm ra người đó, mà hai quyền ấy thuộc `auth`. Ba nhánh trong sơ đồ vì vậy không tách rời: cả
 ba đều chạm `auth` ở gốc. Tiền lệ có sẵn là `ky_thuat` mang `auth.self_read` vì cùng loại lý do.
@@ -87,10 +102,18 @@ khẩu của chính mình. Quyết định này **vá một khiếm khuyết đa
 được mật khẩu của mình.
 
 **7. `quan_tri_he_thong` quản trị được việc GÁN của mọi module, nhưng không đọc được dữ liệu
-của module nào.** Nó giữ năm quyền `PermCompany*` và **thêm** cả ba `<module>.role_assign` —
-tức nó đứng trên các module admin ở trục *quản trị phân quyền*, và đứng **ngoài** trục dữ liệu
-nghiệp vụ. Muốn đọc một hàng `users`, một cái máy hay một dòng sổ kho thì người đó vẫn phải
-được gán vai trò của chính phân vùng đó như mọi người khác.
+nghiệp vụ của module nào.** Nó giữ năm quyền `PermCompany*` và **thêm** mọi
+`<module>.role_assign`, mọi `<module>.scope_assign`, cùng `auth.user_list` và `auth.user_read`
+— tức nó đứng trên các module admin ở trục *quản trị phân quyền*, và đứng **ngoài** trục dữ
+liệu nghiệp vụ. Muốn đọc một cái máy hay một dòng sổ kho thì người đó vẫn phải được gán vai trò
+của chính phân vùng đó như mọi người khác.
+
+Hai quyền đọc user có mặt ở đây vì cùng lý do đã cho module admin ở mục 5, và vì thiếu chúng
+thì cả mục này vô nghĩa: một vai trò gán được mọi vai trò của mọi module mà không mở nổi màn
+danh sách người dùng là một quyền **không dùng được** — đúng loại quyền im lặng mà `vaitro.go`
+gọi tên. Đổi lại phải nói thẳng cái giá: quản trị hệ thống đọc được danh sách người và hồ sơ
+người trong phân vùng đang đăng nhập. Đó là dữ liệu **danh tính**, không phải dữ liệu vận
+hành, và nó là tập nhỏ nhất đủ để làm đúng việc mà mục này giao.
 
 Điều này **thay mệnh đề "giữ đúng năm quyền `PermCompany*`" của ADR-0019 mục 5**, và thay một
 cách hẹp nhất có thể: phần bị bỏ là con số năm, phần được giữ nguyên là câu "quản trị hệ thống
@@ -163,7 +186,14 @@ buộc (R-06); ở đây không có lý do nào tương đương.
   liệu đang sống ở `user_company_roles`, ở cột `users.roles` chưa bỏ, và mọi access token đang
   lưu hành mang tên cũ — tối đa mười lăm phút sau khi triển khai vẫn còn token mang `admin`.
 - Ba permission mới `<module>.role_assign` là ba chuỗi nữa phải giữ, và mỗi module thêm vào hệ
-  sẽ thêm một chuỗi như vậy.
+  sẽ thêm một chuỗi như vậy. `<module>.scope_assign` thì chỉ module nào có bảng chịu phạm vi
+  mới cần — hôm nay đúng một cái, `inventory`.
+- `auth.admin` **không còn** cấp được kho cho ai: từ nay việc đó đòi `inventory.scope_assign`.
+  Đây là siết quyền so với thứ đang chạy trên dev, nơi `auth.user_assign_scopes` một mình là
+  đủ. Người đang làm cả hai việc phải mang cả hai vai trò.
+- `PUT /users/:id/scopes` phủ cả người trong một transaction, nên nó là **tất cả hoặc không**
+  xuyên module: một actor chỉ có `inventory.scope_assign` sẽ không lưu được gì một khi thân
+  request mang thêm một loại phạm vi của module khác. Hôm nay chưa cắn vì chỉ có một loại.
 
 **Nợ để lại:**
 
@@ -174,6 +204,10 @@ buộc (R-06); ở đây không có lý do nào tương đương.
   trò đổi — vì không có gì nối hai bên.
 - Mười hai module của ADR-0017 sẽ cần hai đến ba vai trò mỗi cái. Quyết định này chốt **khuôn**,
   không chốt danh sách; mỗi module mở ra sau này tự khai vai trò của nó theo khuôn đó.
+- Ngày có loại phạm vi **thứ hai**, phải cân lại việc chẻ `PUT /users/:id/scopes` theo loại.
+  Giữ nguyên hình dạng phủ-cả-người thì một actor thiếu một `<module>.scope_assign` sẽ bị chặn
+  toàn bộ; chẻ ra thì mất tính nguyên tử mà ADR-0020 đã chọn có ý thức. Đây là một đánh đổi
+  chưa tới hạn, không phải một chỗ quên.
 - Chưa quyết `<module>.admin` của module này có gán được `<module>.admin` của chính module đó
   không — tức một quản trị kho có tự nhân bản được quyền quản trị kho cho người khác không.
   Mục 4 cho phép, vì `inventory.role_assign` không phân biệt vai trò nào trong module. Ngày cần
