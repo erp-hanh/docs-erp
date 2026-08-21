@@ -225,6 +225,13 @@ Tên khác cho những thứ trên không sai về mặt Go, nhưng chúng là m
 
 #### Vài quy ước nhỏ còn lại
 
+- Tên vai trò là chuỗi `<module>.<vai_trò>`: `inventory.thu_kho`, `machine.viewer`. Cùng hình
+  dạng với chuỗi permission ngay dưới đây, và cùng lý do — nhìn một chuỗi là biết nó thuộc về
+  ai ([ADR-0021](../03-decisions/ADR-0021-vai-tro-theo-module.md)). Ngoại lệ duy nhất là
+  `quan_tri_he_thong`: nó là vai trò **dẫn xuất**, không thuộc module nào và không ai gán được.
+  Tiền tố ở đây là quy ước cho người đọc, **không** phải một phép phân tích chuỗi gánh trách
+  nhiệm an ninh — thẩm quyền gán một vai trò tra từ danh mục ở composition root, không cắt từ
+  tên.
 - Hằng quyền đặt tên `Perm<Đối tượng><Hành động>`, giá trị là chuỗi `<module>.<hành động>`:
   `const PermOrderCreate = "order.create"`. Khai ở package `service` của module sở hữu;
   cách bảng vai trò ở composition root chạm tới được những hằng này thì xem C-GO-08.
@@ -1513,9 +1520,9 @@ import (
 // danh sach vai tro cua he thong, va permission cua tung module.
 func Bang() authz.Bang {
 	return authz.Bang{
-		"admin":  {user.PermCreate, user.PermList, order.PermCreate, order.PermApprove},
-		"sale":   {order.PermCreate, order.PermRead},
-		"viewer": {user.PermList, order.PermRead},
+		"auth.admin":   {user.PermCreate, user.PermList},
+		"order.admin":  {order.PermCreate, order.PermApprove, order.PermRead},
+		"order.viewer": {order.PermRead},
 	}
 }
 ```
