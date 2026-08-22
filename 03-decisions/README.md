@@ -49,6 +49,9 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0022 | Bảng `units` có đúng một đường ghi công khai là tạo mới, không sửa và không xoá | Accepted (2026-08-21) | — | [ADR-0022-mo-duong-ghi-cho-bang-units.md](ADR-0022-mo-duong-ghi-cho-bang-units.md) |
 | ADR-0023 | Ánh xạ vai trò → quyền xuống database, vai trò là dữ liệu cấp công ty do người quản trị tự khai | Accepted (2026-08-21) | — | [ADR-0023-vai-tro-xuong-database.md](ADR-0023-vai-tro-xuong-database.md) |
 | ADR-0024 | Thẩm quyền trên một vai trò tính từ TẬP QUYỀN của nó, không từ tên nó | Accepted (2026-08-22) | — | [ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md](ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md) |
+| ADR-0025 | Nhãn vai trò đi kèm `GET /auth/me`, bỏ bảng nhãn chép tay ở frontend | Accepted (2026-08-22) | — | [ADR-0025-nhan-vai-tro-kem-auth-me.md](ADR-0025-nhan-vai-tro-kem-auth-me.md) |
+| ADR-0026 | Toàn phạm vi không còn là một permission, nó là dữ liệu treo cùng chỗ với phạm vi | Accepted (2026-08-22) | — | [ADR-0026-toan-pham-vi-khong-la-mot-permission.md](ADR-0026-toan-pham-vi-khong-la-mot-permission.md) |
+| ADR-0027 | Permission của module mới tới công ty đã tồn tại bằng một lệnh tường minh, không ghi đè lựa chọn của tenant | Accepted (2026-08-22) | — | [ADR-0027-permission-module-moi-vao-cong-ty-da-co.md](ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
