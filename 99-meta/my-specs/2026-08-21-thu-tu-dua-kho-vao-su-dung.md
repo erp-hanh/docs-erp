@@ -251,8 +251,27 @@ và 0 dòng `stock_movements` tham chiếu tới chúng), xoá, `ANALYZE`, rồi
 `stock_items` về **0 dòng**, `warehouses` về **2 dòng** đúng hai kho QA cũ `QA-KHO-A` và
 `QA-KHO-B`.
 
-Một điều phải nói rõ vì nó chưa khớp: **tham số `q` chưa có trong `backend-erp`**. `main` sạch,
-không nhánh nào đang mở, và `grep` không thấy `ILIKE` nào trong
-`modules/inventory/internal/repository/`. Số đo trên đo **hình dạng câu mà đặc tả chốt**, ghép
-vào hằng SQL hiện tại của repository - nó có giá trị để quyết index, nhưng người cài đặt `q`
-phải giữ đúng hình dạng đó, và nếu câu lệch đi thì số này hết hiệu lực.
+Một điều phải nói rõ về nguồn của hình dạng câu đo. Tại thời điểm đo, tham số `q` **chưa vào
+`main`** - `grep` không thấy `ILIKE` nào trong `modules/inventory/internal/repository/` của
+`main`, và quan sát đó đúng. Nhưng đừng rút từ đó ra kết luận rằng `q` chưa được cài: nó **đã
+cài xong** trên nhánh `feat/tim-kiem-danh-muc`, bảy commit chạy suốt từ repository lên service
+và handler, đỉnh nhánh `fa8a751`, chỉ là chưa merge. Câu đo vì vậy không phải câu tưởng tượng
+từ đặc tả.
+
+Đối chiếu lại hình dạng thì khớp. Cả bốn câu list lẫn câu đếm của `stock_item_repository.go`
+trên nhánh đó mang đúng một mệnh đề:
+
+```
+AND ($3 = '' OR si.code ILIKE $3 || '%' ESCAPE '\' OR si.name ILIKE '%' || $3 || '%' ESCAPE '\')
+```
+
+và `warehouse_repository.go` mang y hệt, chỉ bỏ tiền tố `si.`. Ba điểm mà số đo phụ thuộc vào
+đều đúng: `code` khớp **tiền tố**, `name` khớp **chuỗi con**, và cả hai nằm trong một cặp ngoặc
+do vế `$3 = ''` bọc ngoài. Khác biệt duy nhất so với câu đã đo là vế `ESCAPE '\'` - mà `\` đúng
+là ký tự thoát mặc định của `ILIKE`, và với chuỗi tìm là hằng thì `like_escape` bị gộp ngay lúc
+lập kế hoạch, nên `EXPLAIN` vẫn in ra đúng `(code ~~* 'vat tu do%') OR (name ~~* '%vat tu do%')`
+như trong lần đo. Không đổi kế hoạch, không đổi số.
+
+Vậy **số đo còn hiệu lực** cho mã đang có trên nhánh, và quyết định không thêm index đứng vững.
+Điều kiện tự huỷ vẫn giữ nguyên: ngày nào mệnh đề trên đổi hình dạng - `code` chuyển sang khớp
+chuỗi con, hay vế `$3 = ''` bị tháo - thì phải đo lại trước khi tin ba con số này.
