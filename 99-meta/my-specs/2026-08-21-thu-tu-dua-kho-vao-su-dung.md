@@ -55,7 +55,7 @@ Ba lý do:
 | 2 | Tài khoản thủ kho thật + cấp phạm vi kho | tạo bằng `bootstrap.sh` trên VPS; gán vai trò và phạm vi qua màn người dùng |
 | 3 | Xoá mềm dòng chuyển động | `backend-erp/docs/superpowers/specs/2026-08-21-xoa-mem-chuyen-dong-design.md` |
 | 4 | `POST /units` + hộp thoại thêm nhanh | `backend-erp/.../2026-08-21-them-don-vi-tinh-design.md`, ADR-0022 |
-| 5 | **Tìm kiếm danh mục** | `backend-erp/.../2026-08-21-tim-kiem-danh-muc-design.md` + bản frontend cùng tên |
+| 5 | **Tìm kiếm danh mục** | **BACKEND XONG 2026-08-22** - tham số `q` cho `GET /stock-items` và `GET /warehouses`, merge `a64c87a` trên `main` của `backend-erp`. Spec `backend-erp/.../2026-08-21-tim-kiem-danh-muc-design.md`. **Phần frontend chưa làm và chưa có spec** - `frontend-erp/docs/superpowers/specs/` không có bản nào cùng tên |
 | 5b | Seed 14 đơn vị tính lên máy chạy thật | **XONG 2026-08-22** - 14 dòng `units`, 14 dòng audit `unit.created` |
 | 6 | Script nạp tồn đầu kỳ | `infra-erp/docs/superpowers/specs/2026-08-21-nap-ton-dau-ky-design.md` |
 | 7 | Sổ chuyển động tra được | spec + plan đã có, cả hai repo |
@@ -275,3 +275,36 @@ như trong lần đo. Không đổi kế hoạch, không đổi số.
 Vậy **số đo còn hiệu lực** cho mã đang có trên nhánh, và quyết định không thêm index đứng vững.
 Điều kiện tự huỷ vẫn giữ nguyên: ngày nào mệnh đề trên đổi hình dạng - `code` chuyển sang khớp
 chuỗi con, hay vế `$3 = ''` bị tháo - thì phải đo lại trước khi tin ba con số này.
+
+**2026-08-22 - khối 5 xong phần backend, đã vào `main`.** Merge commit `a64c87a` gộp nhánh
+`feat/tim-kiem-danh-muc` (bảy commit, `41301bb`..`d08ac30`). CI trên `main` xanh cả ba job:
+lint 1m24s, arch 1m17s, test 3m13s (run 32585905061).
+
+Hình dạng đã chốt: `GET /api/v1/stock-items` và `GET /api/v1/warehouses` nhận thêm query param
+`q`, khớp **tiền tố** của `code` **hoặc chuỗi con** của `name`. Ràng buộc `binding:"omitempty,max=64"`;
+vượt 64 ký tự trả 422 kèm `error.fields` mang tên `q`. Chuỗi rỗng và không gửi là **một thứ**,
+đều nghĩa là không lọc - nên không có ca "tìm chuỗi rỗng" nào phải nghĩ tới. Ba ký tự `%`, `_`,
+`\` được thoát ở tầng service bằng hàm `chuanHoaTimKiem`, khai **một lần** dùng chung cho cả hai
+service chứ không chép hai bản.
+
+Mệnh đề lọc nằm sẵn trong **mười hằng SQL** (năm hằng mỗi bảng: bốn câu list cộng câu đếm),
+không nối chuỗi lúc chạy. `q` **không** áp cho `/stock-movements` và `/stock-balances`: nó là
+tham số của **danh mục**, không phải của sổ - ai muốn lọc sổ thì lọc bằng `stock_item_id` đã có.
+
+Số đo index đã ghi ở mục ngay trên, kết luận giữ nguyên: **không thêm index**, không mở cuộc bàn
+`pg_trgm`, không ADR nào phải viết.
+
+**Cái bẫy thứ nhất: một lệnh trông như đang làm việc mà thật ra rỗng.** Hàm thoát ký tự viết
+`strings.ReplaceAll(sach, "\\", "\\")` trong **chuỗi thô** Go - hai vế bằng nhau từng byte, nên
+dấu chéo ngược **không được nhân đôi** và lệnh đó là lệnh rỗng. Nặng hơn: bộ test viết ra ngay
+sau đó đã **đóng đinh đúng hành vi sai ấy**, vì nó chép kỳ vọng từ mã chứ không tính lại từ đặc
+tả. Test xanh, lỗi vẫn còn, và chỉ lộ ra khi soi lại bằng mắt. Vá xong đã chứng minh ngược:
+trả mã về bản lỗi thì test mới **đỏ**. Bài học giữ lại - test chép kỳ vọng từ mã đang có thì nó
+không kiểm gì hết, nó chỉ ghi lại.
+
+**Cái bẫy thứ hai: công cụ tự sửa golden lại ghi ra kết quả giả.** Thêm file test mới làm số đếm
+trong golden `arch/LEVELS.md` lệch. Phản xạ đúng là chạy `arch-update` cho nó tự ghi lại - nhưng
+dưới máy Windows không có Docker thì sáu rule cần database **không chạy nổi**, và công cụ ghi
+thẳng `FAIL` cho cả sáu vào golden thay vì bỏ trống hay dừng. Chạy nó ở đây là đổi một con số
+lệch lấy sáu dòng sai. Phải sửa tay đúng con số đếm. Cùng họ với ba cái bẫy VPS ở bàn giao
+module kho: công cụ báo kết quả của môi trường thiếu thứ nó cần, chứ không báo là nó thiếu.
