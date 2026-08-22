@@ -94,15 +94,41 @@ comment. Không có nó thì permission của một module mới không tới đ
 - `2026-08-21-gan-duoc-tren-danh-muc-vai-tro-spec.md`.
 - ADR-0026 (toàn phạm vi không còn là permission) chưa thi công.
 
-## Thứ cần đi thử bằng tay trên dev, không test nào thay được
+## Đã đi thử bằng tay trên dev `v0.1.0-rc.28` - kết quả
 
-1. Đăng nhập `qa-admin`, mở `/phan-quyen`, kiểm **nhãn vai trò có dấu tiếng Việt** - đó là
-   bằng chứng migration 000026 chạy trên dữ liệu thật, không phải trên database test.
-2. Đường gán vai trò bằng một tài khoản chỉ có quyền quản trị một ứng dụng, nếu dựng được:
-   phải gán được `inventory.thu_kho`, phải bị từ chối với `inventory.admin`, và **câu từ
-   chối phải gọi tên module đang thiếu**.
-3. Cảnh báo "danh mục vai trò đang bị cắt" ở màn gán **chưa có dữ liệu thật nào chứng
-   minh** - nó chỉ nổ khi bảng `roles` vượt 100 dòng, và test đang mô phỏng con số đó.
+**1. Migration 000026 chạy trên dữ liệu thật: ĐÚNG.** `SELECT` trên Postgres của dev cho
+14/14 hàng `roles` mang nhãn có dấu, và `machine.ky_thuat` là `"Kỹ thuật"`. Hai phân vùng
+đang sống đều đủ 7 vai trò - không phân vùng nào rơi vào trạng thái không ai gán được gì.
+
+**2. ADR-0028 đúng đầu-cuối trên dữ liệu thật.** Dựng `qa-kho-admin@erp.test` mang **đúng
+một** vai trò `inventory.admin`, rồi để chính nó gán vai trò cho `qa-muc-tieu@erp.test`:
+
+| Gán | Kết quả | Vì sao |
+|---|---|---|
+| `inventory.thu_kho` | **200** | Vai trò này mang đúng hai mã `auth.*`, và cả hai là sàn chung |
+| `inventory.admin` | **403** | Mang thêm `user_list`, `user_read`, `user_assign_roles`, `user_assign_scopes` |
+
+Câu từ chối: `khong du quyen gan vai tro mang quyen cua module auth`, kèm `request_id`.
+
+Phép đối chứng nằm ở chỗ hai vai trò khác nhau **đúng bốn mã**, đã kiểm thẳng trên
+`role_permissions` của dev. Không có phép loại trừ của ADR-0028 thì ca thứ nhất cũng 403,
+và một `inventory.admin` không gán được vai trò nào.
+
+**3. Chưa kiểm được:** cảnh báo "danh mục vai trò đang bị cắt" ở màn gán. Nó chỉ nổ khi
+bảng `roles` vượt 100 dòng; dev có 7. Test đang mô phỏng con số đó chứ chưa có dữ liệu
+thật nào chứng minh backend trả `meta.total` đúng ở ngưỡng ấy.
+
+## Tài khoản thử trên dev
+
+Ngoài `qa-admin@erp.test` và `qa-thukho@erp.test` mà bàn giao trước đã ghi, đợt này thêm
+hai cái, **giữ lại** vì chúng dựng được ca mà `qa-admin` không dựng nổi (`qa-admin` mang cả
+ba vai trò admin nên nó luôn đủ quyền):
+
+- `qa-kho-admin@erp.test` - **đúng một** vai trò `inventory.admin`. Đây là tài khoản duy
+  nhất trên dev thử được luật ADR-0024/0028 từ phía một quản trị ứng dụng.
+- `qa-muc-tieu@erp.test` - người bị gán, hiện mang `inventory.thu_kho`.
+
+Cùng mật khẩu `QaPhamVi!2026`, phân vùng `DEFAULT`.
 
 ## Ghi chú phát hành - phải nói ra, người dùng không tự đoán được
 
