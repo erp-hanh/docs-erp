@@ -52,6 +52,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0025 | Nhãn vai trò đi kèm `GET /auth/me`, bỏ bảng nhãn chép tay ở frontend | Accepted (2026-08-22) | — | [ADR-0025-nhan-vai-tro-kem-auth-me.md](ADR-0025-nhan-vai-tro-kem-auth-me.md) |
 | ADR-0026 | Toàn phạm vi không còn là một permission, nó là dữ liệu treo cùng chỗ với phạm vi | Accepted (2026-08-22) | — | [ADR-0026-toan-pham-vi-khong-la-mot-permission.md](ADR-0026-toan-pham-vi-khong-la-mot-permission.md) |
 | ADR-0027 | Permission của module mới tới công ty đã tồn tại bằng một lệnh tường minh, không ghi đè lựa chọn của tenant | Accepted (2026-08-22) | — | [ADR-0027-permission-module-moi-vao-cong-ty-da-co.md](ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) |
+| ADR-0028 | Quyền chỉ tác động lên chính người giữ nó không kéo theo cửa `<module>.role_assign` | Accepted (2026-08-22) | — | [ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md](ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong

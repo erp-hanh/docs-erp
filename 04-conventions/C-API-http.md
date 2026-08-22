@@ -806,12 +806,21 @@ trả **hằng số biên dịch được** — enum khai ngay trong code Go, kh
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| `GET /api/v1/roles` — `handler.UserRoleHandler.DanhMuc` (`modules/auth/internal/handler/user_role_handler.go`) | Danh mục vai trò gán được của hệ thống, đọc từ `vaitro.DanhMuc()` ở `cmd/internal/vaitro` — **hằng số biên dịch được**, không một câu truy vấn nào. Tập là toàn bộ vai trò của hệ thống trừ vai trò dẫn xuất, tức nó bị chặn trên bởi số module chứ không bởi dữ liệu người dùng nhập; `page`/`page_size`/`sort` không có gì để làm và một `meta.total` ở đây chỉ lặp lại `len(data)`. Màn gán vai trò cần **cả** danh mục cùng lúc để dựng bộ ô chọn — một trang thiếu vài dòng là một màn hình gán thiếu vai trò mà không ai biết | 2026-08-21 |
 
-Dòng trên miễn đúng **một** endpoint, và điều kiện của nó là câu "không truy vấn DB" chứ
-không phải câu "danh sách ngắn". Ngày danh mục vai trò được đọc từ một bảng — vai trò do
-người dùng tự định nghĩa — dòng này phải bị gỡ và endpoint phải nhận đủ ba tham số, dù số
-dòng lúc đó vẫn là bảy.
+Bảng trên hiện **rỗng**, và nó rỗng vì điều khoản tự huỷ của dòng duy nhất từng nằm ở đây
+đã được thi hành.
+
+Dòng đó miễn `GET /api/v1/roles`, với điều kiện là câu "không truy vấn DB" chứ không phải câu
+"danh sách ngắn", và nó viết sẵn ngày hết hạn của chính mình: *ngày danh mục vai trò được đọc
+từ một bảng — vai trò do người dùng tự định nghĩa — dòng này phải bị gỡ và endpoint phải nhận
+đủ ba tham số, dù số dòng lúc đó vẫn là bảy.*
+
+Ngày đó là **2026-08-22**, khi ADR-0023 đưa vai trò xuống database và ADR-0024 mục 5 chuyển
+`GET /api/v1/roles` sang đọc bảng `roles`. Endpoint ấy nay nhận đủ `page`, `page_size`, `sort`
+và trả `meta` như mọi endpoint list khác.
+
+Giữ lại đoạn này chứ không xoá cùng dòng bảng: một ngoại lệ đã hết hạn đúng theo điều khoản
+của chính nó là một tiền lệ đáng đọc, không phải một dòng cần dọn.
 
 #### 4. DTO response được phép serialize token — ngoại lệ R-16
 
