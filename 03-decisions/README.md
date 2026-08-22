@@ -48,6 +48,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0021 | Vai trò mang tên module, quyền gán vai trò và gán phạm vi là permission của module sở hữu | Accepted (2026-08-21) | — | [ADR-0021-vai-tro-theo-module.md](ADR-0021-vai-tro-theo-module.md) |
 | ADR-0022 | Bảng `units` có đúng một đường ghi công khai là tạo mới, không sửa và không xoá | Accepted (2026-08-21) | — | [ADR-0022-mo-duong-ghi-cho-bang-units.md](ADR-0022-mo-duong-ghi-cho-bang-units.md) |
 | ADR-0023 | Ánh xạ vai trò → quyền xuống database, vai trò là dữ liệu cấp công ty do người quản trị tự khai | Accepted (2026-08-21) | — | [ADR-0023-vai-tro-xuong-database.md](ADR-0023-vai-tro-xuong-database.md) |
+| ADR-0024 | Thẩm quyền trên một vai trò tính từ TẬP QUYỀN của nó, không từ tên nó | Accepted (2026-08-22) | — | [ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md](ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
