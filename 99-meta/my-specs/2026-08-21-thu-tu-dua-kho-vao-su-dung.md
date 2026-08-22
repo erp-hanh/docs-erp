@@ -213,3 +213,46 @@ là **không dùng được**: `infra-erp/docker/web.nginx.conf:4-11` cố ý kh
 nhập không đi qua nginx. Đường thay thế đề xuất: middleware giới hạn tốc độ trong Go áp cho
 riêng route đăng nhập, đếm trong bộ nhớ - đủ vì ADR-0013 chốt `cmd/api` chạy một instance.
 Chưa chốt với chủ dự án.
+
+**2026-08-22 - đo index cho mệnh đề `q`, kết luận không thêm.** Mục 7 của
+`backend-erp/docs/superpowers/specs/2026-08-21-tim-kiem-danh-muc-design.md` chốt đo trước chứ
+không thêm index mù. Trên dev, `stock_items` có **0 dòng** nên nạp thẳng bằng `psql` 500 vật tư
+`DO-0001..DO-0500` tên `Vat tu do so N`, cộng 50 kho `DO-KHO-0001..` tên `Vat tu do kho so N` -
+đặc tả đòi cả "vài chục kho" chứ không riêng vật tư, mà dev chỉ có 2 kho thật. Đây là dữ liệu
+đo nên không đi qua service và cố ý không có dòng audit. `ANALYZE` cả hai bảng trước khi đo.
+Chuỗi tìm là ca xấu nhất: `'vat tu do'` khớp **cả 500** vật tư và **cả 50** kho, không phải ca
+may. Câu SQL chép từ repository chứ không từ đặc tả - đặc tả bỏ mất `(si.unit_id = $2 OR $2 IS
+NULL)` mà bốn câu list thật đều mang sẵn.
+
+Ba con số, lấy ở lần chạy ổn định (bỏ lần đầu cache lạnh), mỗi câu chạy sáu lần:
+
+| Câu | Execution Time | Nút quét trên bảng | `shared hit` của nút quét |
+|---|---|---|---|
+| list vật tư (`ORDER BY code ASC`) | 0.45 - 0.72 ms | `Index Scan using uq_stock_items_company_id_code` | 4 |
+| đếm vật tư | 0.52 - 0.89 ms | `Seq Scan on stock_items` | 11 |
+| list kho | 2.04 - 2.39 ms | `Seq Scan on warehouses` | 1 |
+
+**Quyết định: không thêm index.** Ngưỡng của mục 7.3 là `Execution Time` từ 20 ms trở xuống
+**và** `shared hit` từ 200 block trở xuống ở nút quét; cả ba câu đều dưới ngưỡng một khoảng rất
+xa - chậm nhất là 2.4 ms so với 20 ms, tốn nhất là 11 block so với 200. Không câu nào vượt dù
+chỉ một ngưỡng, nên cuộc bàn hạ tầng `pg_trgm` **không mở** trong đợt này, và không có ADR nào
+phải viết.
+
+Hai `Seq Scan` trong bảng trên **không** phải lý do thêm index, đúng như mục 7.3 đã rào: 500
+dòng nằm gọn trong 11 block thì quét tuần tự là kế hoạch đúng. Đáng ghi thêm hai điều planner
+làm mà đọc từ bàn giấy không thấy: câu list vật tư vẫn dùng được
+`uq_stock_items_company_id_code`, nhưng dùng cho `ORDER BY si.code` chứ **không** cho vế `ILIKE`
+- nó chỉ trả hàng theo đúng thứ tự rồi `Incremental Sort` cắt ở 100 dòng, nên nó đọc 101 dòng
+chứ không đọc cả 500; và 2.04 ms của câu kho phần lớn là chi phí so 52 UUID trong `id = ANY(...)`
+của phạm vi kho, không phải chi phí `ILIKE`.
+
+Dọn xong: đếm lại bằng `SELECT count(*)` với đúng điều kiện xoá trước khi xoá (khớp 500 và 50,
+và 0 dòng `stock_movements` tham chiếu tới chúng), xoá, `ANALYZE`, rồi đọc lại từ database -
+`stock_items` về **0 dòng**, `warehouses` về **2 dòng** đúng hai kho QA cũ `QA-KHO-A` và
+`QA-KHO-B`.
+
+Một điều phải nói rõ vì nó chưa khớp: **tham số `q` chưa có trong `backend-erp`**. `main` sạch,
+không nhánh nào đang mở, và `grep` không thấy `ILIKE` nào trong
+`modules/inventory/internal/repository/`. Số đo trên đo **hình dạng câu mà đặc tả chốt**, ghép
+vào hằng SQL hiện tại của repository - nó có giá trị để quyết index, nhưng người cài đặt `q`
+phải giữ đúng hình dạng đó, và nếu câu lệch đi thì số này hết hiệu lực.
