@@ -465,6 +465,28 @@ Mười bốn endpoint, **không** dòng nào dùng dạng `/actions/<verb>` —
 trạng thái, nên sổ đăng ký C-API-07 bảng 1 không có dòng mới. Bảng **5** thì có một dòng, dòng
 đầu tiên của nó.
 
+> **Bổ sung 2026-08-22 — bảng trên không còn đủ.** Chặng G cố ý không mở đường sửa hay xoá một
+> dòng chuyển động: một dòng sổ là việc đã xảy ra, và đường chữa duy nhất là ghi một dòng
+> `dieu_chinh` ngược lại. Quyết định đó **đã được mở lại có ý thức** khi module chuẩn bị giao
+> cho một thủ kho thật.
+>
+> Lý do mở lại, đo được chứ không phải giả định: phép kiểm tồn âm áp cho **mọi** loại chuyển
+> động, kể cả `dieu_chinh`. Nên ca "nhập thừa 100, hàng đã xuất hết" không chữa nổi bằng dòng
+> ngược — nó bị chính phép kiểm ấy từ chối 409, và sổ kẹt sai vĩnh viễn không đường nào gỡ qua
+> API.
+>
+> Thêm `DELETE /api/v1/stock-movements/:id` — xoá **mềm**, quyền riêng `inventory.movement_delete`
+> chỉ cấp `inventory.admin`, và **chạy đúng phép kiểm tồn âm của đường ghi**: bỏ dòng ra mà tồn
+> hiện tại xuống dưới 0 thì từ chối 409. Một bất biến cho cả hai chiều, không sinh luật thứ hai.
+>
+> Hạn chế còn nguyên, và là quyết định chứ không phải chỗ chưa làm: ca nhập thừa nói trên **vẫn**
+> không gỡ được bằng một lần xoá. Lời từ chối 409 ở đó có thể đang nói đúng — nếu 100 cái chưa
+> từng về kho mà sổ vẫn ghi 100 cái đi ra, thì sổ sai ở nhiều hơn một dòng, và sửa một dòng là
+> không đủ. Phương án xoá một **tập** dòng trong cùng transaction, kiểm một lần ở cuối, đã được
+> cân nhắc và hoãn: nó đòi một màn hình chọn nhiều dòng, đắt hơn nhiều so với thứ đang cần.
+>
+> Thiết kế đầy đủ: `backend-erp/docs/superpowers/specs/2026-08-21-xoa-mem-chuyen-dong-design.md`.
+
 **Không có endpoint sửa hay xóa `stock_movements`.** Một dòng sổ đã ghi là một việc đã xảy ra;
 sửa nó là sửa lịch sử. Đường đúng để chữa một dòng ghi sai là một dòng `dieu_chinh` ngược lại,
 và đó chính là lý do `kind` có giá trị thứ ba. Bảng vẫn có `deleted_at` vì nó là bảng nghiệp vụ
