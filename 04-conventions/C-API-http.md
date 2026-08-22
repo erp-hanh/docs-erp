@@ -590,6 +590,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | Mã đã tồn tại trong công ty này | Tạo hoặc sửa kho, hoặc vật tư, với mã đã có trong **cùng** công ty — vi phạm `uq_warehouses_company_id_code` hoặc `uq_stock_items_company_id_code` |
 | `ERR_INVENTORY_INSUFFICIENT_STOCK` | `409` | Không đủ tồn kho | Chuyển động làm tồn của cặp (kho, vật tư) xuống dưới 0. `dieu_chinh` âm chịu cùng kiểm này — điều chỉnh xuống dưới 0 vẫn là tồn âm |
 | `ERR_INVENTORY_UNIT_INVALID` | `422` | Đơn vị tính không hợp lệ | `unit_id` không phải một đơn vị tính còn sống |
+| `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | Mã đơn vị tính đã tồn tại | Tạo đơn vị tính với mã đã có — vi phạm `uq_units_code`. Mã **riêng** chứ không dùng `ERR_INVENTORY_CODE_DUPLICATED`: mã kia mang mệnh đề "trong cùng công ty này", mà `units` không có `company_id` nên một mã trùng là trùng với **toàn hệ** ([ADR-0022](../03-decisions/ADR-0022-mo-duong-ghi-cho-bang-units.md)) |
 | `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` | `422` | Vật tư hoặc kho không hợp lệ | `stock_item_id` hoặc `warehouse_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` — cùng lý do với `ERR_MACHINE_ASSIGNEE_INVALID` |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
@@ -688,6 +689,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_breakdowns_repair_cost_non_negative` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `repair_cost`\* |
 | `uq_warehouses_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
 | `uq_stock_items_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `uq_units_code` | `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | — |
 | `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
 

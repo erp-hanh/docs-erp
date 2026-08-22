@@ -159,6 +159,14 @@ lần sửa sau không có ai canh. Endpoint vì vậy ở lại `modules/invent
   chết trong bảng vai trò, cùng loại với dòng `auth.user_assign_scopes` của `machine.admin` mà
   ADR-0021 đã ghi ra.
 
+  **Đính chính 2026-08-22 khi thi công.** Câu trên nói `inventory.thu_kho` "nhận"
+  `inventory.unit_create`. Nó **chưa nhận**, và sẽ không nhận theo đường mà ADR này ngụ ý.
+  [ADR-0023](ADR-0023-vai-tro-xuong-database.md) mục Alternatives **loại** phương án thêm
+  permission vào hằng Go của `inventory.thu_kho`; việc cấp quyền danh mục cho vai trò đó thuộc
+  **bộ nạp dữ liệu** của đợt vai-trò-xuống-database. Nên bản thi công `POST /api/v1/units` chỉ
+  cấp `inventory.unit_create` cho `inventory.admin`, và hộp thoại thêm nhanh phục vụ admin lúc
+  dựng danh mục. Thủ kho dùng được sau khi ADR-0023 lên — không phải chỗ bỏ sót, là thứ tự.
+
 **Nợ để lại:**
 
 - **Bộ kiểm không phân biệt được câu đọc với câu ghi trên bảng `reference_tables`.** `checkR02`
