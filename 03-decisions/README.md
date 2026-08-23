@@ -1,4 +1,4 @@
-# Decisions — 23 ADR nền
+# Decisions — 29 ADR nền
 
 Rule trả lời *what must be true*. Principle trả lời *how we reason*. Trang này là tầng
 thứ ba: **why we chose this** — lý do một Rule tồn tại, và những phương án đã bị loại
@@ -21,7 +21,7 @@ khác", nên họ hoặc lặp lại sai lầm cũ, hoặc bỏ đi một quyế
 
 Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 
-## Hai mươi ba ADR hiện có
+## Hai mươi chín ADR hiện có
 
 | ID | Quyết định | Status | Constrains | File |
 |---|---|---|---|---|
@@ -53,6 +53,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0026 | Toàn phạm vi không còn là một permission, nó là dữ liệu treo cùng chỗ với phạm vi | Accepted (2026-08-22) | — | [ADR-0026-toan-pham-vi-khong-la-mot-permission.md](ADR-0026-toan-pham-vi-khong-la-mot-permission.md) |
 | ADR-0027 | Permission của module mới tới công ty đã tồn tại bằng một lệnh tường minh, không ghi đè lựa chọn của tenant | Accepted (2026-08-22) | — | [ADR-0027-permission-module-moi-vao-cong-ty-da-co.md](ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) |
 | ADR-0028 | Quyền chỉ tác động lên chính người giữ nó không kéo theo cửa `<module>.role_assign` | Accepted (2026-08-22) | — | [ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md](ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md) |
+| ADR-0029 | Nhân bản quản trị trong cùng một module là hợp lệ — hệ thống không đặt luật chống tăng số người giữ một quyền | Accepted (2026-08-24) | — | [ADR-0029-nhan-ban-quan-tri-trong-cung-module.md](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
