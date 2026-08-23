@@ -55,11 +55,11 @@ Ba lý do:
 | 2 | Tài khoản thủ kho thật + cấp phạm vi kho | tạo bằng `bootstrap.sh` trên VPS; gán vai trò và phạm vi qua màn người dùng |
 | 3 | Xoá mềm dòng chuyển động | `backend-erp/docs/superpowers/specs/2026-08-21-xoa-mem-chuyen-dong-design.md` |
 | 4 | `POST /units` + hộp thoại thêm nhanh | `backend-erp/.../2026-08-21-them-don-vi-tinh-design.md`, ADR-0022 |
-| 5 | **Tìm kiếm danh mục** | **BACKEND XONG 2026-08-22** - tham số `q` cho `GET /stock-items` và `GET /warehouses`, merge `a64c87a` trên `main` của `backend-erp`. Spec `backend-erp/.../2026-08-21-tim-kiem-danh-muc-design.md`. **Phần frontend chưa làm và chưa có spec** - `frontend-erp/docs/superpowers/specs/` không có bản nào cùng tên |
+| 5 | **Tìm kiếm danh mục** | **BACKEND XONG 2026-08-22** - tham số `q` cho `GET /stock-items` và `GET /warehouses`, merge `a64c87a` trên `main` của `backend-erp`. Spec `backend-erp/.../2026-08-21-tim-kiem-danh-muc-design.md`. **FRONTEND XONG 2026-08-23** - ô tìm trên hai màn danh mục, spec `frontend-erp/docs/superpowers/specs/2026-08-23-o-tim-danh-muc-design.md`, lên dev ở `v0.1.0-rc.30` |
 | 5b | Seed 14 đơn vị tính lên máy chạy thật | **XONG 2026-08-22** - 14 dòng `units`, 14 dòng audit `unit.created` |
-| 6 | Script nạp tồn đầu kỳ | `infra-erp/docs/superpowers/specs/2026-08-21-nap-ton-dau-ky-design.md` |
+| 6 | Script nạp tồn đầu kỳ | **ĐÃ CÀI ĐẶT 2026-08-24** - `infra-erp/scripts/nap-ton-dau-ky.ps1`. Spec `infra-erp/docs/superpowers/specs/2026-08-21-nap-ton-dau-ky-design.md` |
 | 7 | Sổ chuyển động tra được | spec + plan đã có, cả hai repo |
-| 8 | Chuyển inventory sang bộ component dùng chung | **spec + plan cũ CHẾT Ở TIỀN ĐỀ, phải viết lại** |
+| 8 | Chuyển inventory sang bộ component dùng chung | **XONG** - PR #20 và #21 của `frontend-erp`. Spec + plan cũ chết ở tiền đề nên không được dùng; đợt chuyển làm thẳng, xem ghi chú cuối mục "khối 8 chết ở tiền đề" |
 | 9 | Thi công ADR-0023 | **chỉ có ADR, chưa có spec thi công** |
 | 10 | Luật chặn sửa mã và xoá vật tư đã dùng | `backend-erp/.../2026-08-21-thu-kho-quan-ly-danh-muc-design.md` |
 
@@ -162,6 +162,12 @@ có đủ không. Hai chỗ đã biết là chưa đủ: `BangThongBao` không c
 thành khung xương" là ghép hộp ở từng màn, không phải truyền một prop `dang`.
 
 Không sửa vá spec cũ. Viết lại từ đầu, vì tiền đề chết chứ không phải sai chi tiết.
+
+**Sửa ngày 2026-08-24: khối 8 đã XONG.** PR #20 và #21 của `frontend-erp` đã làm trọn đợt
+chuyển module `inventory` sang bộ component dùng chung. Spec và plan cũ vẫn không được dùng -
+chẩn đoán "chết ở tiền đề" ở trên đúng nguyên và giữ lại để không ai mở lại chúng - nhưng
+**việc thì đã làm rồi**. Giữ nguyên phần chẩn đoán mà không nói điều này là để cả mục đọc ra
+thành một việc còn treo.
 
 ## Bốn chỗ chặn của ADR-0023, cho người thi công khối 9
 
