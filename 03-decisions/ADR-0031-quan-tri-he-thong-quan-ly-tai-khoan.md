@@ -1,6 +1,6 @@
 # ADR-0031: Vai trò dẫn xuất `quan_tri_he_thong` cầm thêm tập `auth.user_*`, và hàng rào chỉ đi một chiều
 
-**Status:** Proposed (2026-08-24)
+**Status:** Accepted (2026-08-24)
 
 ## Context
 
