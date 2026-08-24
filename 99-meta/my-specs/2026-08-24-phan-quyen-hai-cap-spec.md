@@ -145,6 +145,39 @@ chỉ đi được nửa đường — đắt hơn phần thu được.
 2. **Vỏ ứng dụng cho một màn thuộc nhiều ứng dụng**, tức bỏ bất biến hiện tại và thay bằng
    một quy tắc "ứng dụng đang mở" mang theo trạng thái điều hướng.
 
+## 4c. Vỏ giao diện đã dựng trước (2026-08-24, chưa nối API)
+
+Đã dựng **vỏ giao diện** cho ba màn còn chờ backend. Cả ba chạy trên **dữ liệu mẫu khai
+trong chính file page**, và cả ba đều mang một dải `BangThongBao` sắc `canh-bao` nói rõ điều
+đó cùng tên endpoint còn thiếu. Mọi nút ghi đều khoá mềm kèm `lyDoKhoa` — không có cú bấm nào
+bị nuốt im lặng.
+
+| Màn | Đường dẫn | File |
+|---|---|---|
+| Cấp 1 · Tài khoản | `/quan-tri/tai-khoan` | `modules/user/pages/TaiKhoanListPage.tsx` |
+| Cấp 1 · Bổ nhiệm quản trị phân hệ | `/quan-tri/bo-nhiem` | `modules/user/pages/BoNhiemListPage.tsx` |
+| Cấp 2 · Ma trận quyền | `/phan-quyen/:id/ma-tran` | `modules/user/pages/MaTranQuyenPage.tsx` |
+
+Kèm theo:
+
+- `shared/components/DaiTab/` — khối 0.2 của `khuon-man-hinh.md`, dải **liên kết** chứ không
+  phải `role="tablist"`: mỗi mặt có địa chỉ riêng nên mở tab mới, copy địa chỉ và nút Back
+  đều phải chạy. Người gọi truyền `<Link>` vào, cùng lối `quayLai` của `TieuDeTrang`.
+- `app/tab-quan-tri.ts` — ba mặt của màn cấp 1. Nằm ở `app/` vì ba mặt thuộc hai module khác
+  nhau, không module nào được quyền giữ danh sách (C-TS-01).
+- Ma trận cấp 2 lấy **danh tính thật** từ `GET /users/:id` cho thẻ ngữ cảnh; chỉ phần ma trận
+  là dữ liệu mẫu. Cuộn giữa bảng quyền vẫn phải trả lời được "đang sửa quyền của ai".
+- Hai mục điều hướng mới mang cờ `chiQuanTriHeThong`, và hai nét vẽ mới `the-tai-khoan`,
+  `huy-hieu`.
+
+**Chưa ai nhìn bằng mắt.** Bằng chứng hiện có là bằng chứng của máy: `npm test` 1050 xanh,
+`npm run lint` sạch, `npm run arch` khớp golden, `kiem-giao-dien.mjs` sạch. Ba màn này chưa
+lên máy dev nên checklist mục 2, 6 và 9 (năm trạng thái, trợ năng, chất lượng chữ) còn nợ.
+
+**Nợ để lại, cố ý:** `CompanyListPage` (mặt `/phan-vung` của cấp 1) chưa mang dải tab, vì nó
+là màn duy nhất trong ba mặt còn chưa đi qua hệ thiết kế — vẫn là `<h1>` trần với một `<Link>`
+chữ làm đường tạo. Đường về từ mặt đó là thanh điều hướng bên nên không có ngõ cụt.
+
 ## 5. Chưa quyết
 
 - Trạng thái "Chờ nhận" của một lượt bổ nhiệm (thấy trên mockup cấp 1) — chưa có trong mô hình.
