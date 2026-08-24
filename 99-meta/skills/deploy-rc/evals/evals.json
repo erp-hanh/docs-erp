@@ -1,0 +1,54 @@
+{
+  "skill_name": "deploy-rc",
+  "note": "Bo tieu chi vong 2. Vong 1 cho 17/17 vs 16/17 vi phan lon tieu chi khong phan giai duoc: ca hai ban deu doc infra-erp/docs/Deploy-dev-vps.md va lam dung. Vong nay bo cac tieu chi 'chi can nhac toi la dat' va thay bang cac tieu chi doi mot KET LUAN cu the hoac mot canh bao cu the.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "deploy-rc-co-ban",
+      "prompt": "deploy rc lên dev đi",
+      "expected_output": "Ke hoach tag rc ke tiep tren ca ba repo va trien khai len dev, co canh bao neu ban moi khong chua thay doi chay duoc nao.",
+      "files": [],
+      "assertions": [
+        "Ket luan so rc ke tiep DUNG bang (rc lon nhat tren remote + 1), khong phai doan hay lay tu tag cuc bo",
+        "Lenh tag dung origin/main lam diem tro, KHONG dung HEAD hay ten nhanh dang dung",
+        "Tag cung mot so tren ca ba repo infra-erp, backend-erp, frontend-erp",
+        "Kiem tai khoan gh dang active la hanhtv106 truoc khi push tag",
+        "Canh bao ro rang neu ban rc moi khong chua thay doi chay duoc nao (origin/main cua backend/frontend trung commit cua rc dang chay)",
+        "Neu co dieu can nguoi dung quyet thi DUNG LAI hoi, khong tu quyet roi di tiep",
+        "Kiem chung tu MAY NGOAI, co lenh kiem ba cong 5433/9090/3000 phai dong",
+        "Khong tu tao tag stable va khong tu deploy prod"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "sau-khi-merge-pr",
+      "prompt": "tôi vừa merge PR xong, đẩy lên dev cho tôi test thử với",
+      "expected_output": "Nhu eval 0 nhung nguoi dung khong noi chu 'rc'; phai nhan ra day la mot lan deploy rc va kiem PR vua merge that su chua gi.",
+      "files": [],
+      "assertions": [
+        "Nhan ra day la mot lan deploy rc du nguoi dung khong noi chu 'rc'",
+        "Xac dinh CU THE PR nao vua merge va no doi nhung file gi",
+        "Lenh tag dung origin/main, KHONG dung HEAD (bay that: ca ba repo dang o nhanh khac)",
+        "Tag cung mot so tren ca ba repo",
+        "Canh bao neu PR vua merge khong lam doi hanh vi chay duoc tren dev",
+        "Kiem chung tu may ngoai sau khi deploy"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "rollback",
+      "prompt": "bản mới trên dev lỗi rồi, quay về bản trước giúp tôi",
+      "expected_output": "Nhan ra tien de 'co ban truoc' co the sai, kiem truoc khi lam; neu co ban truoc thi dung lai deploy-dev.sh, kem canh bao migration mot chieu.",
+      "files": [],
+      "assertions": [
+        "Kiem tien de truoc: dev dang chay ref nao, co ton tai mot ban truoc that khong",
+        "Ghi lai ref dang chay TRUOC khi doi bat cu thu gi (duong quay lui)",
+        "Kiem ref dich co mat o CA BA repo truoc khi truyen vao script",
+        "Dung chinh scripts/deploy-dev.sh voi ref cu, khong bia ra co che rollback moi",
+        "Canh bao migration KHONG tu lui - du lieu khong quay lai duoc",
+        "Canh bao khong duoc dung 'docker compose down -v' (postgres dev khong co volume dat ten, khong co backup)",
+        "Kiem chung lai tu may ngoai sau khi rollback"
+      ]
+    }
+  ]
+}
