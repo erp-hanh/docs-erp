@@ -114,6 +114,37 @@ dung của bảng quyền chứ không bởi một luật (ADR-0029 mục Mất)
 Nên bắt đầu bằng **bước 3**: nó là phần duy nhất chạy được hôm nay, và nó là màn mà trưởng kho
 dùng hằng ngày.
 
+## 4b. Đã dựng tới đâu (2026-08-24, `v0.1.0-rc.39`)
+
+**Đã vào code:**
+
+- Băng chọn người (khối 0.3) và thẻ ngữ cảnh (khối 0.4) trên `/phan-quyen/:id` — chuyển sang
+  cấu hình cho người khác mà không phải quay về danh sách.
+- Mục **"Phân quyền phân hệ"** trên thanh bên của ứng dụng Kho vận, **không** mang cờ ẩn theo
+  vai trò: luật vỏ ứng dụng cấm ẩn mục theo role vì ẩn là *đoán*. Mục hiện cho mọi người dùng
+  Kho vận; ai không có `auth.user_list` nhận `403` và màn đến nói tử tế, có `request_id`.
+- Danh tính người rời khỏi dải đầu trang, vì thẻ ngữ cảnh đã nói đủ ba mẩu đó. Dải đầu nay
+  mang **tên màn** (`Gán vai trò và phạm vi`) — đúng chữ trên liên kết đã dẫn tới đây, nên
+  nút bấm và màn đến gọi cùng một tên cho cùng một việc.
+
+**Lỗ còn lại, và nó chạm đúng mục đích của mục 2 ở trên:** bấm mục mới thì vỏ ứng dụng chuyển
+sang "Quản trị hệ thống", tức người dùng **bị đẩy ra khỏi phân hệ đang làm**. Nguyên nhân là
+bất biến "đường dẫn của hai ứng dụng không giao nhau" (`src/app/ung-dung.test.ts`): không thể
+cho `/phan-quyen` thuộc cả `inventory` lẫn ứng dụng quản trị.
+
+**Đã cân và cố ý KHÔNG chữa bằng một địa chỉ thứ hai** (kiểu `/kho-van/phan-quyen` render cùng
+`UserListPage`). Nó chỉ chữa được cú bấm đầu: từ đó bấm một dòng trong bảng vẫn đi tới
+`/phan-quyen/:id` và vẫn bị đẩy ra. Hai URL cho cùng một màn, không biết URL nào là chuẩn, mà
+chỉ đi được nửa đường — đắt hơn phần thu được.
+
+Đường ra thật cần một trong hai quyết định, và cả hai đều lớn hơn một PR giao diện:
+
+1. **Cấp 2 có màn riêng của phân hệ**, không dùng lại `/phan-quyen`. Lúc đó nó chỉ liệt kê
+   nhân sự có vai trò thuộc `inventory` và chỉ sửa được vai trò của phân hệ đó — đúng tinh
+   thần cấp 2, nhưng cần endpoint lọc theo module mà `GET /users` chưa có.
+2. **Vỏ ứng dụng cho một màn thuộc nhiều ứng dụng**, tức bỏ bất biến hiện tại và thay bằng
+   một quy tắc "ứng dụng đang mở" mang theo trạng thái điều hướng.
+
 ## 5. Chưa quyết
 
 - Trạng thái "Chờ nhận" của một lượt bổ nhiệm (thấy trên mockup cấp 1) — chưa có trong mô hình.
