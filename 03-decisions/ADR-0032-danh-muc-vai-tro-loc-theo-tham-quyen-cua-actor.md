@@ -101,6 +101,25 @@ service vì "danh mục đã lọc rồi" là mở một lỗ có thể khai th�
 | `machine.admin` | Người mang vai trò chạm `machine` | Chỉ vai trò thuộc `machine` |
 | `quan_tri_he_thong` | Toàn phân vùng | **Bảy vai trò** - nó có cả ba `<module>.role_assign`, nên phép lọc cho qua hết. Xem ghi chú đính chính ngay dưới bảng |
 
+**Đính chính thứ hai, lúc thi công (2026-08-24).** Dòng `auth.admin` của bảng trên ghi "Bảy vai
+trò". Sai, và bộ test E2E bắt được ngay ở lần chạy đầu: `GET /roles` trả **một** dòng.
+
+`AuthAdmin` chỉ giữ `auth.PermRoleAssign` (`backend-erp/cmd/internal/vaitro/vaitro.go:269`),
+không giữ `inventory.PermRoleAssign` lẫn `machine.PermRoleAssign` - hai mã đó nằm ở
+`InventoryAdmin` (dòng 309) và `MachineAdmin` (dòng 356), còn cả ba thì chỉ
+`quan_tri_he_thong` có (dòng 385-387). Theo đúng luật của ADR-0024 mục 3 mà chính ADR này dùng
+lại, `auth.admin` vì vậy gán được đúng những vai trò có tập quyền nằm gọn trong `auth`.
+
+**Một dòng là con số ĐÚNG, không phải một lỗi thi công.** Bảng trên mới là chỗ sai, và nó sai
+cùng một kiểu với đính chính thứ nhất: đọc tập quyền từ trí nhớ thay vì từ `vaitro.go`.
+
+Hệ quả nghiệp vụ phải nói ra, vì nó đổi thứ người dùng nhìn thấy: một quản trị phân vùng
+(`auth.admin`) mở màn phân quyền ra nay thấy **một** vai trò trong danh mục thay vì bảy. Đó
+không phải mất tính năng - bảy cái kia họ vốn đã không gán được, tick vào chỉ nhận `403` sau
+khi bấm Lưu. Nhưng nó nói thẳng ra một điều mà giao diện cũ giấu: hôm nay **không có ai** vừa
+quản lý được tài khoản vừa gán được vai trò của mọi phân hệ, ngoài `quan_tri_he_thong`. Ngày
+nào đó thấy bất tiện thì đường ra là sửa tập quyền của `auth.admin`, và đó là một ADR khác.
+
 **Đính chính, cùng ngày.** Bản đầu của bảng trên ghi `quan_tri_he_thong` nhận `403` ở màn này.
 Sai. Đọc `backend-erp/cmd/internal/vaitro/vaitro.go:366-382` thì vai trò đó có `auth.user_list`
 nên mở được màn, và có **cả ba** `<module>.role_assign` nên phép lọc ở mục Decision 1 cho qua
