@@ -56,6 +56,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0029 | Nhân bản quản trị trong cùng một module là hợp lệ — hệ thống không đặt luật chống tăng số người giữ một quyền | Accepted (2026-08-24) | — | [ADR-0029-nhan-ban-quan-tri-trong-cung-module.md](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md) |
 | ADR-0030 | Phạm vi trả lời "của ai", vòng đời trả lời "còn sống không" — danh sách id của Resolve gồm cả bản ghi đã xoá mềm | Accepted (2026-08-24) | R-18 | [ADR-0030-pham-vi-tra-loi-cua-ai-khong-tra-loi-con-song-khong.md](ADR-0030-pham-vi-tra-loi-cua-ai-khong-tra-loi-con-song-khong.md) |
 | ADR-0031 | Vai trò dẫn xuất `quan_tri_he_thong` cầm thêm tập `auth.user_*`, và hàng rào chỉ đi một chiều | Proposed (2026-08-24) | — | [ADR-0031-quan-tri-he-thong-quan-ly-tai-khoan.md](ADR-0031-quan-tri-he-thong-quan-ly-tai-khoan.md) |
+| ADR-0032 | Danh mục vai trò lọc theo thẩm quyền của actor, và module suy từ tập quyền chứ không từ mã vai trò | Proposed (2026-08-24) | — | [ADR-0032-danh-muc-vai-tro-loc-theo-tham-quyen-cua-actor.md](ADR-0032-danh-muc-vai-tro-loc-theo-tham-quyen-cua-actor.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
