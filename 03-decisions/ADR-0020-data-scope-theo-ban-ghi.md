@@ -88,6 +88,18 @@ ai thấy được gì mà không phải đi đọc một cột boolean trong da
 là toàn bộ id đang sống của loại đó trong phân vùng. Nhờ vậy repository có **đúng một** hình
 dạng câu SQL, không có nhánh `if toàn bộ` để ai đó quên.
 
+**5b. Sửa (2026-08-24, sau [ADR-0030](ADR-0030-pham-vi-tra-loi-cua-ai-khong-tra-loi-con-song-khong.md)):**
+bỏ chữ **"đang sống"** ở mục 5. Danh sách gồm **mọi** id của loại đó trong phân vùng, kể cả bản
+ghi đã xoá mềm.
+
+Chữ ấy viết cho câu hỏi *"có những kho nào"* rồi bị dùng lại cho câu *"người này được thấy
+gì"*, và ghép với mục 2 ở trên — `scope_id` không mang khoá ngoại, nên hàng cấp phạm vi sống
+sót qua việc xoá mềm — nó làm hai nhánh của `Resolve` trả lời ngược nhau: actor toàn phạm vi
+thấy **0** dòng sổ của một kho đã xoá mềm, actor được cấp đúng kho đó thấy **2**. Càng nhiều
+quyền càng thấy ít.
+
+Phần còn lại của mục 5 giữ nguyên, và giữ vì đúng lý do cũ: vẫn đúng một hình dạng câu SQL.
+
 **6. Scope không đi vào JWT và không đi vào `auth.Actor`.** Nó được giải lại ở mỗi request
 chạm tài nguyên chịu phạm vi. Không cache ở vòng đầu.
 
