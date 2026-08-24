@@ -1,6 +1,6 @@
 # ADR-0032: Danh mục vai trò lọc theo thẩm quyền của actor, và module suy từ tập quyền chứ không từ mã vai trò
 
-**Status:** Proposed (2026-08-24)
+**Status:** Accepted (2026-08-24)
 
 ## Context
 
