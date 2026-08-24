@@ -1,0 +1,267 @@
+<!doctype html>
+<!--
+  HỒ SƠ THIẾT KẾ — không phải code chạy thật.
+  Ngày: 2026-08-24
+  Trạng thái: ĐÃ LÊN CODE MỘT PHẦN trong `frontend-erp` — dải đầu trang và nút hành động
+  chính đã dựng theo bản này. Phần còn lại của bố cục v2 vẫn chỉ có ở đây.
+  Vì đã lên code một phần, file này KHÔNG còn là mô tả đúng của màn danh sách kho đang
+  chạy: đọc kèm code thật, đừng coi đây là bản gốc.
+  Bản sao lưu có version: docs-erp/99-meta/mockups/
+  Lưu ý: hai thẻ <link> đầu trỏ ra ../frontend-erp/... nên chỉ mở đúng khi file nằm ở
+  erp/mockup-erp/. Mở từ bản trong docs-erp thì mất token màu.
+-->
+<html lang="vi" data-theme="sang">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Danh sách kho — đề xuất bố cục v2</title>
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/tokens.css" />
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/co-so.css" />
+    <link rel="stylesheet" href="bo-cuc-v2.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <g id="i-luoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="5" cy="5" r="1" /><circle cx="10" cy="5" r="1" /><circle cx="15" cy="5" r="1" />
+          <circle cx="5" cy="10" r="1" /><circle cx="10" cy="10" r="1" /><circle cx="15" cy="10" r="1" />
+          <circle cx="5" cy="15" r="1" /><circle cx="10" cy="15" r="1" /><circle cx="15" cy="15" r="1" />
+        </g>
+        <g id="i-kho" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5 10 4l7 4.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M8 17v-5h4v5" />
+        </g>
+        <g id="i-hop" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m10 3 7 3.8v6.4L10 17l-7-3.8V6.8z" /><path d="m3 6.8 7 3.7 7-3.7M10 10.5V17" />
+        </g>
+        <g id="i-ds" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h12M4 10h12M4 14h8" /></g>
+        <g id="i-so-do" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5" cy="10" r="2" /><circle cx="15" cy="5" r="2" /><circle cx="15" cy="15" r="2" /><path d="M6.8 9 13 6M6.8 11l6.2 3" />
+        </g>
+        <g id="i-cong" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></g>
+        <g id="i-tai" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v8m0 0 3-3m-3 3-3-3M4 15h12" /></g>
+        <g id="i-sua" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5 15.5 6.5 7 15H5v-2z" /></g>
+        <g id="i-xoa" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6h11M8 6V4.5h4V6M6.5 6l.7 9.5h5.6L13.5 6" /></g>
+      </defs>
+    </svg>
+
+    <div class="vo-mockup">
+      <header class="thanh-dau-mockup">
+        <button class="nut" aria-label="Tất cả ứng dụng" style="border-color: transparent; background: none">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-luoi" /></svg>
+        </button>
+        <span style="display: flex; align-items: center; gap: var(--gian-2); font-weight: var(--dam-vua)">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); color: var(--mau-chinh)"><use href="#i-kho" /></svg>
+          Kho vận
+        </span>
+        <span style="padding-left: var(--gian-3); margin-left: var(--gian-1); border-left: 1px solid var(--mau-vien); font-size: var(--chu-sm)">
+          <span style="font-family: var(--font-so); font-weight: var(--dam-vua)">DEFAULT</span>
+          <span style="color: var(--mau-chu-mo)">&nbsp;CÔNG TY ĐẠI THẮNG</span>
+        </span>
+        <div class="day-thanh-dau">
+          <div class="chuyen-che-do" role="group" aria-label="Chế độ hiển thị">
+            <button type="button" aria-pressed="true" onclick="datCheDo('sang', this)">Sáng</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('toi', this)">Tối</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('he-thong', this)">Hệ thống</button>
+          </div>
+          <span class="anh-dai-dien" style="width: var(--gian-6); height: var(--gian-6); font-size: var(--chu-sm)">QT</span>
+        </div>
+      </header>
+
+      <nav class="canh-mockup" aria-label="Điều hướng Kho vận">
+        <div class="nhan-nhom-canh">Kho vận</div>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-so-do" /></svg><span>Quy trình</span></a>
+        <a class="muc-canh" href="#" aria-current="page"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg><span>Kho</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-hop" /></svg><span>Vật tư</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-ds" /></svg><span>Tồn kho</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg><span>Chuyển động</span><span class="huy-hieu">6 chờ duyệt</span></a>
+      </nav>
+
+      <main class="than-mockup">
+        <section class="dai-dau">
+          <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg></span>
+          <h1>Danh sách kho</h1>
+          <div class="day-nut">
+            <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất Excel</button>
+            <button class="nut-chinh" type="button"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>Tạo kho mới</button>
+          </div>
+        </section>
+
+        <!-- Dải chỉ số: chỉ dựng vì cả ba con số đều gọi tên được và đều lấy từ endpoint có sẵn.
+             Không gọi tên được thì không dựng dải này. -->
+        <dl class="dai-chi-so">
+          <div class="o-chi-so"><dt>Kho đang hoạt động</dt><dd>12 <span class="phu">/ 14</span></dd></div>
+          <div class="o-chi-so"><dt>Vật tư có tồn</dt><dd>248</dd></div>
+          <div class="o-chi-so"><dt>Kho chưa gán người phụ trách</dt><dd>2</dd></div>
+        </dl>
+
+        <section class="the">
+          <div class="thanh-loc">
+            <div class="truong">
+              <label for="tim">Tìm theo mã hoặc tên</label>
+              <input class="o-tim" id="tim" type="search" placeholder="QA-KHO, Kho Tân Bình..." />
+            </div>
+            <div class="truong">
+              <label for="tt">Trạng thái</label>
+              <select id="tt"><option>Tất cả</option><option>Đang hoạt động</option><option>Đã khoá</option></select>
+            </div>
+            <div class="truong">
+              <label for="sx">Sắp xếp</label>
+              <select id="sx"><option>Mã tăng dần</option><option>Mới tạo trước</option></select>
+            </div>
+            <div class="day-phai">
+              <div class="truong">
+                <label for="sd">Số dòng</label>
+                <select id="sd"><option>20</option><option>50</option><option>100</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="khung-bang">
+            <table class="bang-co-dinh">
+              <thead>
+                <tr>
+                  <th style="width: 28%">Kho</th>
+                  <th class="cat" style="width: 19%">Địa chỉ</th>
+                  <th class="hep" style="width: 14%">Phụ trách</th>
+                  <th class="so hep" style="width: 7%">Vật tư</th>
+                  <th class="so" style="width: 11%">CĐ 30 ngày</th>
+                  <th class="hep" style="width: 10%">Trạng thái</th>
+                  <th class="phai hep" style="width: 11%">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">QA-KHO-A</a> Kho QA A</div><div class="dong-duoi">Kho tổng, nhận hàng từ nhà cung cấp</div></td>
+                  <td class="cat">Lô B2, KCN Tân Bình, TP.HCM</td>
+                  <td class="cat">Nguyễn Văn Vận</td>
+                  <td class="so hep">86</td>
+                  <td class="so hep">142</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">QA-KHO-B</a> Kho QA B</div><div class="dong-duoi">Kho trung chuyển nội bộ</div></td>
+                  <td class="cat">Lô B7, KCN Tân Bình, TP.HCM</td>
+                  <td class="cat">Nguyễn Văn Vận</td>
+                  <td class="so hep">54</td>
+                  <td class="so hep">98</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-DN-01</a> Kho Đà Nẵng 1</div><div class="dong-duoi">Chi nhánh miền Trung</div></td>
+                  <td class="cat">KCN Hoà Khánh, Đà Nẵng</td>
+                  <td class="cat">Trần Thị Hà</td>
+                  <td class="so hep">37</td>
+                  <td class="so hep">61</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-HN-01</a> Kho Hà Nội 1</div><div class="dong-duoi">Văn phòng miền Bắc</div></td>
+                  <td class="cat">KCN Sài Đồng B, Long Biên, Hà Nội</td>
+                  <td class="chu-phu cat">Chưa gán</td>
+                  <td class="so hep">21</td>
+                  <td class="so hep">18</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-HN-02</a> Kho Hà Nội 2</div><div class="dong-duoi">Kho linh kiện thay thế</div></td>
+                  <td class="cat">Cụm CN Nguyên Khê, Đông Anh, Hà Nội</td>
+                  <td class="cat">Phạm Minh Đức</td>
+                  <td class="so hep">112</td>
+                  <td class="so hep">203</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-NM-TB</a> Nhà máy Tân Bình</div><div class="dong-duoi">Kho nguyên liệu đầu vào sản xuất</div></td>
+                  <td class="cat">Lô C1, KCN Tân Bình, TP.HCM</td>
+                  <td class="cat">Hoàng Quốc Việt</td>
+                  <td class="so hep">193</td>
+                  <td class="so hep">411</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-NM-TP</a> Kho thành phẩm</div><div class="dong-duoi">Đầu ra sản xuất, chờ giao khách</div></td>
+                  <td class="cat">Lô C2, KCN Tân Bình, TP.HCM</td>
+                  <td class="cat">Hoàng Quốc Việt</td>
+                  <td class="so hep">76</td>
+                  <td class="so hep">288</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-PL-01</a> Kho phế liệu</div><div class="dong-duoi">Hàng hỏng, hàng huỷ chờ thanh lý</div></td>
+                  <td class="cat">Lô C5, KCN Tân Bình, TP.HCM</td>
+                  <td class="chu-phu cat">Chưa gán</td>
+                  <td class="so hep">9</td>
+                  <td class="so hep">4</td>
+                  <td class="hep"><span class="chip"><span class="cham" style="color: var(--mau-canh-bao)"></span>Tạm dừng</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-CT-01</a> Kho Cần Thơ</div><div class="dong-duoi">Chi nhánh miền Tây</div></td>
+                  <td class="cat">KCN Trà Nóc 1, Cần Thơ</td>
+                  <td class="cat">Vũ Minh Tuấn</td>
+                  <td class="so hep">44</td>
+                  <td class="so hep">57</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-BD-01</a> Kho Bình Dương</div><div class="dong-duoi">Kho thuê ngoài, hợp đồng tới 12/2026</div></td>
+                  <td class="cat">KCN VSIP 1, Thuận An, Bình Dương</td>
+                  <td class="cat">Vũ Minh Tuấn</td>
+                  <td class="so hep">67</td>
+                  <td class="so hep">134</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-HP-01</a> Kho Hải Phòng</div><div class="dong-duoi">Gần cảng, phục vụ hàng nhập khẩu</div></td>
+                  <td class="cat">KCN Đình Vũ, Hải Phòng</td>
+                  <td class="cat">Nguyễn Thu Hà</td>
+                  <td class="so hep">88</td>
+                  <td class="so hep">176</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren"><a class="ma" href="#">KHO-TAM-01</a> Kho tạm công trình</div><div class="dong-duoi">Dựng theo dự án, đóng khi nghiệm thu</div></td>
+                  <td class="cat">Công trường Nhơn Trạch, Đồng Nai</td>
+                  <td class="cat">Phạm Minh Đức</td>
+                  <td class="so hep">13</td>
+                  <td class="so hep">29</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hoạt động</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Xoá</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="chan-bang">
+            <span>Trang 1 trên 1 · 12 kho</span>
+            <div class="day-nut">
+              <button class="nut" type="button" disabled>Trang trước</button>
+              <button class="nut" type="button" disabled>Trang sau</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      function datCheDo(che, nut) {
+        var goc = document.documentElement;
+        if (che === 'he-thong') goc.removeAttribute('data-theme');
+        else goc.setAttribute('data-theme', che);
+        nut.parentNode.querySelectorAll('button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b === nut));
+        });
+      }
+    </script>
+  </body>
+</html>

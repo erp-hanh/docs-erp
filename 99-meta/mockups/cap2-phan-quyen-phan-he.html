@@ -1,0 +1,319 @@
+<!doctype html>
+<!--
+  HỒ SƠ THIẾT KẾ — không phải code chạy thật.
+  Ngày: 2026-08-24
+  Trạng thái: CHƯA lên code. Đây mới là đề xuất bố cục cho màn Cấp 2 (Phân quyền phân hệ
+  Kho vận / Admin Phân hệ), chưa có màn tương ứng nào trong `frontend-erp`.
+  Bản sao lưu có version: docs-erp/99-meta/mockups/
+  Lưu ý: hai thẻ <link> đầu trỏ ra ../frontend-erp/... nên chỉ mở đúng khi file nằm ở
+  erp/mockup-erp/. Mở từ bản trong docs-erp thì mất token màu.
+-->
+<html lang="vi" data-theme="sang">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cấp 2 — Phân quyền phân hệ Kho vận (Admin Phân hệ)</title>
+    <!-- Link thẳng vào token và lớp nền THẬT của frontend-erp. Không sửa một mã màu nào. -->
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/tokens.css" />
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/co-so.css" />
+    <link rel="stylesheet" href="bo-cuc-v2.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <g id="i-luoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="5" cy="5" r="1" /><circle cx="10" cy="5" r="1" /><circle cx="15" cy="5" r="1" />
+          <circle cx="5" cy="10" r="1" /><circle cx="10" cy="10" r="1" /><circle cx="15" cy="10" r="1" />
+          <circle cx="5" cy="15" r="1" /><circle cx="10" cy="15" r="1" /><circle cx="15" cy="15" r="1" />
+        </g>
+        <g id="i-khoa" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="9" width="12" height="8" rx="1.5" /><path d="M7 9V6.5a3 3 0 0 1 6 0V9" />
+        </g>
+        <g id="i-nguoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10" cy="7" r="3" /><path d="M4 17c0-3.3 2.7-5 6-5s6 1.7 6 5" />
+        </g>
+        <g id="i-the" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="14" height="10" rx="1.5" /><path d="M3 8.5h14M6.5 12h3" />
+        </g>
+        <g id="i-kho" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5 10 4l7 4.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M8 17v-5h4v5" />
+        </g>
+        <g id="i-hop" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m10 3 7 3.8v6.4L10 17l-7-3.8V6.8z" /><path d="m3 6.8 7 3.7 7-3.7M10 10.5V17" />
+        </g>
+        <g id="i-ds" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 6h12M4 10h12M4 14h8" />
+        </g>
+        <g id="i-so-do" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5" cy="10" r="2" /><circle cx="15" cy="5" r="2" /><circle cx="15" cy="15" r="2" /><path d="M6.8 9 13 6M6.8 11l6.2 3" />
+        </g>
+        <g id="i-cong" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></g>
+        <g id="i-tich" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 10.5 3.5 3.5L15 7" /></g>
+        <g id="i-cheo" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6.5 6.5 7 7M13.5 6.5l-7 7" /></g>
+        <g id="i-gach" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 10h8" /></g>
+        <g id="i-xuong" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 8.5 4 4 4-4" /></g>
+        <g id="i-phai" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 6 4 4-4 4" /></g>
+        <g id="i-loc" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12l-4.5 5.5V16l-3-1.5v-4z" /></g>
+        <g id="i-pham-vi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.5" /><path d="M3.5 10h13M10 3.5c1.8 2 2.7 4.2 2.7 6.5S11.8 14.5 10 16.5c-1.8-2-2.7-4.2-2.7-6.5S8.2 5.5 10 3.5" /></g>
+        <g id="i-lich-su" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.5" /><path d="M10 6v4.2l2.8 1.8" /></g>
+      </defs>
+    </svg>
+
+    <div class="vo-mockup">
+      <!-- ============ Thanh đầu ============ -->
+      <header class="thanh-dau-mockup">
+        <button class="nut" aria-label="Tất cả ứng dụng" style="border-color: transparent; background: none">
+          <svg viewBox="0 0 20 20"><use href="#i-luoi" /></svg>
+        </button>
+        <span style="display: flex; align-items: center; gap: var(--gian-2); font-weight: var(--dam-vua)">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); color: var(--mau-chinh)"><use href="#i-kho" /></svg>
+          Kho vận
+        </span>
+        <span style="padding-left: var(--gian-3); margin-left: var(--gian-1); border-left: 1px solid var(--mau-vien); font-size: var(--chu-sm)">
+          <span style="font-family: var(--font-so); font-weight: var(--dam-vua)">CN-HCM</span>
+          <span style="color: var(--mau-chu-mo)">&nbsp;CHI NHÁNH HCM</span>
+        </span>
+
+        <div class="day-thanh-dau">
+          <!-- Nút chuyển chế độ: bạn yêu cầu từ đầu, và tokens.css đã sẵn bản tối. -->
+          <div class="chuyen-che-do" role="group" aria-label="Chế độ hiển thị">
+            <button type="button" aria-pressed="true" onclick="datCheDo('sang', this)">Sáng</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('toi', this)">Tối</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('he-thong', this)">Hệ thống</button>
+          </div>
+          <span class="anh-dai-dien" style="width: var(--gian-6); height: var(--gian-6); font-size: var(--chu-sm)">QT</span>
+        </div>
+      </header>
+
+      <!-- ============ Điều hướng bên ============ -->
+      <nav class="canh-mockup" aria-label="Điều hướng Kho vận">
+        <div class="nhan-nhom-canh">Kho vận</div>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-so-do" /></svg><span>Quy trình</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg><span>Kho</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-hop" /></svg><span>Vật tư</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-ds" /></svg><span>Tồn kho</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-loc" /></svg><span>Chuyển động</span><span class="huy-hieu">6 chờ duyệt</span></a>
+        <!-- Mục này CHỈ hiện khi người đang đăng nhập mang vai trò inventory.admin.
+             Nó nằm ở thanh bên của chính phân hệ, không nằm ở Quản trị hệ thống. -->
+        <div class="nhan-nhom-canh">Quản trị phân hệ</div>
+        <a class="muc-canh" href="#" aria-current="page"><svg viewBox="0 0 20 20"><use href="#i-khoa" /></svg><span>Phân quyền phân hệ</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-lich-su" /></svg><span>Nhật ký phân hệ</span></a>
+      </nav>
+
+      <!-- ============ Thân trang ============ -->
+      <main class="than-mockup">
+        <!-- 1. Dải đầu trang: đây là khối bản đang chạy KHÔNG có -->
+        <section class="dai-dau">
+          <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg></span>
+          <h1>Phân quyền phân hệ Kho vận</h1>
+          <div class="day-nut">
+
+            <button class="nut-chinh" type="button">
+              <svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>
+              Thêm người vào phân hệ
+            </button>
+          </div>
+        </section>
+
+        <!-- 2. Dải tab -->
+        <div class="dai-tab" role="tablist">
+          <button class="tab" role="tab" aria-selected="true"><svg viewBox="0 0 20 20"><use href="#i-luoi" /></svg>Ma trận quyền Kho vận</button>
+          <button class="tab" role="tab" aria-selected="false"><svg viewBox="0 0 20 20"><use href="#i-nguoi" /></svg>Nhân sự phân hệ <span class="dem">7</span></button>
+          <button class="tab" role="tab" aria-selected="false"><svg viewBox="0 0 20 20"><use href="#i-pham-vi" /></svg>Phạm vi kho <span class="dem">2</span></button>
+        </div>
+
+        <!-- 3. Băng chọn ngữ cảnh -->
+        <section class="the">
+          <div class="bang-chon">
+            <span class="nhan-bang"><svg viewBox="0 0 20 20"><use href="#i-nguoi" /></svg>Đang cấu hình cho</span>
+            <select aria-label="Lọc nhân sự theo phạm vi" style="height: 32px">
+              <option>Mọi kho tôi quản lý (7 người)</option>
+              <option>QA-KHO-A · Kho QA A (4)</option>
+              <option>QA-KHO-B · Kho QA B (3)</option>
+            </select>
+            <div class="day-nguoi">
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">QT</span>QA Quản trị</button>
+              <button class="the-nguoi" type="button" aria-pressed="true"><span class="chu-cai">TK</span>QA Thủ kho</button>
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">QK</span>QA Quản trị kho</button>
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">MT</span>QA Mục tiêu</button>
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">TR</span>QA Trùng</button>
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">NV</span>Nguyễn Văn Vận</button>
+              <button class="the-nguoi" type="button" aria-pressed="false"><span class="chu-cai">LB</span>Lê Thị Bích</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Thẻ ngữ cảnh -->
+        <section class="the">
+          <div class="the-ngu-canh">
+            <span class="anh-dai-dien">TK</span>
+            <div class="chinh" style="min-width: 0">
+              <div class="ten">
+                QA Thủ kho
+                <span class="chip tot"><span class="cham"></span>Hoạt động</span>
+                <span class="chip">Thủ kho</span>
+                <span class="chip" title="Vai trò của phân hệ khác - bạn không sửa được ở đây" style="opacity: .55">Xem thiết bị · ngoài phân hệ</span>
+              </div>
+              <div class="dong-phu">
+                <span class="ma">qa-thukho@erp.test</span>
+                <span class="ngan">·</span>
+                <span>Chi nhánh <strong style="color: var(--mau-chu)">CN-HCM</strong></span>
+                <span class="ngan">·</span>
+                <span>Thêm ngày 20/08/2026</span>
+                <span class="ngan">·</span>
+                <span>Đăng nhập gần nhất 24/08/2026 08:12</span>
+              </div>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button">Xem nhật ký</button>
+              <button class="nut-phu" type="button">Gỡ khỏi phân hệ</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="bao">
+          <svg viewBox="0 0 20 20" style="width: var(--gian-5); height: var(--gian-5); color: var(--mau-canh-bao); flex: none" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4 3 16h14z" /><path d="M10 9v3.2M10 14.2v.1" /></svg>
+          <div>
+            <strong>Ma trận dưới đây chờ đợt 2b, chưa dựng được hôm nay.</strong>
+            <span class="ma">GET /roles</span> trả đúng hai trường <span class="ma">{ma, nhan}</span> và backend
+            <strong>cố ý</strong> không trả tập permission (C-TS-06). Không có endpoint liệt kê trang chức năng,
+            cũng không có đường ghi <span class="ma">role_permissions</span>.
+            <br />
+            Màn dựng được ngay là bản <strong>rút gọn</strong>: băng chọn người → thẻ ngữ cảnh → thẻ "Vai trò
+            trong phân hệ" → thẻ "Phạm vi kho", chạy trên <span class="ma">PUT /users/:id/roles</span> và
+            <span class="ma">PUT /users/:id/scopes</span>.
+          </div>
+        </div>
+        <!-- 5. Nhóm phân hệ, mở -->
+        <section class="the nhom">
+          <div class="dau-nhom">
+            <button class="nut nut-gap" type="button" aria-label="Thu gọn phân hệ Kho vận" aria-expanded="true">
+              <svg viewBox="0 0 20 20"><use href="#i-xuong" /></svg>
+            </button>
+            <span class="o-bieu-tuong" style="width: var(--gian-6); height: var(--gian-6)">
+              <svg viewBox="0 0 20 20" style="width: var(--gian-4); height: var(--gian-4)"><use href="#i-kho" /></svg>
+            </span>
+            <div>
+              <div class="ten-nhom">
+                Kho vận
+                <span class="chip chon">Chuyên viên nghiệp vụ</span>
+                <span class="chip">4 trang chức năng</span>
+              </div>
+              <div class="mo-ta-nhom">Kho, vật tư, tồn kho và chuyển động nhập xuất chuyển.</div>
+            </div>
+            <div class="mau-nhanh">
+              <span class="nhan">Mẫu nhanh</span>
+              <button class="nut nut-nho" type="button">Toàn quyền</button>
+              <button class="nut nut-nho" type="button">Nghiệp vụ</button>
+              <button class="nut nut-nho" type="button">Chỉ xem</button>
+              <button class="nut nut-nho" type="button">Khoá hết</button>
+            </div>
+          </div>
+
+          <div class="hang-pham-vi">
+            <span class="nhan"><svg viewBox="0 0 20 20"><use href="#i-pham-vi" /></svg>Phạm vi kho</span>
+            <span class="chip chon">QA-KHO-A · Kho QA A</span>
+            <span class="chip chon">QA-KHO-B · Kho QA B</span>
+            <span class="chip">+ Thêm kho</span>
+            <span style="margin-left: auto; font-size: var(--chu-sm); color: var(--mau-chu-mo)">
+              Không có <span class="ma">inventory.warehouse_scope_all</span> — chỉ thấy 2 kho được gán.
+            </span>
+          </div>
+
+          <div class="khung-bang">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 40%">Trang chức năng</th>
+                  <th class="giua">Xem</th>
+                  <th class="giua">Thêm</th>
+                  <th class="giua">Sửa</th>
+                  <th class="giua">Xoá</th>
+                  <th class="giua">Duyệt</th>
+                  <th class="phai">Thao tác nhanh</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="o-hai-dong">
+                    <div class="dong-tren">Danh sách kho <span class="ma">KHO_LIST</span></div>
+                    <div class="dong-duoi">Xem và tạo kho trong phân vùng</div>
+                  </td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Xem"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Thêm"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Sửa"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Xoá"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Duyệt — trang này không có bước duyệt" title="Trang này không có bước duyệt"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="phai"><div class="day-nut"><button class="nut nut-nho" type="button">Toàn quyền</button><button class="nut nut-nho" type="button">Chỉ xem</button><button class="nut nut-nho" type="button">Khoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong">
+                    <div class="dong-tren">Danh sách vật tư <span class="ma">VT_LIST</span></div>
+                    <div class="dong-duoi">Danh mục vật tư và đơn vị tính</div>
+                  </td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Xem"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Thêm"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Sửa"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Xoá"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Duyệt — trang này không có bước duyệt" title="Trang này không có bước duyệt"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="phai"><div class="day-nut"><button class="nut nut-nho" type="button">Toàn quyền</button><button class="nut nut-nho" type="button">Chỉ xem</button><button class="nut nut-nho" type="button">Khoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong">
+                    <div class="dong-tren">Tồn kho <span class="ma">TON_KHO</span></div>
+                    <div class="dong-duoi">Số dư tồn theo kho và vật tư, chỉ đọc</div>
+                  </td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Xem"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Thêm — tồn kho sinh ra từ chuyển động" title="Tồn kho sinh ra từ chuyển động, không nhập tay"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Sửa — tồn kho sinh ra từ chuyển động" title="Tồn kho sinh ra từ chuyển động, không sửa tay"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Xoá — không áp dụng" title="Không áp dụng cho trang này"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" disabled aria-label="Duyệt — không áp dụng" title="Không áp dụng cho trang này"><svg viewBox="0 0 20 20"><use href="#i-gach" /></svg></button></td>
+                  <td class="phai"><div class="day-nut"><button class="nut nut-nho" type="button">Toàn quyền</button><button class="nut nut-nho" type="button">Chỉ xem</button><button class="nut nut-nho" type="button">Khoá</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong">
+                    <div class="dong-tren">Chuyển động kho <span class="ma">CHUYEN_DONG</span></div>
+                    <div class="dong-duoi">Nhập, xuất, chuyển giữa hai kho — có bước duyệt</div>
+                  </td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Xem"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="true" aria-label="Thêm"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen thua-ke" type="button" role="checkbox" aria-checked="true" aria-label="Sửa — thừa kế từ vai trò Thủ kho" title="Thừa kế từ vai trò Thủ kho"><svg viewBox="0 0 20 20"><use href="#i-tich" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Xoá"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="giua"><button class="nut o-quyen" type="button" role="checkbox" aria-checked="false" aria-label="Duyệt"><svg viewBox="0 0 20 20"><use href="#i-cheo" /></svg></button></td>
+                  <td class="phai"><div class="day-nut"><button class="nut nut-nho" type="button">Toàn quyền</button><button class="nut nut-nho" type="button">Chỉ xem</button><button class="nut nut-nho" type="button">Khoá</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="chan-bang">
+            <span>
+              <span class="chip tot"><span class="cham"></span>Đã tích</span>
+              <span class="chip" style="background: var(--mau-canh-bao-nhat); border-color: transparent; color: var(--mau-canh-bao)">Thừa kế từ vai trò</span>
+              <span class="chip">Gạch ngang = trang không có hành động đó</span>
+            </span>
+            <div class="day-nut">
+              <button class="nut" type="button">Hoàn tác</button>
+              <button class="nut nut-chinh" type="button">Lưu phân quyền</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- KHÔNG có nhóm phân hệ nào khác ở đây, và đó là điểm khác lớn nhất so với cấp 1.
+             Một inventory.admin chỉ cấu hình được phân hệ Kho vận. Vẽ thêm thẻ "Thiết bị" hay
+             "Quản trị hệ thống" trên màn này là vẽ một quyền mà vai trò đó không có. -->
+      </main>
+    </div>
+
+    <script>
+      function datCheDo(che, nut) {
+        var goc = document.documentElement;
+        if (che === 'he-thong') goc.removeAttribute('data-theme');
+        else goc.setAttribute('data-theme', che);
+        nut.parentNode.querySelectorAll('button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b === nut));
+        });
+      }
+    </script>
+  </body>
+</html>
