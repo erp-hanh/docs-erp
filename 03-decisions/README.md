@@ -54,6 +54,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0027 | Permission của module mới tới công ty đã tồn tại bằng một lệnh tường minh, không ghi đè lựa chọn của tenant | Accepted (2026-08-22) | — | [ADR-0027-permission-module-moi-vao-cong-ty-da-co.md](ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) |
 | ADR-0028 | Quyền chỉ tác động lên chính người giữ nó không kéo theo cửa `<module>.role_assign` | Accepted (2026-08-22) | — | [ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md](ADR-0028-quyen-tren-chinh-minh-khong-keo-theo-cua-module.md) |
 | ADR-0029 | Nhân bản quản trị trong cùng một module là hợp lệ — hệ thống không đặt luật chống tăng số người giữ một quyền | Accepted (2026-08-24) | — | [ADR-0029-nhan-ban-quan-tri-trong-cung-module.md](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md) |
+| ADR-0030 | Phạm vi trả lời "của ai", vòng đời trả lời "còn sống không" — danh sách id của Resolve gồm cả bản ghi đã xoá mềm | Accepted (2026-08-24) | — | [ADR-0030-pham-vi-tra-loi-cua-ai-khong-tra-loi-con-song-khong.md](ADR-0030-pham-vi-tra-loi-cua-ai-khong-tra-loi-con-song-khong.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
