@@ -1,6 +1,6 @@
 # ADR-0031: `quan_tri_he_thong` cầm thêm `auth.user_create`, và chỉ thêm đúng mã đó
 
-**Status:** Proposed (2026-08-24)
+**Status:** Accepted (2026-08-24)
 
 > **Bản này đã được viết lại một lần.** Bản đầu (cùng ngày) dựng trên một dữ kiện sai: nó tin
 > câu *"giữ đúng năm quyền `PermCompany*`"* ở [ADR-0019](ADR-0019-phan-vung-la-cong-ty.md) mục
@@ -136,8 +136,10 @@ nghiệp vụ của khách hàng.
 
 **Nợ để lại:**
 
-- **Phép kiểm 5b phải viết trước khi ADR này chuyển sang `Accepted`.** Không có nó, ADR chỉ
-  dời chỗ vấn đề của ADR-0029 chứ không đóng.
+- ~~Phép kiểm 5b phải viết trước khi ADR này chuyển sang `Accepted`.~~ **Đã viết** -
+  `cmd/internal/vaitro/adr0031_test.go`, kèm một bài thứ ba canh chiều ngược lại (`quan_tri_he_thong`
+  phải giữ ĐỦ năm mã `company_*`, không thì 5b vẫn xanh trong khi hệ đã hỏng). Cả ba đã được
+  thử phá thật và đỏ đúng bài.
 - **ADR-0019 mục 5 phải được đính chính bằng một ADR riêng.** Câu ở đó đã làm sai một ADR; nó
   sẽ làm sai cái tiếp theo.
 - Chưa quyết: quản trị hệ thống tạo tài khoản thì mật khẩu đầu tiên đi đường nào. Đặt tay rồi
