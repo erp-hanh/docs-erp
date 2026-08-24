@@ -99,7 +99,14 @@ service vì "danh mục đã lọc rồi" là mở một lỗ có thể khai th�
 | `auth.admin` | Toàn phân vùng | Bảy vai trò — nó có `auth.role_assign`, và ADR-0029 xác nhận nó gán được cả chính nó |
 | `inventory.admin` | Người mang vai trò chạm `inventory` | Chỉ vai trò mà tập quyền nằm gọn trong `inventory` |
 | `machine.admin` | Người mang vai trò chạm `machine` | Chỉ vai trò thuộc `machine` |
-| `quan_tri_he_thong` | `403` hôm nay | `403` hôm nay; đổi khi ADR-0031 được nhận |
+| `quan_tri_he_thong` | Toàn phân vùng | **Bảy vai trò** - nó có cả ba `<module>.role_assign`, nên phép lọc cho qua hết. Xem ghi chú đính chính ngay dưới bảng |
+
+**Đính chính, cùng ngày.** Bản đầu của bảng trên ghi `quan_tri_he_thong` nhận `403` ở màn này.
+Sai. Đọc `backend-erp/cmd/internal/vaitro/vaitro.go:366-382` thì vai trò đó có `auth.user_list`
+nên mở được màn, và có **cả ba** `<module>.role_assign` nên phép lọc ở mục Decision 1 cho qua
+toàn bộ bảy vai trò. Nó rộng hơn `auth.admin` ở đúng chỗ này. Nguồn của lỗi là câu *"giữ đúng
+năm quyền `PermCompany*`"* ở ADR-0019 mục 5, một câu đã lạc hậu và cũng đã làm sai bản đầu của
+ADR-0031. **`vaitro.go` là nguồn sự thật về tập quyền, không phải ADR-0019.**
 
 Lưu ý một hệ quả không hiển nhiên: `inventory.admin` **không** thấy `inventory.admin` trong
 danh mục, vì tập quyền của vai trò đó mượn bốn mã `auth.*` nên phép gom ra hai module và nó

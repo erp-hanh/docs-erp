@@ -1,147 +1,149 @@
-# ADR-0031: Vai trò dẫn xuất `quan_tri_he_thong` cầm thêm tập `auth.user_*`, và hàng rào chỉ đi một chiều
+# ADR-0031: `quan_tri_he_thong` cầm thêm `auth.user_create`, và chỉ thêm đúng mã đó
 
-**Status:** Accepted (2026-08-24)
+**Status:** Proposed (2026-08-24)
+
+> **Bản này đã được viết lại một lần.** Bản đầu (cùng ngày) dựng trên một dữ kiện sai: nó tin
+> câu *"giữ đúng năm quyền `PermCompany*`"* ở [ADR-0019](ADR-0019-phan-vung-la-cong-ty.md) mục
+> 5 và đề xuất thêm **bảy** mã `auth.user_*`. Đọc `cmd/internal/vaitro/vaitro.go` thì vai trò
+> đó đang có **mười lăm** quyền, trong đó bốn mã `auth.user_*` đã có sẵn. Câu ở ADR-0019 mục 5
+> đã lạc hậu.
+>
+> Bản đầu được nhận rồi hạ lại về `Proposed` trong cùng ngày, trước khi có dòng code nào. Sửa
+> tại chỗ chứ không đắp một ADR đính chính: tài liệu chưa từng được dùng để quyết việc gì, và
+> lịch sử git giữ đủ dấu vết.
 
 ## Context
 
-Người dùng yêu cầu tách màn phân quyền thành hai cấp (spec:
-`99-meta/my-specs/2026-08-24-phan-quyen-hai-cap-spec.md`):
+Người dùng yêu cầu tách màn phân quyền thành hai cấp
+(`99-meta/my-specs/2026-08-24-phan-quyen-hai-cap-spec.md`). Câu hỏi thực tế: **quản trị hệ
+thống hôm nay làm được gì trên `users`, và thiếu gì?**
 
-- **Cấp 1 — Quản trị hệ thống:** dựng phân vùng, **tạo tài khoản nhân viên**, **bổ nhiệm
-  quản trị phân hệ** kèm phạm vi.
-- **Cấp 2 — Quản trị phân hệ:** mở quyền Thêm/Sửa/Xoá/Duyệt cho nhân viên trong đúng phân
-  hệ mình quản.
-
-Cấp 2 đã chạy được: `inventory.admin`, `machine.admin`, `auth.admin` có thật từ
-[ADR-0021](ADR-0021-vai-tro-theo-module.md), và ba vai trò đó cầm sẵn bốn mã `auth.user_list`,
-`auth.user_read`, `auth.user_assign_roles`, `auth.user_assign_scopes`
-(`backend-erp/migrations/000025_vai_tro_xuong_database.up.sql`).
-
-Cấp 1 thì **không**. [ADR-0019 mục 5](ADR-0019-phan-vung-la-cong-ty.md) chốt rằng vai trò dẫn
-xuất `quan_tri_he_thong` giữ **đúng năm** quyền:
+**Tập quyền THẬT của `quan_tri_he_thong`**, đọc từ `backend-erp/cmd/internal/vaitro/vaitro.go`
+dòng 366-382 - mười lăm mã:
 
 ```
 auth.company_list   auth.company_create   auth.company_read
 auth.company_update auth.company_delete
+auth.role_assign    inventory.role_assign  machine.role_assign
+inventory.scope_assign
+auth.user_list      auth.user_read
+auth.user_assign_roles   auth.user_assign_scopes
+auth.change_password     auth.self_read
 ```
 
-Nó không cầm `auth.user_create`, không cầm `auth.user_assign_roles`. Nên hôm nay người quản
-trị hệ thống **tạo được một phân vùng rỗng nhưng không đưa được ai vào đó**. Việc tạo tài
-khoản và bổ nhiệm đang thuộc `auth.admin` của từng phân vùng — tức thuộc chính khách hàng,
-không thuộc nhà cung cấp.
+Nên bốn mệnh đề hay được nói ra về vai trò này đều **sai**:
 
-Đó là một vòng kín có thật: một phân vùng mới mở chưa có `auth.admin` nào, mà chỉ `auth.admin`
-mới tạo được người, mà tạo `auth.admin` đầu tiên thì cần một người đã có. Hôm nay vòng ấy được
-phá bằng `cmd/dev bootstrap-user` — một lệnh CLI chạy trên máy chủ, không phải một đường sản
-phẩm.
+| Tưởng | Thật |
+|---|---|
+| Nó nhận `403` ở màn phân quyền | Nó có `auth.user_list`, mở được màn đó |
+| Nó không gán được vai trò | Nó có **cả ba** `<module>.role_assign` cộng hai quyền cửa. Nó gán được vai trò của **mọi** module - rộng hơn `auth.admin`, thứ chỉ có `auth.role_assign` |
+| Nó không gán được phạm vi kho | Nó có `inventory.scope_assign` |
+| Nó chỉ có năm quyền `company_*` | Câu đó ở ADR-0019 mục 5, và đã lạc hậu |
 
-**Hàng rào phải giữ.** [ADR-0029 mục Nợ để lại](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md)
-ghi điều kiện để chính nó đứng vững:
+**Thứ nó thật sự thiếu, đúng ba mã:** `auth.user_create`, `auth.user_update`,
+`auth.user_delete`. So với `auth.admin` (`vaitro.go:250-261`) thì đó là toàn bộ khoảng cách
+trên bảng `users`.
 
-> `auth.admin` không bao giờ được cấp một mã `auth.company_*`. Cấp một trong năm cho
-> `auth.admin` là biến việc nhân bản trong một phân vùng thành đường leo ra khỏi phân vùng.
+**Vòng kín còn lại vì vậy hẹp hơn nhiều so với bản đầu của ADR này.** Nó không phải "không đưa
+được ai vào phân vùng" - nó là: **không TẠO được người đầu tiên**. Một phân vùng vừa mở chưa
+có hàng `users` nào; `POST /users` đòi `auth.user_create`; `quan_tri_he_thong` không có mã đó,
+và cũng chưa có `auth.admin` nào của phân vùng ấy để có. Hôm nay vòng đó phá bằng
+`go run ./cmd/dev bootstrap-user` - một lệnh chạy trên máy chủ, không phải đường sản phẩm
+(`backend-erp/CLAUDE.md` mục 4 mô tả chính nó).
 
-Câu đó nói về chiều **`auth.admin` → `company_*`**. ADR này đi chiều **ngược lại**, và phải
-chứng minh chiều ngược lại không mở cùng một lỗ.
+Ngay sau khi có người đầu tiên, `quan_tri_he_thong` **đã** gán được cho người đó vai trò
+`auth.admin`, và từ đó phân vùng tự chủ được. Nên khoảng cách cần lấp đúng bằng **một** mã.
 
 ## Decision
 
-**Vai trò dẫn xuất `quan_tri_he_thong` cầm thêm bảy mã `auth.user_*`. Hàng rào của ADR-0029
-giữ nguyên và chỉ đi một chiều.**
+**`quan_tri_he_thong` cầm thêm đúng `auth.user_create`. Không thêm `user_update`, không thêm
+`user_delete`.**
 
-**1. Tập quyền mới.** `quan_tri_he_thong` giữ mười hai mã:
+**1. Tập quyền mới: mười sáu mã** - mười lăm mã ở mục Context, cộng `auth.user_create`.
 
-```
-auth.company_list    auth.company_create   auth.company_read
-auth.company_update  auth.company_delete
-auth.user_list       auth.user_read        auth.user_create
-auth.user_update     auth.user_delete      auth.user_assign_roles
-auth.user_assign_scopes
-```
+**2. Vì sao chỉ một mã, không phải ba.** `user_create` là mã duy nhất cần để phá vòng kín; hai
+mã kia không mở thêm đường nào mà chỉ nới bề mặt. Sửa và xoá một người trong một phân vùng là
+việc của quản trị phân vùng ấy - nếu nhà cung cấp cũng làm được, thì mọi lần dọn dẹp sau này
+sẽ mặc định chảy về nhà cung cấp thay vì về khách hàng. Ngày có nhu cầu thật (một phân vùng
+mất hết quản trị và cần cứu), đó là một ADR riêng và nó phải nói rõ đường cứu hộ chứ không mở
+sẵn cửa.
 
-**2. Hàng rào không đối xứng, và đây là mệnh đề trung tâm.**
+**3. Hàng rào của ADR-0029 giữ nguyên, và nó đi một chiều.**
+[ADR-0029](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md) mục "Nợ để lại" đặt điều kiện:
+`auth.admin` **không bao giờ** được cấp một mã `auth.company_*`. ADR này đi chiều ngược lại và
+không phá điều kiện đó. Bất đối xứng ấy phản ánh bao hàm sẵn có: `quan_tri_he_thong` vốn đã
+xoá được cả một phân vùng, nên thêm quyền tạo một hàng `users` trong đó không đưa nó tới chỗ
+nào nó chưa tới được.
 
-| Chiều | Cho phép? | Vì sao |
-|---|---|---|
-| `quan_tri_he_thong` cầm `auth.user_*` | **Có** | Nó vốn đã đứng ngoài mọi phân vùng và đã đọc/sửa/xoá được chính `companies`. Thêm quyền trên `users` không cho nó tới chỗ nào nó chưa tới được. |
-| `auth.admin` cầm `auth.company_*` | **Không, mãi mãi** | Đó là đường leo từ trong một phân vùng ra ngoài mọi phân vùng — ADR-0029 đã cân và đã loại. |
+**4. Không nới R-15.** Đường mới đi qua đúng một lời gọi
+`s.authz.Can(ctx, actor, PermUserCreate)` ở câu lệnh đầu tiên của method public. Không có cửa
+`if actor.SystemAdmin`.
 
-Bất đối xứng ấy không phải tuỳ tiện: nó phản ánh đúng bao hàm sẵn có. Ai đã xoá được cả một
-phân vùng thì việc chặn họ tạo một tài khoản trong đó không giữ lại được gì.
+**5. Hai phép kiểm bắt buộc.**
 
-**3. `quan_tri_he_thong` vẫn KHÔNG BAO GIỜ được gán trong `user_companies`.** Nó suy ra từ cờ
-`users.is_system_admin` lúc cấp token, đúng như ADR-0019 mục 5. ADR này không đổi cơ chế, chỉ
-đổi tập quyền của vai trò dẫn xuất ấy.
+- **a.** Test khoá tập quyền của `quan_tri_he_thong` đúng bằng mười sáu mã. Thêm hay bớt một mã
+  là đỏ. `cmd/internal/vaitro/vaitro_test.go` đã có khuôn để bám vào.
+- **b.** Test khẳng định **không vai trò nào ngoài `quan_tri_he_thong`** cầm bất kỳ mã
+  `auth.company_*` nào. Đây là hiện thân bằng máy của hàng rào ADR-0029 - hôm nay hàng rào ấy
+  **chỉ được giữ bởi nội dung bảng quyền, không bởi một luật nào**, và chính ADR-0029 mục Mất
+  đã nói ra chỗ yếu đó.
 
-**4. Không nới R-15.** Mọi đường mới đi qua đúng một lời gọi `s.authz.Can(ctx, actor, PermX)`
-ở câu lệnh đầu tiên của method public trên `*Service`. Không có cửa `if actor.SystemAdmin`.
+Phép kiểm thứ ba của bản đầu (đường ghi `role_permissions` từ chối `422` với mã `company_*`)
+**rời khỏi ADR này**: đường ghi đó thuộc đợt 2b và chưa tồn tại, nên một test cho nó là một
+test cho code chưa có.
 
-**5. Ba phép kiểm bắt buộc, và chúng là phần đắt nhất của ADR này.**
-
-- **a.** Một test khoá tập quyền của `quan_tri_he_thong` đúng bằng mười hai mã ở mục 1 — thêm
-  hay bớt một mã là đỏ.
-- **b.** Một test khẳng định **không vai trò nào ngoài `quan_tri_he_thong`** cầm bất kỳ mã
-  `auth.company_*` nào. Đây là phép kiểm hiện thân của hàng rào ADR-0029, và hôm nay hàng rào
-  ấy **chỉ được giữ bởi nội dung của bảng chứ không bởi một luật** — chính ADR-0029 mục Mất đã
-  nói ra chỗ yếu đó.
-- **c.** Một test khẳng định đường ghi `role_permissions` (đợt 2b) **từ chối 422** khi ai đó
-  cố tick một mã `auth.company_*` vào một vai trò thường.
-
-**6. Phạm vi.** ADR này KHÔNG động tới:
-- Mô hình một-người-nhiều-phân-vùng (thuộc ADR-0019 giai đoạn hai, chưa thi công).
-- Đường ghi tập quyền của một vai trò (đợt 2b).
-- Cách tính thẩm quyền gán vai trò ([ADR-0024](ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md)
-  đứng nguyên: đọc từ tập quyền, không đọc từ tên).
+**6. Sửa ADR-0019 mục 5.** Câu *"giữ đúng năm quyền `PermCompany*`"* ở đó đã lạc hậu và là
+nguồn của cả một ADR sai. ADR-0019 là `Accepted` và tầng Decision không sửa tại chỗ, nên việc
+phải làm là **một ADR đính chính riêng** cho chính câu đó - ADR này không làm thay, chỉ ghi
+vào Nợ để lại. Cho tới lúc đó, **`vaitro.go` là nguồn sự thật về tập quyền, không phải
+ADR-0019**.
 
 ## Alternatives
 
-**Giữ nguyên năm quyền, để việc tạo tài khoản cho `auth.admin` của từng phân vùng** — loại.
-Nó giữ nguyên vòng kín ở mục Context: phân vùng mới mở không có ai, mà phải có người mới tạo
-được người. Đường phá vòng hiện tại là một lệnh CLI trên máy chủ, và một sản phẩm nhiều phân
-vùng không thể mỗi lần mở khách hàng mới lại phải ssh vào máy.
+**Thêm cả ba mã `user_create`, `user_update`, `user_delete`** - loại ở mục Decision 2. Tiện
+hơn khi dọn dẹp, nhưng nó biến nhà cung cấp thành nơi mặc định xử lý dữ liệu người dùng của
+khách hàng.
 
-**Thêm một cờ `can_manage_users` riêng cho quản trị hệ thống** — loại, cùng lập luận ADR-0019
-mục 5 đã dùng khi loại claim `sys_admin` riêng: một cửa không đi qua `authz.Can` thì không qua
-được bộ kiểm R-15, và bảng permission thôi nói thật ai làm được gì.
+**Không thêm gì, giữ `bootstrap-user`** - loại. Nó chỉ chạy được từ máy chủ, nên mỗi lần mở
+một khách hàng mới là một lần ssh. Với một hệ nhiều phân vùng, đó là việc thủ công không có
+điểm dừng.
 
-**Cho `quan_tri_he_thong` toàn quyền trên mọi module (một vai trò siêu người dùng)** — loại.
-Nó xoá ranh giới module mà ADR-0001 và ADR-0021 dựng lên, và biến một tài khoản của nhà cung
-cấp thành thứ ghi được nghiệp vụ của khách hàng. Quản trị hệ thống dựng **khung** — phân vùng,
-tài khoản, bổ nhiệm — chứ không làm nghiệp vụ.
+**Một cờ `can_create_users` riêng** - loại, cùng lập luận ADR-0019 mục 5 đã dùng khi loại
+claim `sys_admin` riêng: một cửa không đi qua `authz.Can` thì không qua được R-15, và bảng
+permission thôi nói thật ai làm được gì.
 
-**Tạo tài khoản qua một đường bootstrap riêng chỉ dùng lúc mở phân vùng** — loại. Nó chỉ giải
-được lần đầu; lần thứ hai khách hàng cần thêm người thì vẫn tắc, và nó đẻ ra một đường ghi
-`users` thứ hai không đi qua `UserService`.
+**Cho `quan_tri_he_thong` toàn quyền trên mọi module** - loại. Nó xoá ranh giới module mà
+ADR-0001 và ADR-0021 dựng lên, và biến một tài khoản của nhà cung cấp thành thứ ghi được
+nghiệp vụ của khách hàng.
 
 ## Consequences
 
 **Được:**
 
-- Vòng kín "muốn có người thì phải có người" được phá bằng một đường sản phẩm, không bằng một
-  lệnh CLI trên máy chủ.
-- Màn cấp 1 trong spec dựng được: ba tab Phân vùng / Tài khoản / Bổ nhiệm quản trị.
-- Hàng rào của ADR-0029 lần đầu có **test** đứng sau, thay vì chỉ có nội dung bảng.
+- Vòng kín "muốn có người thì phải có người" phá bằng một đường sản phẩm, không bằng một lệnh
+  trên máy chủ.
+- Thay đổi nhỏ: một dòng trong `vaitro.go` cộng hai test. Không migration, không đổi API.
+- Hàng rào của ADR-0029 lần đầu có test đứng sau, thay vì chỉ có nội dung bảng.
 
 **Mất:**
 
-- **Tài khoản quản trị hệ thống bị chiếm là mất toàn hệ.** Điều đó vốn đã đúng — nó xoá được
-  mọi phân vùng — nhưng từ nay nó còn tạo được người và tự gán vai trò, nên đường lạm dụng
-  ngắn hơn và ít để lại dấu hơn. Ai cầm cờ `is_system_admin` phải ít, và `audit_logs` cho các
-  thao tác này phải được soi thật.
-- Bất đối xứng ở mục 2 phải **đọc ADR mới hiểu**. Nhìn vào bảng permission thì `quan_tri_he_thong`
-  và `auth.admin` chỉ khác nhau ở năm mã `company_*`, và không có gì trong dữ liệu nói vì sao
-  chiều này được mà chiều kia không. Phép kiểm **5b** là chỗ duy nhất mệnh đề ấy sống được
+- Tài khoản quản trị hệ thống bị chiếm nay còn **tạo** được người, không chỉ gán vai trò cho
+  người đã có. Bề mặt rộng thêm một nhịp. Ai cầm cờ `is_system_admin` phải ít, và `audit_logs`
+  của đường tạo người phải được soi thật.
+- Bất đối xứng ở mục 3 phải **đọc ADR mới hiểu**. Nhìn bảng permission thì không có gì nói vì
+  sao chiều này được mà chiều kia không; phép kiểm 5b là chỗ duy nhất mệnh đề ấy sống được
   bằng máy.
 
 **Nợ để lại:**
 
-- **Phép kiểm 5b phải viết trước khi ADR này chuyển sang `Accepted`.** Không có nó, ADR này
-  chỉ dời chỗ vấn đề của ADR-0029 chứ không đóng.
-- Đợt 2b vẫn phải tự trả lời câu hỏi riêng của nó: một `auth.admin` sửa được tập quyền của vai
-  trò mình đang mang, và luật đối xứng của ADR-0024 mục 2 chưa xét ca nó tự thêm một mã
-  `auth.*` mà chính nó đang có (ADR-0029 mục Nợ để lại).
+- **Phép kiểm 5b phải viết trước khi ADR này chuyển sang `Accepted`.** Không có nó, ADR chỉ
+  dời chỗ vấn đề của ADR-0029 chứ không đóng.
+- **ADR-0019 mục 5 phải được đính chính bằng một ADR riêng.** Câu ở đó đã làm sai một ADR; nó
+  sẽ làm sai cái tiếp theo.
 - Chưa quyết: quản trị hệ thống tạo tài khoản thì mật khẩu đầu tiên đi đường nào. Đặt tay rồi
-  đọc cho người dùng là đường rẻ nhất nhưng để mật khẩu qua tay người thứ ba; gửi thư mời thì
-  cần hạ tầng gửi thư mà hệ chưa có. Cần một ADR hoặc một mục spec riêng.
+  đọc cho người dùng là rẻ nhất nhưng mật khẩu qua tay người thứ ba; gửi thư mời thì cần hạ
+  tầng gửi thư mà hệ chưa có.
+- Đợt 2b vẫn phải tự trả lời câu hỏi riêng: từ lúc có đường ghi tập quyền, một `auth.admin`
+  sửa được tập quyền của vai trò mình đang mang (ADR-0029 mục Nợ để lại).
 
-**Constrains:** —
+**Constrains:** -
