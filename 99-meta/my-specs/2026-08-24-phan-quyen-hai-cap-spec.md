@@ -218,6 +218,24 @@ ngược lại tài khoản tích hợp và tài khoản thuê ngoài đăng nh�
 nào. Hai đối tượng khác nhau, chỉ trỏ vào nhau. Ngày dựng phân hệ Nhân sự, màn hồ sơ nhân viên
 nằm ở đó và mang một liên kết sang tài khoản của người đó.
 
+## 4e. Tên trên màn hình sau đợt đổi (rc.42)
+
+| Mục bấm | Màn đến | Ghi chú |
+|---|---|---|
+| Tài khoản | `/phan-quyen`, tiêu đề "Tài khoản" | Hai tab chỉ nói PHẠM VI: "Trong phân vùng này" · "Mọi chi nhánh" (xem trước) |
+| Phân vùng | `/phan-vung`, tiêu đề "Phân vùng" | Chữ "quản trị" đã nằm ở tên ứng dụng |
+| Bổ nhiệm quản trị phân vùng | `/quan-tri/bo-nhiem` | Đổi theo yêu cầu người quyết |
+| Tài khoản người dùng (từ Kho vận) | `/phan-quyen` | Cùng màn, đổi nhãn theo |
+
+Luật rút ra: **mục bấm và tiêu đề màn đến gọi cùng một tên**, còn tab thì nói mặt/phạm vi chứ
+không nhắc lại tên màn. Trước đợt này có ba chỗ phá luật đó cùng lúc.
+
+**Một chỗ lệch cố ý để lại, cần quyết dứt điểm:** màn "Bổ nhiệm quản trị phân vùng" có cột
+"Phân hệ quản trị" (Kho vận, Thiết bị, Kế toán). Một lượt bổ nhiệm vẫn là **người × chi nhánh
+× phân hệ** (ADR-0021: `<module>.admin`), nên tên màn nay nói theo trục chi nhánh còn cột nói
+theo trục phân hệ. Hai đường ra: hoặc tên màn quay về "phân hệ", hoặc đổi luôn mô hình để một
+lượt bổ nhiệm là quản trị của cả một phân vùng - mà đó là một ADR, không phải một cái nhãn.
+
 ## 5. Chưa quyết
 
 - Trạng thái "Chờ nhận" của một lượt bổ nhiệm (thấy trên mockup cấp 1) — chưa có trong mô hình.
