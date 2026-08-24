@@ -127,3 +127,5 @@ còn đúng không — chứ đừng suy ra rằng nó đúng vì nó đã đún
 **Điều kiện tự huỷ:** ADR này giả định mọi thứ chịu phạm vi đều có `deleted_at` của chính nó ở
 bảng sở hữu. Ngày nào có một tài nguyên chịu phạm vi mà **không** xoá mềm được — hoặc mà việc
 xoá mềm mang nghĩa "cấm truy cập" chứ không phải "đã đóng" — thì quyết định này phải mở lại.
+
+**Constrains:** R-18
