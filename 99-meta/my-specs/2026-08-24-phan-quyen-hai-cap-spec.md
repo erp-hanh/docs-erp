@@ -170,9 +170,22 @@ Kèm theo:
 - Hai mục điều hướng mới mang cờ `chiQuanTriHeThong`, và hai nét vẽ mới `the-tai-khoan`,
   `huy-hieu`.
 
-**Chưa ai nhìn bằng mắt.** Bằng chứng hiện có là bằng chứng của máy: `npm test` 1050 xanh,
-`npm run lint` sạch, `npm run arch` khớp golden, `kiem-giao-dien.mjs` sạch. Ba màn này chưa
-lên máy dev nên checklist mục 2, 6 và 9 (năm trạng thái, trợ năng, chất lượng chữ) còn nợ.
+**Đã soi bằng mắt trên máy dev, và lượt soi đó tìm ra hai lỗi mà 1050 test không bắt được** —
+đúng chỗ mà mục "Soi trước không thay được chạy thật" đã nói:
+
+1. **Cột thao tác màn Tài khoản tràn 11px**, nút "Vô hiệu hoá" bị khung thẻ cắt mất chữ cuối.
+   Hai nút 40px + 88px cộng khe `--gian-2` vừa đúng 136px, tức đúng 14% của bảng 974px. Cả
+   hai nút vẫn nằm trong DOM nên mọi test vẫn xanh. Cột lên 18%, `min-width` lên 860px.
+2. **Dải cảnh báo cao 120-180px** ở cả hai màn cấp 1, đẩy bảng xuống dưới nếp gấp ở *mọi* lần
+   mở màn trong khi nội dung là chuyện đọc đúng một lần. Rút xuống hai dòng, giữ hai mã quan
+   trọng nhất và thêm đường tra về chính spec này.
+
+Bằng chứng của máy: `npm test` 1050 xanh, `npm run lint` sạch, `npm run arch` khớp golden,
+`kiem-giao-dien.mjs` sạch. Bằng chứng của mắt: `v0.1.0-rc.40` trên `103.179.172.110`, ba màn
+mở bằng `qa-admin`, và ba đường bấm đã thử thật trên màn ma trận (mẫu nhanh "Khoá hết" đưa 8
+ô tích về 0, "Hoàn tác" đưa lại đúng 8, nút thu gọn đổi `aria-expanded` và tháo bảng khỏi
+DOM). Còn nợ: `qa-admin` không phải quản trị hệ thống nên chỉ kiểm được nhánh ẩn của hai mục
+điều hướng cấp 1, không kiểm được nhánh hiện.
 
 **Nợ để lại, cố ý:** `CompanyListPage` (mặt `/phan-vung` của cấp 1) chưa mang dải tab, vì nó
 là màn duy nhất trong ba mặt còn chưa đi qua hệ thiết kế — vẫn là `<h1>` trần với một `<Link>`
