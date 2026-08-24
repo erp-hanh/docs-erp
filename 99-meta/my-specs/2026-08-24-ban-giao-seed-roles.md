@@ -89,6 +89,14 @@ của phiên khác.
    ngày không nên phát hiện ra một lỗi.
 4. **Chưa có màn hình nào cho quản trị thấy "module mới có những vai trò này"** (Nợ để lại của
    ADR-0027).
+5. **`insertVaiTroConThieuSQL` qua được R-18 một cách tình cờ, và điều đó nên được quyết tường
+   minh.** Mệnh đề `NOT EXISTS` của nó cố ý không lọc `deleted_at` trên `roles`; checker im chỉ
+   vì cùng hằng chuỗi ấy có sẵn `c.deleted_at IS NULL` cho `companies`. Cuối 2026-08-24, ADR-0030
+   đã mở cho R-18 **một ngoại lệ hẹp ở vế đọc** - đúng câu liệt kê id của `shared/scope.Nguon`,
+   và ngoại lệ ấy nói rõ là không áp cho chỗ nào khác. Nghĩa là nay đã có khuôn để nói ra ca của
+   `seed-roles` thay vì để nó dựa vào một trùng hợp văn bản. Ai làm đợt sau nên cân: hoặc mở rộng
+   ngoại lệ R-18 thêm một dòng cho phép hỏi "vai trò này đã có chưa", hoặc ghi thẳng vào ADR-0027
+   rằng phép hỏi ấy cố ý đứng ngoài R-18. Hôm nay chỉ có comment tại chỗ giữ điều đó.
 
 ## Trạng thái dev
 
