@@ -108,7 +108,9 @@ _Avoid_: quyền hạn, RBAC, phân quyền (một mình chữ này không nói 
 
 **Phạm vi dữ liệu**:
 Trục quyết định một người **được làm trên dữ liệu nào**. Hôm nay chỉ có một loại phạm vi
-là kho.
+là kho. Nó trả lời **"của ai"**, không trả lời "còn sống không" — một kho đã đóng vẫn nằm
+trong phạm vi của người quản nó, và câu hỏi kho đó còn tồn tại hay không được trả lời ở
+bảng kho (ADR-0030).
 _Avoid_: phân quyền dữ liệu, quyền xem dữ liệu, mức truy cập, data scope
 
 **Phân quyền**:
