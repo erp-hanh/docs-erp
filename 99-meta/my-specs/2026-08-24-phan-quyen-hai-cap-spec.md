@@ -38,8 +38,36 @@ Vẽ ra là nói dối về quyền, và cả đội sẽ tưởng tính năng �
 
 1. **Chỉ một thẻ phân hệ.** Một `inventory.admin` không cấu hình được phân hệ khác.
 2. **Vai trò ngoài phân hệ hiện mờ, không sửa được** — hiện dạng "Xem thiết bị · ngoài phân hệ".
-3. **Không có nút "Tạo vai trò".** Chưa có bảng `roles`; vai trò là mã trong `vaitro.Bang()`
-   (ADR-0010). Đường ghi tập quyền là đợt 2b, chưa tồn tại.
+3. **Không có nút "Tạo vai trò".** Bảng `roles` **đã có** (ADR-0023 đưa vai trò xuống
+   database, thay ADR-0010), nhưng **đường ghi tập quyền chưa có** — đợt 2b. Đường ghi duy
+   nhất vào `role_permissions` hôm nay là bộ nạp mặc định lúc mở phân vùng (ADR-0023 mục 11).
+
+### Ma trận quyền chưa dựng được — đính chính
+
+Bản đầu của spec này viết "màn cấp 2 dựng được ngay". Sai một nửa. Kiểm lại endpoint:
+
+- `GET /roles` trả **đúng hai trường** `{ma, nhan}`. `frontend-erp/src/modules/user/api/user-api.ts:110`
+  ghi rõ backend **cố ý** không trả tập permission, để câu hỏi "người xem có gán được vai trò
+  này không" do một `403` thật trả lời chứ không do màn hình tự đối chiếu (C-TS-06).
+- Không có endpoint nào liệt kê **trang chức năng** của một phân hệ.
+- Không có đường ghi `role_permissions`.
+
+Nên ma trận trang × hành động trong mockup cấp 2 là **thứ chờ đợt 2b**, không phải thứ dựng
+được hôm nay. Nó cần hai endpoint mới ngoài đợt 2b: liệt kê trang chức năng, và đọc/ghi tập
+quyền của một vai trò.
+
+### Thứ dựng được ngay trên endpoint đang chạy
+
+| Việc | Endpoint |
+|---|---|
+| Danh sách nhân sự | `GET /users` |
+| Danh mục vai trò | `GET /roles` |
+| Gán vai trò cho một người | `GET \| PUT /users/:id/roles` |
+| Gán phạm vi kho cho một người | `GET \| PUT /users/:id/scopes` |
+
+Bốn đường này đủ cho một màn cấp 2 **rút gọn**: băng chọn người (0.3) → thẻ ngữ cảnh (0.4) →
+một thẻ "Vai trò trong phân hệ" (danh sách ô chọn) → một thẻ "Phạm vi kho". Không có ma trận.
+Đó là màn nên dựng trước.
 
 ## 3. Hai quyết định cần ADR
 
@@ -78,7 +106,10 @@ dung của bảng quyền chứ không bởi một luật (ADR-0029 mục Mất)
 
 1. ADR cho 3.2 (rẻ, không chạm schema) → mở màn cấp 1 với hai tab Phân vùng + Nhật ký.
 2. ADR-0019 giai đoạn hai (đắt, chạm luồng đăng nhập) → mở tab Tài khoản và Bổ nhiệm.
-3. Màn cấp 2 — **không phụ thuộc hai việc trên**, dựng được ngay trên `inventory.admin` đang chạy.
+3. Màn cấp 2 **rút gọn** (vai trò + phạm vi kho, không ma trận) — không phụ thuộc hai việc
+   trên, dựng được ngay trên bốn endpoint đang chạy.
+4. Đợt 2b (CRUD `role_permissions`) + hai endpoint mới (liệt kê trang chức năng, đọc/ghi tập
+   quyền của một vai trò) → khi đó mới mở được **ma trận trang × hành động**.
 
 Nên bắt đầu bằng **bước 3**: nó là phần duy nhất chạy được hôm nay, và nó là màn mà trưởng kho
 dùng hằng ngày.
