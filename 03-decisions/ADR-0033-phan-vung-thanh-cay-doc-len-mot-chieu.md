@@ -160,9 +160,7 @@ vai trò **trong một phân vùng**. Không có chỗ nào trong hình dạng �
 
 **Nợ để lại:**
 
-- **Chưa quyết: cây sâu bao nhiêu tầng.** Hai tầng (mẹ - con) là ca người dùng mô tả, và nó
-  giải bằng một câu truy vấn. Cây sâu tùy ý đòi giải đệ quy và mở ra ca vòng lặp cha-con phải
-  chặn.
+- ~~Chưa quyết: cây sâu bao nhiêu tầng.~~ **Đã quyết ở mục 8, xem Phụ lục cuối file.**
 - **Chưa quyết: ai sửa được `hach_toan` sau khi phân vùng đã có số liệu.** Đổi `phu_thuoc` thành
   `doc_lap` là làm một báo cáo hợp nhất đã in ra không tái tạo được.
 - **Chưa xác minh** bộ kiểm R-06 nhận thêm khuôn `company_id = ANY($n)` khó hay dễ - chưa đọc
@@ -173,3 +171,30 @@ vai trò **trong một phân vùng**. Không có chỗ nào trong hình dạng �
   hai bút toán rời), mục 2 phải được mở bằng một ADR mới - và ADR đó khó hơn ADR này nhiều.
 
 **Constrains:** -
+
+## Phụ lục: mục 8 - độ sâu của cây
+
+Thêm ngày 2026-08-24, sau khi người dùng cho biết họ không làm kỹ thuật và trỏ sang MISA AMIS
+làm mẫu. Đây là một quyết định kỹ thuật nên nó không được đẩy sang người dùng.
+
+**8. Lược đồ cho phép cây sâu tùy ý; bộ giải đi đệ quy có trần và có chặn vòng lặp; chỉ HAI
+TẦNG được cam kết và được kiểm.**
+
+Bằng chứng cho hai tầng: ảnh chụp MISA AMIS mà người dùng gửi liệt kê khối "Cơ cấu phân vùng
+doanh nghiệp (4)" gồm một gốc *Toàn hệ thống (Tổng hợp)* và bốn nhánh phẳng (*CN-HN*, *CN-HCM*,
+*NM-TB*, *CN-DN*). Không có nút cháu nào trên ảnh.
+
+Bằng chứng cho việc **không** đóng cứng ở hai tầng: mô tả của người dùng có nhắc "Xưởng May 01"
+cạnh "Chi nhánh Miền Bắc", và một xưởng thường nằm dưới một chi nhánh - tức tầng thứ ba là ca
+sẽ tới.
+
+Vì `parent_id` vốn không giới hạn độ sâu, viết bộ giải đệ quy ngay từ đầu **không đắt hơn** viết
+bộ giải một tầng, mà tránh được một lần đổi lược đồ về sau. Ba ràng buộc kèm theo:
+
+- **Trần độ sâu là một hằng** (đề xuất 5), kiểm ở service. Vượt trần thì từ chối `422` và nói ra
+  con số, không âm thầm cắt.
+- **Chặn vòng lặp cha-con** lúc GHI `parent_id`, không lúc đọc: một vòng lặp đã vào database thì
+  mọi câu đọc sau đó đều treo. Phép kiểm là đi lên từ nút cha đề xuất, gặp lại chính mình thì
+  từ chối `422`.
+- **Test chỉ khoá hai tầng.** Tầng thứ ba chạy được nhưng không được cam kết, và điều đó phải
+  ghi ra chứ không để người sau tự đoán.
