@@ -1,0 +1,211 @@
+<!doctype html>
+<!--
+  HỒ SƠ THIẾT KẾ — không phải code chạy thật.
+  Ngày: 2026-08-24
+  Trạng thái: CHƯA lên code. Đây mới là đề xuất bố cục cho màn Cấp 1 (Quản trị hệ thống
+  / Super Admin), chưa có màn tương ứng nào trong `frontend-erp`.
+  Bản sao lưu có version: docs-erp/99-meta/mockups/
+  Lưu ý: hai thẻ <link> đầu trỏ ra ../frontend-erp/... nên chỉ mở đúng khi file nằm ở
+  erp/mockup-erp/. Mở từ bản trong docs-erp thì mất token màu.
+-->
+<html lang="vi" data-theme="sang">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cấp 1 — Quản trị hệ thống (Super Admin)</title>
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/tokens.css" />
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/co-so.css" />
+    <link rel="stylesheet" href="bo-cuc-v2.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <g id="i-luoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="5" cy="5" r="1" /><circle cx="10" cy="5" r="1" /><circle cx="15" cy="5" r="1" />
+          <circle cx="5" cy="10" r="1" /><circle cx="10" cy="10" r="1" /><circle cx="15" cy="10" r="1" />
+          <circle cx="5" cy="15" r="1" /><circle cx="10" cy="15" r="1" /><circle cx="15" cy="15" r="1" />
+        </g>
+        <g id="i-khoa" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="12" height="8" rx="1.5" /><path d="M7 9V6.5a3 3 0 0 1 6 0V9" /></g>
+        <g id="i-nguoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="3" /><path d="M4 17c0-3.3 2.7-5 6-5s6 1.7 6 5" /></g>
+        <g id="i-pham-vi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.5" /><path d="M3.5 10h13M10 3.5c1.8 2 2.7 4.2 2.7 6.5S11.8 14.5 10 16.5c-1.8-2-2.7-4.2-2.7-6.5S8.2 5.5 10 3.5" /></g>
+        <g id="i-huy-hieu" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="4" /><path d="m7 12-1 5 4-2 4 2-1-5" /></g>
+        <g id="i-lich-su" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.5" /><path d="M10 6v4.2l2.8 1.8" /></g>
+        <g id="i-cong" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></g>
+        <g id="i-canh-bao" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4 3 16h14z" /><path d="M10 9v3.2M10 14.2v.1" /></g>
+      </defs>
+    </svg>
+
+    <div class="vo-mockup">
+      <header class="thanh-dau-mockup">
+        <button class="nut" aria-label="Tất cả ứng dụng" style="border-color: transparent; background: none">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-luoi" /></svg>
+        </button>
+        <span style="display: flex; align-items: center; gap: var(--gian-2); font-weight: var(--dam-vua)">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); color: var(--mau-chinh)"><use href="#i-khoa" /></svg>
+          Quản trị hệ thống
+        </span>
+        <span style="padding-left: var(--gian-3); margin-left: var(--gian-1); border-left: 1px solid var(--mau-vien); font-size: var(--chu-sm); color: var(--mau-chu-mo)">
+          Đứng ngoài mọi phân vùng
+        </span>
+        <div class="day-thanh-dau">
+          <div class="chuyen-che-do" role="group" aria-label="Chế độ hiển thị">
+            <button type="button" aria-pressed="true" onclick="datCheDo('sang', this)">Sáng</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('toi', this)">Tối</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('he-thong', this)">Hệ thống</button>
+          </div>
+          <span class="anh-dai-dien" style="width: var(--gian-6); height: var(--gian-6); font-size: var(--chu-sm)">TA</span>
+        </div>
+      </header>
+
+      <nav class="canh-mockup" aria-label="Điều hướng Quản trị hệ thống">
+        <div class="nhan-nhom-canh">Hệ thống</div>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-pham-vi" /></svg><span>Phân vùng (chi nhánh)</span></a>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-nguoi" /></svg><span>Tài khoản</span></a>
+        <a class="muc-canh" href="#" aria-current="page"><svg viewBox="0 0 20 20"><use href="#i-huy-hieu" /></svg><span>Bổ nhiệm quản trị</span></a>
+        <div class="nhan-nhom-canh">Theo dõi</div>
+        <a class="muc-canh" href="#"><svg viewBox="0 0 20 20"><use href="#i-lich-su" /></svg><span>Nhật ký thao tác</span></a>
+      </nav>
+
+      <main class="than-mockup">
+        <section class="dai-dau">
+          <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-huy-hieu" /></svg></span>
+          <h1>Bổ nhiệm quản trị phân hệ</h1>
+          <div class="day-nut">
+            <button class="nut-phu" type="button">Xuất danh sách</button>
+            <button class="nut-chinh" type="button"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>Bổ nhiệm mới</button>
+          </div>
+        </section>
+
+        <div class="bao">
+          <svg viewBox="0 0 20 20" style="width: var(--gian-5); height: var(--gian-5); color: var(--mau-canh-bao); flex: none"><use href="#i-canh-bao" /></svg>
+          <div>
+            <strong>Màn này chờ hai việc backend, đã quyết hướng nhưng chưa thi công:</strong>
+            <br />
+            1. <strong>Mở quyền cho cấp 1.</strong> Vai trò dẫn xuất <span class="ma">quan_tri_he_thong</span> hiện chỉ giữ
+            năm quyền <span class="ma">auth.company_*</span> (ADR-0019 mục 5), nên nó chưa tạo được tài khoản và chưa gán
+            được vai trò. Đã chốt là sẽ mở bằng một ADR mới — ADR đó phải rào chiều ngược lại mà ADR-0029 đã cảnh báo:
+            <span class="ma">auth.admin</span> không bao giờ được cầm <span class="ma">auth.company_*</span>.
+            <br />
+            2. <strong>Chi nhánh = phân vùng.</strong> Mỗi chi nhánh là một hàng <span class="ma">companies</span>. Việc này
+            đòi ADR-0019 <strong>giai đoạn hai</strong> làm trước: bỏ <span class="ma">uq_users_email_active</span>, dựng
+            <span class="ma">user_companies</span> + <span class="ma">user_company_roles</span>, đăng nhập hai bước, đường
+            đổi phân vùng. Chưa xong bước đó thì một người làm hai chi nhánh phải có hai tài khoản.
+          </div>
+        </div>
+
+        <div class="dai-tab" role="tablist">
+          <button class="tab" role="tab" aria-selected="false"><svg viewBox="0 0 20 20"><use href="#i-pham-vi" /></svg>Phân vùng (chi nhánh) <span class="dem">4</span></button>
+          <button class="tab" role="tab" aria-selected="false"><svg viewBox="0 0 20 20"><use href="#i-nguoi" /></svg>Tài khoản <span class="dem">23</span></button>
+          <button class="tab" role="tab" aria-selected="true"><svg viewBox="0 0 20 20"><use href="#i-huy-hieu" /></svg>Bổ nhiệm quản trị <span class="dem">6</span></button>
+        </div>
+
+        <section class="the">
+          <div class="thanh-loc">
+            <div class="truong">
+              <label for="tim">Tìm theo tên hoặc email</label>
+              <input class="o-tim" id="tim" type="search" placeholder="Lê Thị Bích, bich.le@..." />
+            </div>
+            <div class="truong">
+              <label for="pv">Chi nhánh</label>
+              <select id="pv"><option>Tất cả chi nhánh (4)</option><option>TRU-SO — Trụ sở chính</option><option>CN-HN — Chi nhánh Hà Nội</option><option>CN-HCM — Chi nhánh HCM</option><option>NM-TB — Nhà máy Tân Bình</option></select>
+            </div>
+            <div class="truong">
+              <label for="ph">Phân hệ</label>
+              <select id="ph"><option>Tất cả phân hệ</option><option>Kho vận</option><option>Thiết bị</option><option>Người dùng</option></select>
+            </div>
+            <div class="day-phai">
+              <div class="truong">
+                <label for="sd">Số dòng</label>
+                <select id="sd"><option>20</option><option>50</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="khung-bang">
+            <table class="bang-co-dinh">
+              <thead>
+                <tr>
+                  <th style="width: 24%">Người được bổ nhiệm</th>
+                  <th class="cat" style="width: 18%">Chi nhánh</th>
+                  <th class="cat" style="width: 18%">Phân hệ quản trị</th>
+                  <th class="cat" style="width: 19%">Phạm vi dữ liệu</th>
+                  <th class="hep" style="width: 11%">Trạng thái</th>
+                  <th class="phai hep" style="width: 14%">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Lê Thị Bích</div><div class="dong-duoi">bich.le@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">TRU-SO</span> Trụ sở chính</td>
+                  <td class="cat"><span class="chip chon">Kế toán</span></td>
+                  <td class="cat">Toàn chi nhánh</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hiệu lực</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Phạm Minh Đức</div><div class="dong-duoi">duc.pham@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">TRU-SO</span> Trụ sở chính</td>
+                  <td class="cat"><span class="chip chon">Kho vận</span></td>
+                  <td class="cat">6 kho — miền Nam</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hiệu lực</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Hoàng Quốc Việt</div><div class="dong-duoi">viet.hoang@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">TRU-SO</span> Trụ sở chính</td>
+                  <td class="cat"><span class="chip chon">Thiết bị</span></td>
+                  <td class="cat">Toàn chi nhánh</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hiệu lực</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Trần Văn An</div><div class="dong-duoi">an.tran@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">TRU-SO</span> Trụ sở chính</td>
+                  <td class="cat"><span class="chip chon">Người dùng</span></td>
+                  <td class="cat">Toàn chi nhánh</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hiệu lực</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Nguyễn Thu Hà</div><div class="dong-duoi">ha.nguyen@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">CN-HN</span> Chi nhánh Hà Nội</td>
+                  <td class="cat"><span class="chip chon">Kho vận</span></td>
+                  <td class="cat">3 kho — Hà Nội, Hải Phòng</td>
+                  <td class="hep"><span class="chip tot"><span class="cham"></span>Hiệu lực</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+                <tr>
+                  <td class="o-hai-dong"><div class="dong-tren">Vũ Minh Tuấn</div><div class="dong-duoi">tuan.vu@daithang.vn</div></td>
+                  <td class="cat"><span class="ma">NM-TB</span> Nhà máy Tân Bình</td>
+                  <td class="cat"><span class="chip chon">Kho vận</span></td>
+                  <td class="cat">Toàn chi nhánh</td>
+                  <td class="hep"><span class="chip"><span class="cham" style="color: var(--mau-canh-bao)"></span>Chờ nhận</span></td>
+                  <td class="phai hep"><div class="day-nut"><button class="nut nut-nho" type="button">Sửa</button><button class="nut nut-nho" type="button">Thu hồi</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="chan-bang">
+            <span>6 lượt bổ nhiệm trên 4 chi nhánh</span>
+            <div class="day-nut">
+              <button class="nut" type="button" disabled>Trang trước</button>
+              <button class="nut" type="button" disabled>Trang sau</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      function datCheDo(che, nut) {
+        var goc = document.documentElement;
+        if (che === 'he-thong') goc.removeAttribute('data-theme');
+        else goc.setAttribute('data-theme', che);
+        nut.parentNode.querySelectorAll('button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b === nut));
+        });
+      }
+    </script>
+  </body>
+</html>

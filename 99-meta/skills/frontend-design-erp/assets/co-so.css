@@ -1,0 +1,275 @@
+/* co-so.css - Lop nen tao dang cho HTML THUAN. Chep vao src/shared/styles/co-so.css va
+   import ngay SAU tokens.css o src/main.tsx.
+
+   Vi sao lop nay ton tai, va vi sao no tao dang theo THE chu khong theo class:
+
+   Cac man hinh hien co trong repo (StockItemListPage, WarehouseFormPage, ...) viet bang
+   <table>, <label>, <select>, <button> tran, gan nhu khong co className nao. Neu he thiet
+   ke chi song trong class thi moi man dang co deu phai sua tay moi dep len - va do la mot
+   cai gia du lon de khong ai tra, nen khong man nao dep len ca.
+
+   Tao dang theo the thi nguoc lai: dung mot lan o day, moi man da viet VA moi man sap
+   viet deu nhan duoc, va nguoi viet man moi khong phai nho ten class nao. Class chi xuat
+   hien khi mot cho can khac di.
+
+   Ranh gioi cua file nay: no tao dang cho THE HTML. Bo cuc cua tung man va cua tung
+   component thi nam o *.module.css canh chinh component do - dat o day se thanh mot file
+   toan cuc phinh dan ma khong ai dam xoa dong nao. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mau-nen);
+  color: var(--mau-chu);
+  font-family: var(--font-chu);
+  font-size: var(--chu-md);
+  line-height: var(--dong-vua);
+}
+
+/* ---- Tieu diem: MOT dinh nghia cho ca ung dung ----
+   :focus-visible chu khong :focus - nguoi dung chuot bam mot cai nut khong can thay vong
+   sang; nguoi dung ban phim thi bat buoc phai thay. Xoa dong nay la lam ung dung khong
+   dung duoc bang ban phim, va do la loi tro nang pho bien nhat tren web. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--vien-focus);
+  border-radius: var(--bo-goc);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Chu ---- */
+h1,
+h2,
+h3 {
+  margin: 0 0 var(--gian-3);
+  line-height: var(--dong-chat);
+  font-weight: var(--dam-manh);
+}
+
+h1 {
+  font-size: var(--chu-2xl);
+}
+h2 {
+  font-size: var(--chu-xl);
+}
+h3 {
+  font-size: var(--chu-lg);
+}
+
+p {
+  margin: 0 0 var(--gian-3);
+}
+
+a {
+  color: var(--mau-chinh);
+  text-decoration-color: color-mix(in srgb, var(--mau-chinh) 40%, transparent);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--font-so);
+  font-size: 0.9em;
+}
+
+/* ---- Nut ----
+   Mac dinh la nut PHU (vien, nen trang). Nut chinh phai khai tuong minh, vi mot man co
+   hai nut chinh la mot man khong tra loi duoc cau "toi nen bam gi bay gio". */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gian-2);
+  min-height: 32px;
+  padding: var(--gian-2) var(--gian-3);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-noi);
+  color: var(--mau-chu);
+  font: inherit;
+  font-weight: var(--dam-vua);
+  cursor: pointer;
+  transition:
+    background var(--nhip-nhanh) var(--duong-cong),
+    border-color var(--nhip-nhanh) var(--duong-cong);
+}
+
+button:hover:not(:disabled) {
+  background: var(--mau-nen-nhat);
+  border-color: var(--mau-vien-dam);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Tren cam ung, vung bam toi thieu 44px - ngon tay khong co con tro. */
+@media (pointer: coarse) {
+  button,
+  input,
+  select {
+    min-height: 44px;
+  }
+}
+
+/* ---- O nhap ---- */
+input,
+select,
+textarea {
+  min-height: 32px;
+  padding: var(--gian-2) var(--gian-3);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-noi);
+  color: var(--mau-chu);
+  font: inherit;
+  transition: border-color var(--nhip-nhanh) var(--duong-cong);
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--mau-vien-dam);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--mau-nen-nhat);
+  color: var(--mau-chu-mo);
+  cursor: not-allowed;
+}
+
+/* O nhap sai: KHONG chi doi mau vien. Mau la mot kenh, va mot nguoi mu mau do-luc chi
+   nhan duoc dong chu loi ben duoi. Nen vien day len 2px - hinh dang la kenh thu hai. */
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--mau-loi);
+  border-width: 2px;
+}
+
+/* Nhan tren o, khong ben trai o: mat quet mot cot doc nhanh hon quet zigzag, va nhan ben
+   trai luon vo o man hep. Placeholder KHONG duoc dung thay nhan - no bien mat dung luc
+   nguoi ta can no nhat. */
+label {
+  display: block;
+  margin-bottom: var(--gian-1);
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu);
+}
+
+fieldset {
+  margin: 0 0 var(--gian-5);
+  padding: 0;
+  border: none;
+}
+
+legend {
+  padding: 0;
+  margin-bottom: var(--gian-3);
+  font-size: var(--chu-lg);
+  font-weight: var(--dam-manh);
+}
+
+/* ---- Bang ----
+   Day la thanh phan quan trong nhat cua ca he: nguoi dung ERP song trong bang. Bon quyet
+   dinh o duoi deu nham vao viec DO mot cot, khong phai doc mot o. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--chu-sm);
+  background: var(--mau-nen-noi);
+}
+
+thead th {
+  position: sticky; /* tieu de dinh khi cuon - bang ERP luon dai hon man hinh */
+  top: 0;
+  z-index: 1;
+  padding: var(--gian-2) var(--gian-3);
+  border-bottom: 1px solid var(--mau-vien);
+  background: var(--mau-nen-nhat);
+  text-align: left;
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  color: var(--mau-chu-mo);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: var(--gian-2) var(--gian-3);
+  border-bottom: 1px solid var(--mau-vien);
+  vertical-align: middle;
+}
+
+/* Khong ke soc (zebra). Soc lam nen nhap nho va an mat cac tin hieu that: dong dang chon,
+   dong vua doi. Mot duong ke 1px du de mat bam theo hang. */
+tbody tr:hover {
+  background: var(--mau-nen-nhat);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* So: canh phai + chu dang kho. tabular-nums lam moi chu so rong bang nhau, nen hang don
+   vi cua ca cot thang hang - do la thu cho phep DO mot cot tien bang mat.
+   Danh dau o so bang class="so" hoac data-so tren <td>/<th>. */
+td.so,
+th.so,
+td[data-so],
+th[data-so] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ---- Thanh phan nho ---- */
+hr {
+  height: 1px;
+  margin: var(--gian-5) 0;
+  border: none;
+  background: var(--mau-vien);
+}
+
+/* Chi hien cho trinh doc man hinh. Dung cho nhan cua nut chi co bieu tuong khi khong tien
+   dung aria-label, va cho tieu de vung. */
+.chi-doc-man-hinh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

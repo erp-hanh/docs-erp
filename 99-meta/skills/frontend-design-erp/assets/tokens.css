@@ -1,0 +1,173 @@
+/* tokens.css - He token cua frontend-erp. Chep file nay vao src/shared/styles/tokens.css
+   va import MOT LAN o src/main.tsx, TRUOC moi file css khac.
+
+   Day la file DUY NHAT trong ca repo duoc phep viet gia tri thô (hex, px, ms). Moi noi
+   khac goi qua bien. Ly do khong phai su sach se: he nay se co che do toi, va se co luc
+   phai chinh do tuong phan cho nha xuong sang choi - moi gia tri thô nam rai rac la mot
+   cho bi bo lai phia sau.
+
+   Bon bien dau tien giu NGUYEN gia tri da co trong src/app/app.css tu chang E. Doi mau o
+   giai doan nay khong duoc gi ngoai mot diff lon. */
+
+:root {
+  /* ---- Nen: ba tang, va thu tu cua chung la co y ----
+     --mau-nen la nen TRANG GIAY, khong phai trang tinh. Nho vay the trang (--mau-nen-noi)
+     noi len duoc ma khong can bong do. Do la ca chien luoc phan tang cua he nay. */
+  --mau-nen: #f6f7f9;
+  --mau-nen-noi: #ffffff;
+  --mau-nen-nhat: #f6f8fa; /* o to nhe: dong bang hover, header bang, khoi ma */
+  --mau-nen-chim: #eceff3; /* nen thut vao: vung code, thanh tien trinh */
+
+  /* ---- Chu ---- */
+  --mau-chu: #1f2328;
+  --mau-chu-mo: #57606a; /* chu thich, don vi, nhan phu */
+  --mau-chu-nhat: #ffffff; /* chu tren nen dam */
+
+  /* ---- Vien ---- */
+  --mau-vien: #d0d7de;
+  --mau-vien-dam: #b8c0c9; /* vien khi re chuot / o dang chon */
+
+  /* ---- Thuong hieu: xanh cong nghiep ----
+     Khong phai indigo/tim - mau mac dinh cua moi dashboard sinh ra tu AI. Xanh dau
+     (petrol) doc ra "thiet bi, kho, nha xuong" dung hon voi he nay, va no du toi de chu
+     trang tren no dat 5.9:1. */
+  --mau-chinh: #12708c;
+  --mau-chinh-dam: #0d5a72; /* trang thai nhan */
+  --mau-chinh-nhat: #e6f1f5; /* nen to nhe: tab dang chon, dong dang chon */
+
+  /* ---- Trang thai ----
+     Moi mau trang thai co mot ban nen nhat di kem, de banner khong bao gio la chu mau
+     tren nen trang - thu do doc yeu va truot chuan tuong phan o co chu nho. */
+  --mau-loi: #b3261e;
+  --mau-loi-nhat: #fdecea;
+  --mau-canh-bao: #8a5a00;
+  --mau-canh-bao-nhat: #fdf4e3;
+  --mau-tot: #1d7a46;
+  --mau-tot-nhat: #e8f5ed;
+
+  /* ---- Khoang cach: luoi 4px ----
+     Mat nguoi khong doc duoc con so, nhung doc duoc su lech: 13px canh 16px canh 14px
+     cho ra cam giac cau tha ma khong ai chi duoc tai dau. */
+  --gian-1: 4px;
+  --gian-2: 8px;
+  --gian-3: 12px;
+  --gian-4: 16px;
+  --gian-5: 24px;
+  --gian-6: 32px;
+  --gian-7: 48px;
+  --gian-8: 64px;
+
+  /* ---- Chu: font ----
+     Font he thong: khong tai ve, khong chan render, chay duoc tren VPS khong ra Internet.
+     Segoe UI / Roboto deu co bo dau tieng Viet day du. */
+  --font-chu: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-so: ui-monospace, 'Cascadia Mono', 'Consolas', 'Roboto Mono', monospace;
+
+  /* ---- Chu: co ----
+     Goc 16px o <html> de rem cua nguoi dung con nghia; than ung dung 14px vi day la man
+     lam viec day du lieu. San duoi 12px KHONG ton tai. */
+  --chu-xs: 0.75rem; /* 12px - nhan cot, chu thich */
+  --chu-sm: 0.8125rem; /* 13px - o bang day */
+  --chu-md: 0.875rem; /* 14px - MAC DINH cua than ung dung */
+  --chu-lg: 1rem; /* 16px - doan van doc lien */
+  --chu-xl: 1.25rem; /* 20px - tieu de khoi */
+  --chu-2xl: 1.5rem; /* 24px - tieu de trang */
+  --chu-3xl: 1.875rem; /* 30px - con so lon o man tong quan */
+
+  /* ---- Chu: chieu cao dong ----
+     Rong hon thuong le mot chut, va do la co y: dau tieng Viet (ẫ, ộ, ừ) an vao ca phan
+     tren lan phan duoi cua dong. 1.4 la muc thap nhat con doc thoai o co 14px. */
+  --dong-chat: 1.25; /* tieu de */
+  --dong-vua: 1.45; /* giao dien, o bang */
+  --dong-rong: 1.6; /* doan van doc lien */
+
+  /* ---- Chu: do dam ----
+     Chi ba muc. Bon muc tro len thi khong ai phan biet duoc, va bang se trong lon xon. */
+  --dam-thuong: 400;
+  --dam-vua: 500;
+  --dam-manh: 600;
+
+  /* ---- Bo goc ---- */
+  --bo-goc: 6px; /* nut, o nhap, nhan - du mem de khong cung, du nho de khong tre con */
+  --bo-goc-lon: 10px; /* the, hop thoai */
+  --bo-goc-tron: 999px; /* chip, cham trang thai */
+
+  /* ---- Do noi ----
+     Vien 1px lam viec phan tang; bong chi danh cho thu THAT SU noi len khoi mat phang. */
+  --do-noi-1: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --do-noi-2: 0 4px 12px rgba(16, 24, 40, 0.08); /* dropdown, popover */
+  --do-noi-3: 0 16px 40px rgba(16, 24, 40, 0.16); /* hop thoai */
+
+  /* ---- Nhip ---- */
+  --nhip-nhanh: 120ms; /* phan hoi tuc thi: hover, nhan */
+  --nhip-vua: 180ms; /* xuat hien / bien mat */
+  --nhip-cho: 1500ms; /* nhip tho cua khung xuong - cham, khong doi hoi chu y */
+  --duong-cong: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* ---- Bieu tuong ----
+     Mot co duy nhat cho ca he. Bieu tuong 16px canh bieu tuong 24px trong cung mot hang
+     nut la thu mat bat ra ngay ma khong goi ten duoc. */
+  --co-bieu-tuong: 20px;
+
+  /* ---- Vong tieu diem ----
+     Hai lop: mot vong nen de tach khoi vien san co, mot vong mau chinh. Nho vay no nhin
+     ro tren ca nen trang lan nen xam ma khong can khai rieng cho tung cho. */
+  --vien-focus: 0 0 0 2px var(--mau-nen-noi), 0 0 0 4px var(--mau-chinh);
+
+  /* ---- Khung bo cuc ---- */
+  --rong-noi-dung: 1440px; /* tran cua vung noi dung */
+  --rong-form: 640px; /* mot cot form - qua rong thi mat mat duong ve dau dong */
+  --rong-doc: 72ch; /* doan van doc lien */
+  --cao-thanh-dau: 56px;
+  --rong-canh: 240px; /* thanh dieu huong ben trai */
+  --rong-canh-hep: 64px; /* khi thu gon con bieu tuong */
+
+  /* ---- Diem gay ----
+     Khai o day de moi noi doc cung mot con so. CSS chua dung duoc bien trong @media, nen
+     gia tri nay van phai go tay trong media query - nhung co mot cho de doi chieu. */
+  --gay-hep: 768px; /* duoi muc nay: mot cot, thanh dieu huong thanh ngan keo */
+  --gay-vua: 1200px; /* duoi muc nay: thanh dieu huong thu gon con bieu tuong */
+
+  color-scheme: light;
+  font-family: var(--font-chu);
+  font-size: 16px;
+  color: var(--mau-chu);
+}
+
+/* ---- Che do toi ----
+   CHI dinh nghia lai mau. Khoang cach, co chu, bo goc, nhip deu khong doi - do la ly do
+   ca khoi nay chi dai bang nay, va la phep thu cho thay he token duoc chia dung.
+
+   Chua co nut chuyen che do trong ung dung; day la phan da san sang cho ngay co no. Gan
+   data-theme="toi" len <html> de thu. */
+:root[data-theme='toi'] {
+  --mau-nen: #14171a;
+  --mau-nen-noi: #1c2024;
+  --mau-nen-nhat: #22272c;
+  --mau-nen-chim: #101316;
+
+  --mau-chu: #e6e9ec;
+  --mau-chu-mo: #9aa4af;
+  --mau-chu-nhat: #14171a;
+
+  --mau-vien: #333a41;
+  --mau-vien-dam: #48515a;
+
+  /* Sang len mot bac: mau thuong hieu cua ban sang bi tut do tuong phan tren nen toi. */
+  --mau-chinh: #4fb3cc;
+  --mau-chinh-dam: #7fcbdf;
+  --mau-chinh-nhat: #16303a;
+
+  --mau-loi: #f28b82;
+  --mau-loi-nhat: #35201e;
+  --mau-canh-bao: #e0b464;
+  --mau-canh-bao-nhat: #332a17;
+  --mau-tot: #6fca92;
+  --mau-tot-nhat: #17301f;
+
+  --do-noi-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --do-noi-2: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --do-noi-3: 0 16px 40px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}

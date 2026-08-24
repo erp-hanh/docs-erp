@@ -1,0 +1,775 @@
+/* bo-cuc-v2.css — ĐỀ XUẤT BỐ CỤC. Chưa vào code.
+ *
+ * File này KHÔNG khai một mã màu nào. Nó link vào đúng tokens.css và co-so.css đang chạy
+ * trong frontend-erp. Mục đích của nó là chứng minh đúng một điều:
+ *
+ *     bảng màu hiện tại không có lỗi; thứ hỏng là bố cục.
+ *
+ * Bảy khối bố cục dưới đây là thứ bản đang chạy không có, và là toàn bộ khoảng cách giữa
+ * màn Phân quyền hiện tại với ảnh tham chiếu:
+ *
+ *   1. .dai-dau        — đầu trang có ranh giới, mang hành động chính
+ *   2. .dai-tab        — chia màn thành các mặt, mỗi mặt có số đếm
+ *   3. .bang-chon      — băng chọn ngữ cảnh nằm ngang
+ *   4. .the-ngu-canh   — thẻ nói rõ đang thao tác trên ai/cái gì
+ *   5. .nhom           — thẻ gập được, đầu thẻ mang hàng nút mẫu nhanh
+ *   6. .o-hai-dong     — ô bảng hai dòng: gấp ba thông tin trên cùng chiều cao
+ *   7. .dai-chi-so     — dải số ở đầu màn danh sách
+ */
+
+/* ===== 1. Dải đầu trang =====================================================
+ * Bản đang chạy: .tieu-de-trang là một flex trần, không nền, không viền, chỉ có
+ * margin-bottom. Hệ quả là tiêu đề và nút hành động trôi trên nền trang, không thuộc về
+ * khối nào. Dải này cho chúng một cái nền để đứng, và biến góc phải thành chỗ CỐ ĐỊNH
+ * của hành động chính - người dùng học một lần, dùng cho mọi màn. */
+.dai-dau {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  margin-bottom: var(--gian-4);
+  background: var(--mau-nen-noi);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-lon);
+  box-shadow: var(--do-noi-1);
+}
+
+/* Vệt tô rất nhạt ở góc trên phải. Đây là trang trí duy nhất được phép trong cả hệ, và
+ * nó tồn tại vì một mặt phẳng trắng 1400px rộng đọc ra là "chưa tải xong". */
+.dai-dau::after {
+  content: '';
+  position: absolute;
+  inset: -60% -10% auto auto;
+  width: 380px;
+  height: 240px;
+  background: radial-gradient(closest-side, var(--mau-chinh-nhat), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dai-dau > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ô biểu tượng đầu dải. Nó không trang trí: nó là thứ giữ cho mắt tìm lại được đầu trang
+ * sau khi cuộn, và là chỗ duy nhất mỗi ứng dụng được khác nhau. */
+.o-bieu-tuong {
+  display: grid;
+  place-items: center;
+  width: var(--gian-6);
+  height: var(--gian-6);
+  flex: none;
+  border-radius: var(--bo-goc);
+  background: var(--mau-chinh-nhat);
+  border: 1px solid var(--mau-vien);
+  color: var(--mau-chinh);
+}
+
+.o-bieu-tuong svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.dai-dau .chinh {
+  min-width: 0;
+}
+
+/* Dải này KHÔNG mang nhãn phụ và KHÔNG mang câu mô tả, và đó là chủ ý:
+ *
+ *   - "Kho vận" và "DEFAULT" đã nằm ở thanh trên. Nhắc lại ngay dưới nó là tốn một dòng
+ *     để nói thứ mắt vừa đọc xong.
+ *   - Câu mô tả kiểu "Kho là nơi ghi tồn..." là câu dạy nghề. Người dùng ERP mở màn này
+ *     mỗi ngày; họ đọc nó đúng một lần rồi không bao giờ đọc nữa, nhưng nó chiếm chỗ mãi
+ *     mãi. Chỗ của lời giải thích là màn RỖNG, không phải màn có dữ liệu.
+ *
+ * Kết quả: dải cao ~56px thay vì ~140px, và vẫn giữ đủ hai việc nó sinh ra để làm - cho
+ * tiêu đề một mặt phẳng để đứng, và neo hành động chính vào một chỗ cố định. */
+.dai-dau h1 {
+  margin: 0;
+  font-size: var(--chu-xl);
+  line-height: var(--dong-chat);
+}
+
+/* Hành động chính neo phải. Đây là điều luật, không phải gợi ý: người dùng ERP mở cùng
+ * một màn hàng trăm lần, và giá trị nằm ở chỗ nút Tạo LUÔN ở đúng chỗ đó. */
+.day-nut {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  flex: none;
+}
+
+/* Nút chính. co-so.css cấp nút PHỤ làm mặc định và bắt nút chính phải khai tường minh -
+ * giữ đúng lối đó. Trên /kho hiện nay hành động chính đang là một thẻ <a>, nên nó không
+ * nhận được gì trong số này. */
+.nut-chinh {
+  background: var(--mau-chinh);
+  border-color: var(--mau-chinh);
+  color: var(--mau-chu-nhat);
+}
+
+.nut-chinh:hover:not(:disabled) {
+  background: var(--mau-chinh-dam);
+  border-color: var(--mau-chinh-dam);
+}
+
+.nut-chinh svg,
+.nut-phu svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+/* ===== 2. Dải tab ===========================================================
+ * Số đếm trong tab không phải trang trí: nó trả lời "ở mặt kia có gì không" mà không bắt
+ * bấm vào mới biết. */
+.dai-tab {
+  display: flex;
+  gap: var(--gian-2);
+  margin-bottom: var(--gian-4);
+  flex-wrap: wrap;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gian-2);
+  min-height: 34px;
+  padding: 0 var(--gian-4);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-nen-noi);
+  color: var(--mau-chu-mo);
+  font: inherit;
+  font-weight: var(--dam-vua);
+  cursor: pointer;
+}
+
+.tab svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.tab:hover {
+  background: var(--mau-nen-nhat);
+  color: var(--mau-chu);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--mau-chinh);
+  border-color: var(--mau-chinh);
+  color: var(--mau-chu-nhat);
+}
+
+.tab .dem {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+/* ===== 3. Băng chọn ngữ cảnh ================================================
+ * Chọn "đang cấu hình cho ai" bằng một băng ngang thay vì một <select>. Với 6-8 phần tử,
+ * băng ngang đọc được cả danh sách trong một cái liếc; <select> giấu 7 phần tử sau một
+ * cú bấm và không nói được ai đang được chọn khi mắt rời khỏi ô. */
+.bang-chon {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  flex-wrap: wrap;
+}
+
+.bang-chon > .nhan-bang {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mau-chu-mo);
+}
+
+.bang-chon > .nhan-bang svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.day-nguoi {
+  display: flex;
+  gap: var(--gian-2);
+  flex-wrap: wrap;
+}
+
+.the-nguoi {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gian-2);
+  min-height: 38px;
+  padding: 0 var(--gian-3) 0 var(--gian-1);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-nen-noi);
+  color: var(--mau-chu-mo);
+  font: inherit;
+  font-weight: var(--dam-vua);
+  cursor: pointer;
+}
+
+.the-nguoi:hover {
+  background: var(--mau-nen-nhat);
+  border-color: var(--mau-vien-dam);
+  color: var(--mau-chu);
+}
+
+/* Hai kênh cho mục đang chọn: nền tô VÀ chữ đậm lên. Không chỉ mỗi màu. */
+.the-nguoi[aria-pressed='true'] {
+  background: var(--mau-chinh-nhat);
+  border-color: var(--mau-chinh);
+  color: var(--mau-chinh-dam);
+  font-weight: var(--dam-manh);
+}
+
+.chu-cai {
+  display: grid;
+  place-items: center;
+  width: var(--gian-6);
+  height: var(--gian-6);
+  flex: none;
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-nen-chim);
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+}
+
+.the-nguoi[aria-pressed='true'] .chu-cai {
+  background: var(--mau-chinh);
+  color: var(--mau-chu-nhat);
+}
+
+/* ===== 4. Thẻ ngữ cảnh ======================================================
+ * Nói rõ đang thao tác trên ai. Bản đang chạy không có khối này, nên sau khi cuộn xuống
+ * giữa một bảng quyền dài, không còn gì trên màn trả lời "đang sửa quyền của ai". */
+.the-ngu-canh {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-4);
+  padding: var(--gian-4);
+}
+
+.anh-dai-dien {
+  display: grid;
+  place-items: center;
+  width: var(--gian-7);
+  height: var(--gian-7);
+  flex: none;
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-chinh-nhat);
+  border: 1px solid var(--mau-vien);
+  color: var(--mau-chinh-dam);
+  font-size: var(--chu-lg);
+  font-weight: var(--dam-manh);
+}
+
+.the-ngu-canh .ten {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  font-size: var(--chu-xl);
+  font-weight: var(--dam-manh);
+}
+
+.the-ngu-canh .dong-phu {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  margin-top: var(--gian-1);
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-sm);
+  flex-wrap: wrap;
+}
+
+.the-ngu-canh .dong-phu .ngan {
+  color: var(--mau-vien-dam);
+}
+
+/* ===== 5. Nhóm gập được =====================================================
+ * Một màn phân quyền có 6 phân hệ × 4-8 trang = tới 48 hàng. Đổ thẳng 48 hàng ra một
+ * bảng là bắt người dùng tự nhóm bằng mắt. Gập theo phân hệ cho họ mở đúng phần đang cần
+ * và đóng phần không cần. */
+.nhom {
+  margin-bottom: var(--gian-4);
+}
+
+.dau-nhom {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  background: var(--mau-nen-nhat);
+  border-radius: var(--bo-goc-lon) var(--bo-goc-lon) 0 0;
+}
+
+.nhom.dong .dau-nhom {
+  border-bottom: none;
+  border-radius: var(--bo-goc-lon);
+}
+
+.nut-gap {
+  width: var(--gian-6);
+  height: var(--gian-6);
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--mau-chu-mo);
+}
+
+.nut-gap svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.dau-nhom .ten-nhom {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  font-size: var(--chu-lg);
+  font-weight: var(--dam-manh);
+}
+
+.dau-nhom .mo-ta-nhom {
+  margin-top: 2px;
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+}
+
+/* Hàng nút mẫu nhanh. Đây là thứ ảnh tham chiếu có mà ta không: đặt cả một phân hệ về
+ * một trạng thái quen thuộc bằng một cú bấm, thay vì tick 20 ô. */
+.mau-nhanh {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-1);
+  flex: none;
+}
+
+.mau-nhanh .nhan {
+  margin-right: var(--gian-1);
+  font-size: var(--chu-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mau-chu-mo);
+}
+
+.nut-nho {
+  min-height: 26px;
+  padding: 0 var(--gian-2);
+  font-size: var(--chu-sm);
+}
+
+/* Hàng phạm vi áp dụng, nằm giữa đầu nhóm và bảng. */
+.hang-pham-vi {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  flex-wrap: wrap;
+}
+
+.hang-pham-vi .nhan {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu-mo);
+}
+
+.hang-pham-vi .nhan svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gian-1);
+  min-height: 24px;
+  padding: 0 var(--gian-2);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-nhat);
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  white-space: nowrap;
+}
+
+.chip.chon {
+  background: var(--mau-chinh-nhat);
+  border-color: var(--mau-chinh);
+  color: var(--mau-chinh-dam);
+}
+
+.chip.tot {
+  background: var(--mau-tot-nhat);
+  border-color: transparent;
+  color: var(--mau-tot);
+}
+
+.cham {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--bo-goc-tron);
+  background: currentColor;
+  flex: none;
+}
+
+/* ===== 6. Ô bảng hai dòng và ô đánh dấu quyền ===============================
+ * Ô hai dòng là chỗ mật độ thật sự đến từ: cùng chiều cao hàng, ba mẩu thông tin thay vì
+ * một. Bảng hiện tại dùng một dòng nên nửa chiều cao hàng là khoảng trắng. */
+.o-hai-dong .dong-tren {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu);
+}
+
+.o-hai-dong .dong-duoi {
+  margin-top: 2px;
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+}
+
+.ma {
+  display: inline-block;
+  padding: 0 var(--gian-1);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-chim);
+  color: var(--mau-chu-mo);
+  font-family: var(--font-so);
+  font-size: var(--chu-xs);
+}
+
+a.ma {
+  color: var(--mau-chinh);
+  text-decoration: none;
+}
+
+a.ma:hover {
+  text-decoration: underline;
+}
+
+/* Ô đánh dấu của ma trận quyền. Ba trạng thái, và mỗi trạng thái có HÌNH DẠNG riêng chứ
+ * không chỉ có màu: dấu tích, dấu gạch, dấu chéo. */
+.o-quyen {
+  display: inline-grid;
+  place-items: center;
+  width: var(--gian-5);
+  height: var(--gian-5);
+  min-height: 0;
+  padding: 0;
+  border-radius: var(--bo-goc);
+}
+
+.o-quyen svg {
+  width: var(--gian-4);
+  height: var(--gian-4);
+}
+
+.o-quyen[aria-checked='true'] {
+  background: var(--mau-tot-nhat);
+  border-color: var(--mau-tot);
+  color: var(--mau-tot);
+}
+
+.o-quyen.thua-ke[aria-checked='true'] {
+  background: var(--mau-canh-bao-nhat);
+  border-color: var(--mau-canh-bao);
+  color: var(--mau-canh-bao);
+}
+
+.o-quyen[aria-checked='false'] {
+  color: var(--mau-vien-dam);
+}
+
+.o-quyen:disabled {
+  opacity: 0.45;
+}
+
+/* Ô một dòng, cắt bằng dấu ba chấm. Không có nó, một ô địa chỉ dài tự xuống bốn dòng và
+ * kéo chiều cao của cả hàng - đúng lỗi đang thấy ở bảng hiện tại khi dữ liệu đầy lên. */
+/* Bảng danh sách dùng bố cục cột CỐ ĐỊNH. Bố cục tự động cho ra chiều rộng cột thay đổi
+ * theo dữ liệu của từng trang - nghĩa là cùng một bảng, sang trang 2 các cột nhảy chỗ.
+ * Người dùng ERP đọc bảng bằng vị trí cột, nên cột nhảy chỗ là lỗi thật sự. */
+.bang-co-dinh {
+  table-layout: fixed;
+}
+
+.cat {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th.hep,
+td.hep {
+  white-space: nowrap;
+}
+
+/* Cột thao tác neo PHẢI. Trên /kho hiện nay cột này căn trái, nên nút Xoá đứng lơ lửng
+ * giữa màn cách mép bảng hơn 200px. */
+th.phai,
+td.phai {
+  text-align: right;
+}
+
+th.giua,
+td.giua {
+  text-align: center;
+}
+
+td.phai .day-nut,
+td.giua .day-nut {
+  justify-content: flex-end;
+  display: inline-flex;
+}
+
+/* Băng thông báo. Trong mockup nó dùng để đánh dấu chỗ CHƯA CÓ trong backend - vẽ một màn
+ * như thể tính năng đã có là cách nhanh nhất để cả đội tưởng nó đã có. */
+.bao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  margin-bottom: var(--gian-4);
+  border: 1px solid var(--mau-canh-bao);
+  border-left-width: 3px;
+  border-radius: var(--bo-goc);
+  background: var(--mau-canh-bao-nhat);
+  color: var(--mau-chu);
+  font-size: var(--chu-sm);
+}
+
+.bao strong {
+  color: var(--mau-canh-bao);
+}
+
+/* ===== 7. Dải chỉ số ========================================================
+ * Chỉ dựng khi có con số THẬT để hiện. Một dải chỉ số bịa ra cho đầy màn là trang trí đội
+ * lốt thông tin - nếu không gọi tên được con số thì không dựng dải này. */
+.dai-chi-so {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gian-3);
+  margin-bottom: var(--gian-4);
+}
+
+.o-chi-so {
+  padding: var(--gian-4);
+  background: var(--mau-nen-noi);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-lon);
+}
+
+.o-chi-so dt {
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu-mo);
+}
+
+.o-chi-so dd {
+  margin: var(--gian-1) 0 0;
+  font-size: var(--chu-3xl);
+  font-weight: var(--dam-manh);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.o-chi-so .phu {
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-thuong);
+  color: var(--mau-chu-mo);
+}
+
+/* ===== Thanh lọc ============================================================
+ * Bản đang chạy trải hai ô nhập ra một băng rộng 100% rồi đẩy "Số dòng" sang tận mép
+ * phải, để trống 700px ở giữa. Cho các ô một chiều rộng riêng và để chúng đứng cạnh
+ * nhau; phần đẩy sang phải chỉ dành cho thứ THẬT SỰ thuộc về phải. */
+.thanh-loc {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  flex-wrap: wrap;
+}
+
+.thanh-loc .truong label {
+  margin-bottom: var(--gian-1);
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu-mo);
+}
+
+.thanh-loc .o-tim {
+  width: 260px;
+}
+
+.thanh-loc .day-phai {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+}
+
+.thanh-loc .day-phai .truong {
+  align-self: flex-end;
+}
+
+.chan-bang {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-top: 1px solid var(--mau-vien);
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-sm);
+}
+
+.chan-bang .day-nut {
+  margin-left: auto;
+}
+
+/* ===== Vỏ mockup ============================================================
+ * Chỉ dùng cho file tĩnh này, không đề xuất vào code. */
+.vo-mockup {
+  display: grid;
+  grid-template-columns: var(--rong-canh) 1fr;
+  grid-template-rows: var(--cao-thanh-dau) 1fr;
+  min-height: 100vh;
+}
+
+.thanh-dau-mockup {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: 0 var(--gian-4);
+  background: var(--mau-nen-noi);
+  border-bottom: 1px solid var(--mau-vien);
+}
+
+.canh-mockup {
+  padding: var(--gian-3) 0;
+  background: var(--mau-nen-noi);
+  border-right: 1px solid var(--mau-vien);
+}
+
+.nhan-nhom-canh {
+  padding: var(--gian-3) var(--gian-4) var(--gian-1);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mau-chu-mo);
+}
+
+.muc-canh {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-2) var(--gian-4);
+  border-left: 3px solid transparent;
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-sm);
+  text-decoration: none;
+}
+
+.muc-canh svg {
+  width: var(--co-bieu-tuong);
+  height: var(--co-bieu-tuong);
+  flex: none;
+}
+
+.muc-canh[aria-current='page'] {
+  background: var(--mau-chinh-nhat);
+  border-left-color: var(--mau-chinh);
+  color: var(--mau-chinh-dam);
+  font-weight: var(--dam-vua);
+}
+
+/* Huy hiệu ở thanh điều hướng CHỈ dành cho việc cần làm - số chờ duyệt, số quá hạn.
+ * Tổng số bản ghi thì không: người dùng không cần biết có bao nhiêu kho trước khi bấm vào,
+ * và mỗi con số như vậy là thêm một lượt gọi API cho mọi lần tải trang. */
+.muc-canh .huy-hieu {
+  margin-left: auto;
+  padding: 0 var(--gian-2);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-canh-bao-nhat);
+  color: var(--mau-canh-bao);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.than-mockup {
+  padding: var(--gian-5);
+  overflow-y: auto;
+}
+
+.day-thanh-dau {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+}
+
+.chuyen-che-do {
+  display: flex;
+  gap: var(--gian-1);
+  padding: 3px;
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-nen-nhat);
+}
+
+.chuyen-che-do button {
+  min-height: 26px;
+  padding: 0 var(--gian-3);
+  border-color: transparent;
+  background: transparent;
+  color: var(--mau-chu-mo);
+  font-size: var(--chu-sm);
+}
+
+.chuyen-che-do button[aria-pressed='true'] {
+  background: var(--mau-nen-noi);
+  border-color: var(--mau-vien);
+  color: var(--mau-chu);
+  font-weight: var(--dam-manh);
+}
+
+.the {
+  background: var(--mau-nen-noi);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-lon);
+  box-shadow: var(--do-noi-1);
+  margin-bottom: var(--gian-4);
+}
+
+.the > .khung-bang {
+  overflow-x: auto;
+}
+
+.the > .khung-bang:last-child table tbody tr:last-child td {
+  border-bottom: none;
+}
