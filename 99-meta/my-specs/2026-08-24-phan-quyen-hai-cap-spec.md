@@ -191,6 +191,33 @@ DOM). Còn nợ: `qa-admin` không phải quản trị hệ thống nên chỉ k
 là màn duy nhất trong ba mặt còn chưa đi qua hệ thiết kế — vẫn là `<h1>` trần với một `<Link>`
 chữ làm đường tạo. Đường về từ mặt đó là thanh điều hướng bên nên không có ngõ cụt.
 
+## 4d. Đính chính bố cục cấp 1: ba tab thành ba mục, và một mặt (2026-08-24, rc.41)
+
+Mục 2 ở trên viết cấp 1 có **ba tab** Phân vùng · Tài khoản · Bổ nhiệm. Dựng ra rồi nhìn thanh
+bên thật thì hỏng theo hai đường, và người dùng đọc ra ngay từ ảnh chụp: "bốn trang này có vẻ
+đang bị trùng nhau".
+
+1. **"Phân quyền" và "Tài khoản" cùng đổ bảng `users` ra**, chỉ khác cột. Màn "Tài khoản" thực
+   ra là *tương lai* của màn Phân quyền sau ADR-0019 giai đoạn hai, không phải một màn thứ hai.
+2. **Ba mặt vừa là dải tab vừa là ba mục thanh bên** - điều hướng nói cùng một thứ hai lần.
+   `khuon-man-hinh.md` mục 0.2 nói dải tab chỉ dành cho các mặt của CÙNG một đối tượng; chiều
+   ngược lại cũng đúng.
+
+Bố cục đã sửa:
+
+- **Thanh bên ba mục**, mỗi mục một đối tượng: Phân quyền (tài khoản của phân vùng đang mở) ·
+  Quản trị phân vùng (chi nhánh) · Bổ nhiệm quản trị phân hệ (người × chi nhánh × phân hệ).
+- **`/quan-tri/tai-khoan` thành mặt thứ hai của `/phan-quyen`**, vào bằng dải tab trên chính
+  màn đó, đeo chip "Xem trước". Hai mặt khác nhau đúng một thứ: phạm vi. Danh sách hai mặt ở
+  `modules/user/components/mat-tai-khoan.ts`.
+- Màn Bổ nhiệm **bỏ dải tab**: nó là mục thanh bên độc lập, không phải mặt của màn nào.
+
+**Tài khoản đăng nhập không chuyển sang phân hệ Nhân sự**, và đây là lý do để lần sau khỏi bàn
+lại: một công nhân xưởng có hồ sơ nhân sự, hợp đồng, lương, mà cả đời không đăng nhập lần nào;
+ngược lại tài khoản tích hợp và tài khoản thuê ngoài đăng nhập được mà không ứng với nhân viên
+nào. Hai đối tượng khác nhau, chỉ trỏ vào nhau. Ngày dựng phân hệ Nhân sự, màn hồ sơ nhân viên
+nằm ở đó và mang một liên kết sang tài khoản của người đó.
+
 ## 5. Chưa quyết
 
 - Trạng thái "Chờ nhận" của một lượt bổ nhiệm (thấy trên mockup cấp 1) — chưa có trong mô hình.
