@@ -67,8 +67,16 @@ ký ở C-API-07:
 
 - `/health`, `/ready`, `/metrics` — endpoint hạ tầng, nằm ngoài `/api/v1`. Đây là danh
   sách đóng của R-13; thêm endpoint hạ tầng mới phải sửa chính R-13.
-- `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/logout` — nhóm `auth` được
-  R-10 cho phép dùng path không theo dạng tài nguyên.
+- `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/logout`,
+  `/api/v1/auth/change-password`, `/api/v1/auth/me`, `/api/v1/auth/companies`,
+  `/api/v1/auth/select-company` — nhóm `auth` được R-10 cho phép dùng path không theo dạng
+  tài nguyên. Ngoại lệ của R-10 gọi đích danh **cả nhóm** `/api/v1/auth/*`, không gọi đích
+  danh từng đường, nên bảy đường trên nằm trong nó mà không phải đăng ký ở C-API-07.
+
+  Danh sách này từng chỉ ghi ba đường trong khi code đã có năm — `/auth/change-password` và
+  `/auth/me` vào hệ sau lần viết đó. Đính chính cùng lúc với hai đường mới của
+  [ADR-0034](../03-decisions/ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) mục 4, vì để
+  lệch thêm một lần nữa là để nó thành lệch ba lần.
 - Endpoint dạng `/actions/<verb>` thì **phải** đăng ký ở C-API-07.
 
 ---
@@ -834,8 +842,9 @@ struct DTO được miễn, vì thứ được miễn là struct chứ không ph
 |---|---|---|
 | `POST /api/v1/auth/login` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: thân response mang `access_token` và `refresh_token`, không có đường nào khác trao chúng cho client | 2026-08-11 |
 | `POST /api/v1/auth/refresh` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **làm mới token**: cùng struct với `/auth/login`, vì nó trả đúng một cặp token mới sau khi thu hồi cặp cũ | 2026-08-11 |
+| `POST /api/v1/auth/select-company` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: bước hai của đăng nhập theo [ADR-0034](../03-decisions/ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) mục 4 — nó đổi một mã phân vùng lấy cặp token gắn với phân vùng đó, và thu hồi refresh token của phiên cũ trong cùng transaction. Dùng lại đúng struct của `/auth/login` để client không phải xử lý một hình dạng thứ hai | 2026-08-25 |
 
-Hai dòng trên miễn đúng **một** struct. Mọi struct khác của module `auth` vẫn chịu R-16
+Ba dòng trên miễn đúng **một** struct. Mọi struct khác của module `auth` vẫn chịu R-16
 đầy đủ: `service.TokenPair`, `service.LoginInput`, `service.RefreshInput`,
 `service.LogoutInput` và `service.ChangePasswordInput` đều mang `json:"-"` trên field nhạy
 cảm, và `model.RefreshToken.TokenHash` cũng vậy. Ngoại lệ này là về **đường ra tới
