@@ -840,15 +840,21 @@ struct DTO được miễn, vì thứ được miễn là struct chứ không ph
 
 | Endpoint | Lý do | Ngày duyệt |
 |---|---|---|
-| `POST /api/v1/auth/login` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: thân response mang `access_token` và `refresh_token`, không có đường nào khác trao chúng cho client | 2026-08-11 |
+| `POST /api/v1/auth/login` — struct `handler.TokenDanhTinhDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: từ [ADR-0034](../03-decisions/ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) mục 4 nó là **bước một** của đăng nhập và thân response mang đúng một `identity_token` — token danh tính, sống 5 phút, không mang `company_id`. Một struct **riêng** chứ không phải `TokenPairDTO` với `refresh_token` rỗng: một chuỗi rỗng ở đó là cái bẫy để client lưu lại rồi gọi `/auth/refresh` với nó | 2026-08-25 |
 | `POST /api/v1/auth/refresh` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **làm mới token**: cùng struct với `/auth/login`, vì nó trả đúng một cặp token mới sau khi thu hồi cặp cũ | 2026-08-11 |
 | `POST /api/v1/auth/select-company` — struct `handler.TokenPairDTO` (`modules/auth/internal/handler/auth_handler.go`) | Endpoint **cấp token**: bước hai của đăng nhập theo [ADR-0034](../03-decisions/ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) mục 4 — nó đổi một mã phân vùng lấy cặp token gắn với phân vùng đó, và thu hồi refresh token của phiên cũ trong cùng transaction. Dùng lại đúng struct của `/auth/login` để client không phải xử lý một hình dạng thứ hai | 2026-08-25 |
 
-Ba dòng trên miễn đúng **một** struct. Mọi struct khác của module `auth` vẫn chịu R-16
-đầy đủ: `service.TokenPair`, `service.LoginInput`, `service.RefreshInput`,
-`service.LogoutInput` và `service.ChangePasswordInput` đều mang `json:"-"` trên field nhạy
-cảm, và `model.RefreshToken.TokenHash` cũng vậy. Ngoại lệ này là về **đường ra tới
+Ba dòng trên miễn đúng **hai** struct: `handler.TokenPairDTO` cho hai endpoint trả một cặp
+token, và `handler.TokenDanhTinhDTO` cho riêng `/auth/login`. Mọi struct khác của module
+`auth` vẫn chịu R-16 đầy đủ: `service.TokenPair`, `service.TokenDanhTinh`,
+`service.LoginInput`, `service.RefreshInput`, `service.LogoutInput`,
+`service.ChonPhanVungInput` và `service.ChangePasswordInput` đều mang `json:"-"` trên field
+nhạy cảm, và `model.RefreshToken.TokenHash` cũng vậy. Ngoại lệ này là về **đường ra tới
 client**, không phải về tiện lợi khi viết struct.
+
+Hai tên struct đó cũng là lý do dòng đăng ký nêu **cả endpoint lẫn tên struct**: `/auth/login`
+đã một lần đổi struct trả về mà giữ nguyên đường dẫn, và một dòng chỉ ghi đường dẫn sẽ vẫn
+đọc ra là đúng sau lần đổi đó — trong khi thứ được miễn đã là một struct khác.
 
 #### 5. Endpoint bắt buộc nhận header `Idempotency-Key` — hard check của P-IDEM
 
