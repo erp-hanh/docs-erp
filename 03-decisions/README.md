@@ -58,6 +58,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0031 | `quan_tri_he_thong` cầm thêm `auth.user_create`, và chỉ thêm đúng mã đó | Accepted (2026-08-24) | — | [ADR-0031-quan-tri-he-thong-quan-ly-tai-khoan.md](ADR-0031-quan-tri-he-thong-quan-ly-tai-khoan.md) |
 | ADR-0032 | Danh mục vai trò lọc theo thẩm quyền của actor, và module suy từ tập quyền chứ không từ mã vai trò | Accepted (2026-08-24) | — | [ADR-0032-danh-muc-vai-tro-loc-theo-tham-quyen-cua-actor.md](ADR-0032-danh-muc-vai-tro-loc-theo-tham-quyen-cua-actor.md) |
 | ADR-0033 | Phân vùng thành cây, và ranh giới dữ liệu chỉ mở theo một chiều lên trên | Proposed (2026-08-24) | R-06 | [ADR-0033-phan-vung-thanh-cay-doc-len-mot-chieu.md](ADR-0033-phan-vung-thanh-cay-doc-len-mot-chieu.md) |
+| ADR-0034 | Một tài khoản đi được mọi phân vùng, và hai câu truy vấn chạy trước khi có phân vùng | Proposed (2026-08-25) | R-06 | [ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md](ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
