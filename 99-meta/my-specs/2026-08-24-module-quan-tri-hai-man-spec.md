@@ -206,3 +206,64 @@ bị CSS giấu.
   Đã thu hồi. Nếu cần bước xác nhận thì đó là một cột trạng thái thật, quyết khi làm backend.
 - Một người có được gán hai vùng dữ liệu cho cùng một phân hệ không. Đợt giao diện cho phép
   nhiều dòng; ràng buộc duy nhất quyết khi làm backend.
+
+---
+
+## 10. Đính chính ngày 2026-08-25: bỏ vùng dữ liệu, quản trị theo phân vùng
+
+Người quyết nói hai câu, và cả hai đều lật một quyết định của mục 2 và mục 3.2 ở trên:
+
+1. *"mỗi phân vùng sẽ có 1 admin, trước là mỗi module 1 admin"*
+2. *"trong trang Vùng dữ liệu có tab Vùng dữ liệu, hãy xoá bỏ tab này, thiết kế ra không
+   đúng mục đích của tôi"*
+
+### Thứ bị bỏ
+
+**Khái niệm "vùng dữ liệu" (nhóm nhiều phân vùng) không còn.** Mục 2 dựng nó để trả lời câu
+hỏi "một quản trị phân hệ được quản mấy chi nhánh". Câu hỏi đó tan biến khi quản trị gắn với
+đúng một phân vùng.
+
+Mục 8 ở trên chốt hai câu bỏ ngỏ của spec cũ bằng vùng dữ liệu. Cả hai lời chốt đó nay hết
+hiệu lực, và lời chốt mới là:
+
+- **Một lượt gán là phân vùng × người**, không có trục phân hệ và không có trục vùng. Mỗi
+  phân vùng đúng một người quản trị, người đó quản trị mọi phân hệ trong phân vùng của mình.
+- **Phạm vi dữ liệu cấp 1 chính là phân vùng.** Không cần một tầng gom nào ở giữa. Danh sách
+  kho vẫn ở cấp 2 như mục 6 đã ghi.
+
+### Hình dạng sau đính chính
+
+```
+Quan tri he thong
+  |- Phan quyen    /quan-tri/phan-quyen   tab Vai tro | Gan vai tro
+  |- Phan vung     /quan-tri/phan-vung    tab Danh sach | Quan tri
+```
+
+Màn Phân quyền **không đổi**. Màn thứ hai đổi tên từ "Vùng dữ liệu" thành "Phân vùng", từ ba
+mặt còn hai:
+
+| Mặt | Bảng | Nguồn |
+|---|---|---|
+| Danh sách | Mã, Tên, Số người dùng, Thao tác | API thật `GET /companies` |
+| Quản trị | Mã, Phân vùng, Người quản trị, Số người dùng, Thao tác | dòng thật, cột người quản trị là mẫu |
+
+Một dòng của mặt Quản trị là **một phân vùng**, không phải một lượt bổ nhiệm. Nên bảng đó
+không bao giờ dài hơn danh sách phân vùng, và không có nút "Thêm" - chỉ có "Đổi người quản
+trị".
+
+### Backend còn nợ, thay cho mục 6
+
+Bảng ở mục 6 nêu `/data-zones` và `/module-admins`. Cả hai **không cần nữa**. Thay bằng:
+
+| Việc | Endpoint cần |
+|---|---|
+| CRUD vai trò | `POST/PATCH/DELETE /roles`; `GET /roles` trả thêm `phan_he`, `so_nguoi_giu`, `is_active` |
+| Người quản trị của một phân vùng | `GET /companies/:id/admin`, `PUT /companies/:id/admin` |
+
+Việc thứ hai rẻ hơn hẳn hai bảng mới của mục 6: nó là một cột trên `companies`, hoặc một hàng
+trong một bảng nối hai cột. Không có thực thể mới nào.
+
+### Đường dẫn cũ
+
+`/quan-tri/vung-du-lieu*` đã chạy thật trên dev ở `v0.1.0-rc.50` và `rc.51`, nên chín đường
+của nó vào bảng chuyển hướng cùng chỗ với các đường của mục 4, không bị xoá thẳng.
