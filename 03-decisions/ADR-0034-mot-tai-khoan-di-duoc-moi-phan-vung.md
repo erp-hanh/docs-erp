@@ -1,6 +1,6 @@
 # ADR-0034: Một tài khoản đi được mọi phân vùng, và hai câu truy vấn chạy trước khi có phân vùng
 
-**Status:** Proposed (2026-08-25)
+**Status:** Proposed (2026-08-25) — đính chính mục 3 ngày 2026-08-25, xem khối trích ở đó
 
 ## Context
 
@@ -100,20 +100,51 @@ không phải lúc thêm comment thứ ba.
 **Vùng mù phải biết:** `checkR06` chỉ quét `CREATE TABLE`, nên một `ALTER TABLE users DROP
 COLUMN company_id` **không** làm bộ kiểm đỏ. Bộ kiểm im lặng đúng chỗ nó nên nói to nhất.
 
-### 3. Hai câu truy vấn được miễn R-06, và danh sách miễn trừ ĐÓNG
+### 3. Ba câu truy vấn được miễn R-06, và danh sách miễn trừ ĐÓNG
+
+> **Đính chính 2026-08-25** — mục này ra đời với **hai** câu, hàng (c) được thêm cùng ngày.
+> Lý do phát hiện: đo thật trên máy dev `v0.1.0-rc.54` sau khi cả bảy bước đã merge.
+> `qa-admin@erp.test` thuộc hai phân vùng; `POST /auth/select-company` trả `200` với phân
+> vùng gốc và **`404`** với phân vùng còn lại. Nguyên nhân là `ChonPhanVung` đọc hàng
+> `users` bằng một câu còn lọc `company_id`, mà sau mục 2 thì cột ấy chỉ còn là lai lịch.
+> Tức bức tường thật ở phần Context có **ba** viên gạch chứ không phải hai, và viên thứ ba
+> chỉ lộ ra khi có người đầu tiên thuộc nhiều hơn một phân vùng.
+>
+> Cùng một câu đọc ấy còn nằm ở ba đường nữa — `POST /auth/refresh`, `GET /auth/me`,
+> `POST /auth/change-password` — và cả ba trả `401` cho cùng người đó. Ba đường ấy không đo
+> được trên `rc.54` vì `select-company` chặn trước: không ai lấy nổi một token của phân
+> vùng thứ hai để mà đi tiếp. Chữa một mình `select-company` sẽ mở chúng ra thành ba lỗi
+> mới, nên cả bốn đổi cùng một lượt.
 
 | Câu | Hàm | Vì sao không thể có `company_id` |
 |---|---|---|
 | (a) tra người theo email/phone | `UserRepository.ByEmailToanHe`, `ByPhoneToanHe` | Chạy lúc đăng nhập, chưa ai chọn phân vùng |
 | (b) liệt kê phân vùng của một người | `UserCompanyRepository.PhanVungTheoUser` | Kết quả của nó CHÍNH LÀ danh sách phân vùng |
+| (c) đọc hàng `users` lúc cấp token cho phân vùng vừa chọn | `UserRepository.ByIDToanHe` | Chạy **sau khi** đã xác minh người này có hàng `user_companies` còn sống ở phân vùng được chọn, nhưng **trước khi** token mang phân vùng đó tồn tại. Và sau mục 2 thì `users` là bảng DANH TÍNH, không còn là bảng thuộc-về-phân-vùng: lọc nó theo `company_id` là hỏi sai câu hỏi, không phải hỏi thiếu điều kiện |
+
+Câu (c) khác (a) và (b) ở một chỗ đáng nói ra: hai câu kia chạy khi **chưa có** phân vùng
+nào trong tay, còn (c) chạy khi **đã có** một `congTyID` đọc ra từ bảng `companies` và đã
+kiểm. Cám dỗ là truyền giá trị ấy vào cho "đúng R-06". Làm thế thì câu quay lại đúng lỗi
+vừa chữa: nó đi hỏi bảng danh tính một câu về phân vùng, và trả lời "không có người này"
+cho một người có thật. Phân vùng được kiểm ở `user_companies` — nơi mệnh đề ấy có nghĩa —
+và ở đúng một chỗ.
 
 Ba ràng buộc, và cả ba kiểm được bằng máy:
 
-1. **Đúng ba hàm này, không hàm nào khác.** `arch/checks_migration.go` mang một danh sách tên
-   hàm cứng. Thêm một hàm thứ tư vào danh sách là một lần sửa ADR, không phải một dòng code.
-2. **Ba hàm chỉ được gọi từ `AuthService`**, và chỉ trong ba đường `login`, `GET
-   /auth/companies`, `POST /auth/select-company`. Gọi từ nơi khác là một câu xuyên phân vùng
-   trá hình.
+1. **Đúng ba hàng của bảng trên, không hàm nào khác.** `arch/checks_migration.go` mang một danh sách
+   tên hàm cứng. Thêm một hàm mới vào danh sách là một lần sửa ADR, không phải một dòng code
+   — đính chính ở trên chính là lần sửa ấy cho hàng (c).
+2. **Các hàm này chỉ được gọi từ `AuthService`.** Vế kiểm được bằng máy là vế đó, và chỉ
+   vế đó: một danh sách endpoint chép tay trong ADR thì không bộ kiểm nào đọc, nên nó lệch
+   ngay lần thứ hai ai đó thêm một đường. Gọi từ ngoài `AuthService` là một câu xuyên phân
+   vùng trá hình. Ràng buộc này áp cho `ByIDToanHe` y như ba tên kia.
+
+   Tính đến 2026-08-25, `ByIDToanHe` được gọi ở năm đường: `POST /auth/select-company`,
+   `POST /auth/refresh`, `GET /auth/me`, `POST /auth/change-password`, và không đường nào
+   khác. Bốn đường sau đều từng đọc `users` bằng một câu lọc `company_id`, và cả bốn đều
+   trả lỗi cho một người đang làm việc ở phân vùng khác phân vùng gốc — 404 ở
+   `select-company`, 401 ở ba đường còn lại. Con số này là **ghi chú**, không phải ràng
+   buộc: thứ ràng buộc là dòng ngay trên.
 3. **Chúng chỉ ĐỌC.** Không có đường ghi nào được miễn R-06, theo bất kỳ ADR nào, mãi mãi.
 
 Ràng buộc 2 là ràng buộc quan trọng nhất và cũng là ràng buộc dễ trôi nhất. Nó phải có một
@@ -176,6 +207,8 @@ ADR riêng.
   một sau khi migration đã chạy là vỡ ngay câu SELECT đầu tiên.
 - R-06 có ngoại lệ thứ ba. Ba ngoại lệ là ngưỡng mà một luật bắt đầu đọc ra như một gợi ý. Nếu
   có ngoại lệ thứ tư, việc phải làm là viết lại R-06 cho đúng, không phải nối thêm một dòng.
+  Đính chính 2026-08-25 **không** tạo ngoại lệ thứ tư: nó nới chính ngoại lệ thứ ba từ hai
+  hàng lên ba, cùng một lý do và cùng một bộ ràng buộc. Con số phải theo dõi vẫn là ba.
 
 **Không đổi**
 
