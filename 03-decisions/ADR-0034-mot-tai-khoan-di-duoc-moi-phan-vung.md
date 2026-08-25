@@ -109,6 +109,12 @@ COLUMN company_id` **không** làm bộ kiểm đỏ. Bộ kiểm im lặng đú
 > `users` bằng một câu còn lọc `company_id`, mà sau mục 2 thì cột ấy chỉ còn là lai lịch.
 > Tức bức tường thật ở phần Context có **ba** viên gạch chứ không phải hai, và viên thứ ba
 > chỉ lộ ra khi có người đầu tiên thuộc nhiều hơn một phân vùng.
+>
+> Cùng một câu đọc ấy còn nằm ở ba đường nữa — `POST /auth/refresh`, `GET /auth/me`,
+> `POST /auth/change-password` — và cả ba trả `401` cho cùng người đó. Ba đường ấy không đo
+> được trên `rc.54` vì `select-company` chặn trước: không ai lấy nổi một token của phân
+> vùng thứ hai để mà đi tiếp. Chữa một mình `select-company` sẽ mở chúng ra thành ba lỗi
+> mới, nên cả bốn đổi cùng một lượt.
 
 | Câu | Hàm | Vì sao không thể có `company_id` |
 |---|---|---|
@@ -128,9 +134,17 @@ Ba ràng buộc, và cả ba kiểm được bằng máy:
 1. **Đúng ba hàng của bảng trên, không hàm nào khác.** `arch/checks_migration.go` mang một danh sách
    tên hàm cứng. Thêm một hàm mới vào danh sách là một lần sửa ADR, không phải một dòng code
    — đính chính ở trên chính là lần sửa ấy cho hàng (c).
-2. **Các hàm này chỉ được gọi từ `AuthService`**, và chỉ trong bốn đường `login`, `GET
-   /auth/companies`, `POST /auth/select-company`, `POST /auth/refresh`. Gọi từ nơi khác là
-   một câu xuyên phân vùng trá hình. Ràng buộc này áp cho `ByIDToanHe` y như ba tên kia.
+2. **Các hàm này chỉ được gọi từ `AuthService`.** Vế kiểm được bằng máy là vế đó, và chỉ
+   vế đó: một danh sách endpoint chép tay trong ADR thì không bộ kiểm nào đọc, nên nó lệch
+   ngay lần thứ hai ai đó thêm một đường. Gọi từ ngoài `AuthService` là một câu xuyên phân
+   vùng trá hình. Ràng buộc này áp cho `ByIDToanHe` y như ba tên kia.
+
+   Tính đến 2026-08-25, `ByIDToanHe` được gọi ở năm đường: `POST /auth/select-company`,
+   `POST /auth/refresh`, `GET /auth/me`, `POST /auth/change-password`, và không đường nào
+   khác. Bốn đường sau đều từng đọc `users` bằng một câu lọc `company_id`, và cả bốn đều
+   trả lỗi cho một người đang làm việc ở phân vùng khác phân vùng gốc — 404 ở
+   `select-company`, 401 ở ba đường còn lại. Con số này là **ghi chú**, không phải ràng
+   buộc: thứ ràng buộc là dòng ngay trên.
 3. **Chúng chỉ ĐỌC.** Không có đường ghi nào được miễn R-06, theo bất kỳ ADR nào, mãi mãi.
 
 Ràng buộc 2 là ràng buộc quan trọng nhất và cũng là ràng buộc dễ trôi nhất. Nó phải có một
