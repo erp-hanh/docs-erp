@@ -60,6 +60,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0033 | Phân vùng thành cây, và ranh giới dữ liệu chỉ mở theo một chiều lên trên | Proposed (2026-08-24) | R-06 | [ADR-0033-phan-vung-thanh-cay-doc-len-mot-chieu.md](ADR-0033-phan-vung-thanh-cay-doc-len-mot-chieu.md) |
 | ADR-0034 | Một tài khoản đi được mọi phân vùng, và hai câu truy vấn chạy trước khi có phân vùng | Proposed (2026-08-25) | R-06 | [ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md](ADR-0034-mot-tai-khoan-di-duoc-moi-phan-vung.md) |
 | ADR-0035 | Vùng dữ liệu là một loại phạm vi, không phải một cột mới | Accepted (2026-08-24) | R-06, R-18 | [ADR-0035-vung-du-lieu-la-mot-loai-pham-vi.md](ADR-0035-vung-du-lieu-la-mot-loai-pham-vi.md) |
+| ADR-0036 | Quản trị hệ thống đi được mọi phân vùng mà không cần là thành viên | Accepted (2026-08-27) | R-06 | [ADR-0036-quan-tri-he-thong-di-duoc-moi-phan-vung.md](ADR-0036-quan-tri-he-thong-di-duoc-moi-phan-vung.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong
