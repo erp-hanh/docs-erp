@@ -1,8 +1,15 @@
-# ADR-0034: Vùng dữ liệu là một LOẠI PHẠM VI, không phải một cột mới
+# ADR-0035: Vùng dữ liệu là một LOẠI PHẠM VI, không phải một cột mới
 
 **Status:** Accepted (2026-08-24)
 
 ## Context
+
+**Tên "vùng dữ liệu" đã từng chỉ một thứ KHÁC, và bản này không hồi sinh thứ đó.**
+`99-meta/my-specs/2026-08-24-module-quan-tri-hai-man-spec.md` mục 10 (đính chính 25/08) bỏ khái
+niệm *vùng dữ liệu = nhóm nhiều phân vùng*. Vùng ở ADR này là **một tập kho có tên, nằm gọn
+trong MỘT phân vùng** - nó không gom phân vùng lại, và mọi bảng của nó mang `company_id` đọc
+thẳng (R-06), thứ mà khái niệm cũ theo định nghĩa không có. Hai thứ khác nhau trùng tên, và chỗ
+phân biệt là câu hỏi "nó gom cái gì": phân vùng, hay kho.
 
 Chủ dự án chốt phạm vi của màn cấp 1 (quản trị hệ thống) gồm đúng ba việc: bổ nhiệm quản trị
 phân hệ, gán vùng dữ liệu cho họ, và **tạo vùng dữ liệu**. Hai việc đầu có đường đi rồi; việc
@@ -45,7 +52,7 @@ ra thành kho lúc truy vấn. Không thêm cột vào bảng phạm vi, không 
 - `data_zone_warehouses(id, company_id, data_zone_id, warehouse_id, ...)` — bảng nối.
 
 Cả hai mang `company_id NOT NULL` đọc thẳng trên bảng (R-06), `deleted_at` cho xoá mềm (R-18),
-và bộ cột kiểm toán theo C-DB-05. Index theo R-09 cho mọi cột nằm trong WHERE/JOIN.
+và bộ cột kiểm toán theo C-DB-03 (C-DB-05 là quy tắc index, không phải cột kiểm toán). Index theo R-09 cho mọi cột nằm trong WHERE/JOIN.
 
 **2. `scope_type` nhận thêm một giá trị, bảng phạm vi KHÔNG đổi hình dạng.** Một hàng
 `user_company_role_scopes` mang `scope_type = 'data_zone'`, `scope_id = <id của vùng>`. Migration
@@ -71,7 +78,17 @@ người ta vẫn thấy kho đã gỡ. Vế thứ hai là lỗ hổng thật, v
 một luật mà `scope.Doc` đã khai cho danh sách rỗng, và ADR-0030 đã chốt: phạm vi trả lời "của
 ai", không trả lời "còn sống không".
 
-**6. Thứ ADR này KHÔNG quyết:** vùng dữ liệu cho loại tài nguyên khác kho (ngày có phạm vi theo
+**6. Năm quyền mới cấp cho `quan_tri_he_thong`, và chỉ nó.** `auth.data_zone_list`,
+`auth.data_zone_read`, `auth.data_zone_create`, `auth.data_zone_update`, `auth.data_zone_delete`.
+Đây là chỗ bản đầu của ADR này bỏ sót: mục Context nói thẳng tạo vùng dữ liệu là một trong ba
+việc của cấp 1, nhưng mục Decision không cấp quyền cho ai, nên năm endpoint trả `403` cho mọi
+actor - fail-close, ồn ào, và không dùng được.
+
+Cấp cho đúng một vai trò vì vùng dữ liệu cắt ngang mọi phân hệ: một `inventory.admin` gom được
+kho vào một vùng thì anh ta tự nới phạm vi của chính mình, đúng ca mà ADR-0029 đã rào ở trục vai
+trò. Ngày một quản trị phân hệ cần tự dựng vùng trong phạm vi của mình, đó là một ADR khác.
+
+**7. Thứ ADR này KHÔNG quyết:** vùng dữ liệu cho loại tài nguyên khác kho (ngày có phạm vi theo
 chi nhánh hay theo nhóm vật tư), và việc một vùng có lồng trong vùng khác được không. Cả hai
 chưa có ca thật; dựng sẵn là dựng cho một bài toán chưa ai đặt.
 
