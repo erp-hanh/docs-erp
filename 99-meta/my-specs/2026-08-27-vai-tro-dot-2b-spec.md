@@ -117,6 +117,13 @@ description, is_active, is_system`.
 | `auth.role_create` | Tạo vai trò mới trong phân vùng của mình | `auth.admin`, `quan_tri_he_thong` |
 | `auth.role_update` | Sửa tên/mô tả/tập quyền, bật tắt một vai trò | `auth.admin`, `quan_tri_he_thong` |
 
+**Cấp hai mã này cho `quan_tri_he_thong` đảo một mệnh đề đã khoá bằng máy.** ADR-0031 mục 1
+chốt tập quyền của vai trò dẫn xuất ở đúng mười sáu mã, và
+`cmd/internal/vaitro/adr0031_test.go` là hiện thân của mệnh đề đó. Vẫn cấp, vì người dùng
+nói rõ quản trị hệ thống cũng phải tự thêm được vai trò. ADR mới (mục 9) ghi phép đính
+chính mười sáu -> mười tám kèm lập luận theo tiêu chí ADR-0031 mục 2, và bài test đó sửa
+trong cùng lượt - không để nó đỏ qua đêm.
+
 Không có `auth.role_delete`: người dùng chốt "tắt, không xoá", nên không có đường xoá để
 gác.
 
@@ -126,7 +133,8 @@ khớp tay - hai bên đó lệch là hỏng lặng lẽ.
 
 ### 6.2 `GET /api/v1/permissions` - danh mục quyền kèm nhãn tiếng Việt
 
-Mới. Trả 48 mã quyền đang có, mỗi mã kèm nhãn tiếng Việt, nhóm, và module.
+Mới. Trả **50** mã quyền - 48 mã đang có cộng hai mã mục 6.1 vừa thêm - mỗi mã kèm nhãn
+tiếng Việt, nhóm, và module.
 
 ```
 {"data":[{"ma":"inventory.item_create","nhan":"Thêm vật tư",
@@ -143,7 +151,7 @@ frontend. Lý do: thêm một mã quyền ở backend mà quên sửa bảng nh�
 hiện ra một mã trần kiểu `inventory.movement_create` cho người không làm kỹ thuật đọc.
 Một nguồn, một chỗ sửa.
 
-48 nhãn là phần việc thầm lặng lớn nhất của đợt này. Nhóm theo đối tượng, không theo động
+50 nhãn là phần việc thầm lặng lớn nhất của đợt này. Nhóm theo đối tượng, không theo động
 từ: "Kho hàng", "Danh mục vật tư", "Sổ nhập xuất", "Tồn kho", "Đơn vị tính", "Người dùng",
 "Phân vùng", "Phân quyền", "Thiết bị", "Kế hoạch bảo trì", "Sự cố".
 
@@ -160,7 +168,8 @@ Giữ nguyên đường lọc theo thẩm quyền và phân trang sau lọc củ
 | `mo_ta` | `roles.description` |
 | `dang_dung` | `roles.is_active` |
 | `he_thong_tao` | `roles.is_system` |
-| `phan_he` | Mảng module suy từ `role_permissions` (ràng buộc 3), không từ tiền tố mã |
+| `phan_he` | Mảng mã module suy từ `role_permissions` (ràng buộc 3), không từ tiền tố mã |
+| `nhan_phan_he` | Mảng nhãn tiếng Việt song song `phan_he`, cùng thứ tự - nhãn sống ở Go, đúng lý do mục 6.2 |
 | `so_nguoi_giu` | `COUNT` trên `user_company_roles` còn sống |
 
 Thêm trường vào response không phải breaking (C-API-06). `VaiTroKhaDungDTO {ma, nhan}`
@@ -189,6 +198,9 @@ transaction → ghi `roles` + `role_permissions` + `audit_logs` hằng `role.cre
 ### 6.5 `PATCH /api/v1/roles/:id` - sửa, trả 200
 
 Thân, mọi trường tuỳ chọn: `{"name", "description", "permissions", "dang_dung"}`.
+
+Ba tên tiếng Anh cạnh một tên tiếng Việt là **chủ ý, không phải chỗ sót**: `dang_dung` khớp
+đúng tên trường `GET /roles` trả về, nên client đọc một tên rồi ghi lại chính tên đó.
 
 Bốn luật riêng của đường này:
 
@@ -220,6 +232,25 @@ khi đã loại trừ tập tự tác động (ràng buộc 1). Audit hằng `ro
 
 Cả bốn thêm dòng vào bảng mã lỗi và bảng ánh xạ constraint **trong chính PR đó**
 (CL-API-08).
+
+## 6bis. Hai lỗ hổng lộ ra lúc dựng kế hoạch - vá trong đợt này
+
+Không có trong bản spec đầu, tìm thấy khi đọc code thật. Cả hai đều làm đợt này rỗng ruột
+nếu bỏ qua.
+
+**1. `is_system` phải được đặt ở đường ghi bộ mặc định, không chỉ backfill.** Mục 5 chỉ
+backfill các hàng đang có. Một phân vùng mở SAU đợt này đi qua `CreateCompany` ->
+`insertVaiTroMacDinhSQL`, câu chèn đó không đụng `is_system`, nên bảy vai trò mặc định của
+nó ra đời với `is_system = false`: tắt được, sửa tập quyền được, và `auth.admin` của phân
+vùng ấy tự khoá mình ra ngoài được. Cùng lỗ ở `cmd/dev seed-roles`.
+
+**2. `is_active = false` phải cắt quyền ở nguồn `authz`, không chỉ đổi một chữ trên màn.**
+Mục 5 hứa người đang giữ mất quyền, nhưng không đường nào ở mục 6 chạm tới
+`selectQuyenTheoVaiTroSQL` - câu mà `authz` đọc. Thiếu một mệnh đề `AND r.is_active` ở đó
+thì nút Tắt chỉ đổi màu một cái chip. Hai hệ quả phải nhận: thông điệp từ chối lúc gán một
+vai trò đã tắt là "vai trò không tồn tại" (chưa thật đúng, chấp nhận đợt này), và
+`GET /roles` vẫn liệt kê vai trò đã tắt nên **màn gán phải tự lọc theo `dang_dung`** - việc
+đó thuộc kế hoạch frontend.
 
 ## 7. Frontend
 
@@ -277,7 +308,7 @@ Mỗi bước xanh mới sang bước sau.
 
 1. ADR (mục 9) - vì nó đảo một quyết định đã ghi.
 2. Migration `000033` + `000034`, chạy trên dev, đối soát bằng `cmd/dev seed-roles`.
-3. Hai mã quyền mới + 48 nhãn tiếng Việt + `GET /permissions`.
+3. Hai mã quyền mới + 50 nhãn tiếng Việt + `GET /permissions`.
 4. `GET /roles` mở rộng - frontend chưa đổi vẫn phải chạy nguyên.
 5. `POST /roles`, `PATCH /roles/:id`.
 6. `DanhSachChon`: checkbox cha + khoá từng dòng, kèm test của riêng nó.
