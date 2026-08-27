@@ -168,11 +168,29 @@ một hàng `role_permissions` mỗi khi cần một vai trò mới.
 
 **Mất:**
 
-- **Nhớ đệm quyền 30 giây làm mọi thay đổi tập quyền có độ trễ.** `shared/authz/nguon_db.go`
-  giữ nhịp hết hạn (`nhipHetHan`) 30 giây và không có API vô hiệu hoá. Sửa tập quyền xong,
-  người đang giữ vai trò ấy còn dùng quyền cũ tới 30 giây. Đợt này **nói câu đó trên màn** -
-  một dòng cố định dưới khối quyền - chứ không bổ sung cơ chế invalidate. Bổ sung invalidate
-  là một đợt riêng, và nó đụng vào đường đọc nóng nhất của hệ.
+- **Nhớ đệm quyền 30 giây làm mọi thay đổi tập quyền có độ trễ - trừ chính đường ghi vai
+  trò.** `shared/authz/nguon_db.go` giữ nhịp hết hạn (`nhipHetHan`) 30 giây. Đợt này **nói
+  câu đó trên màn** - một dòng cố định dưới khối quyền.
+
+  Nhưng đường ghi vai trò thì **không** được phép chậm như vậy, và đây là chỗ bản đầu của
+  ADR này chốt sai. Bản chụp được nạp ở lời gọi `Can` đầu tiên của request - tức TRƯỚC khi
+  hàng `roles` mới tồn tại - nên một vai trò vừa tạo sẽ **biến mất** khỏi `GET /roles` và
+  `PUT /users/:id/roles` từ chối nó bằng câu "vai trò không tồn tại", cả hai kéo dài tới 30
+  giây. Người dùng không đọc triệu chứng đó ra là "chậm"; họ đọc nó ra là mất dữ liệu. Bài
+  e2e `TestE2ETaoVaiTroRoiGanChoNguoiThat` lôi ra điều này khi nó phải dựng một router thứ
+  hai mới khép được vòng.
+
+  Nên `Checker` nay có `XoaBanChup(companyID)`, và cả `TaoVaiTro` lẫn `SuaVaiTro` gọi nó
+  **ngay sau `tx.Commit()`**. Một khoá bị vứt, không phải cả map: một lần ghi ở phân vùng
+  này không nói gì về bảng phân quyền của phân vùng khác. Method nằm trong chính `Checker`
+  chứ không là một interface tuỳ chọn ở cạnh - một phép ép kiểu `if x, ok := ...` sẽ im lặng
+  trở thành không-làm-gì vào ngày ai đó tiêm một `Checker` khác, và chỗ hỏng lại đúng là chỗ
+  vừa sửa.
+
+  Câu "chỉ nhìn thấy sau tối đa 30 giây" vì vậy chỉ còn đúng cho các đường ghi KHÁC -
+  `PUT /users/:id/roles` và `PUT /users/:id/scopes` chưa gọi `XoaBanChup`. Mở rộng sang hai
+  đường đó là việc của đợt sau, và nó cần bàn riêng vì chúng ghi vào bảng gán chứ không vào
+  bảng vai trò.
 - **Thông điệp từ chối lúc gán một vai trò đã tắt chưa thật đúng.** `is_active = false` cắt vai
   trò khỏi nguồn đọc của `authz` (thêm một mệnh đề vào `selectQuyenTheoVaiTroSQL`), và **cùng
   một dòng đó** làm vai trò tắt không gán mới được. Nhưng câu từ chối khi đó là
