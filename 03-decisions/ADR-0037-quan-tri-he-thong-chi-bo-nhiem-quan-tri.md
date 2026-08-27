@@ -60,6 +60,27 @@ Muốn đứng ở phân hệ Kho vận với vai thủ kho để thử một lu
 gán — đúng chiều mà [ADR-0029](ADR-0029-nhan-ban-quan-tri-trong-cung-module.md) đã rào ở trục vai
 trò, nay lặp lại ở trục người bổ nhiệm.
 
+**6. Đính chính cùng ngày: luật này chỉ áp cho chiều CẤP, không áp cho chiều GỠ.**
+
+Bản đầu của ADR viết *"vai trò được gán"* mà không nói gì về chiều ngược lại. Lúc thi công mới lộ
+ra: `ThayVaiTro` chạy phép kiểm trên **hiệu đối xứng** của tập cũ và tập mới, nên một vai trò
+nghiệp vụ **bị gỡ đi** cũng đi qua đúng hàm đó và cũng bị chặn.
+
+Chặn cả hai chiều tạo ra một ca kẹt cứng có thật: một phân vùng mất hết `inventory.admin` — người
+đó nghỉ việc, hoặc bị vô hiệu hoá — thì `inventory.thu_kho` của nhân viên **không còn ai gỡ
+được**. Quản trị hệ thống bị luật này chặn, mà module admin thì không còn ai.
+
+Nên: vế của ADR này chỉ chạy trên **tập được thêm**. Cấp thêm quyền là việc cần rào; trả lại quyền
+thì không — nó luôn đi về phía an toàn hơn. Mọi vế còn lại (vai trò dẫn xuất, vai trò tồn tại,
+thẩm quyền theo module của ADR-0024) giữ nguyên cho **cả hai** chiều.
+
+Đây **không** phải "phép kiểm thứ hai" mà ADR-0032 mục Alternatives đã loại: vẫn đúng một hàm
+`kiemGanMotVaiTro`, chỉ là người gọi nói cho nó biết đang xét chiều nào. Thứ ADR-0032 loại là hai
+bản **cài đặt** của cùng một phép tính, không phải một tham số.
+
+Ca kẹt cứng phải có test riêng, vì nó là **lý do** của mục này: thiếu nó thì lần refactor sau có
+người siết lại chiều gỡ mà không ai còn biết vì sao không nên.
+
 ## Alternatives
 
 **Ẩn bớt ô chọn ở frontend, giữ nguyên backend** — loại. Nó phá ADR-0032 mục Decision 4 (*lọc
