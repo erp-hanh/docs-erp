@@ -1,6 +1,6 @@
 # ADR-0034: Một tài khoản đi được mọi phân vùng, và hai câu truy vấn chạy trước khi có phân vùng
 
-**Status:** Proposed (2026-08-25) — đính chính mục 3 ngày 2026-08-25, xem khối trích ở đó
+**Status:** Proposed (2026-08-25) — đính chính mục 3 ngày 2026-08-25 và 2026-08-27, xem hai khối trích ở đó
 
 ## Context
 
@@ -146,6 +146,35 @@ Ba ràng buộc, và cả ba kiểm được bằng máy:
    `select-company`, 401 ở ba đường còn lại. Con số này là **ghi chú**, không phải ràng
    buộc: thứ ràng buộc là dòng ngay trên.
 3. **Chúng chỉ ĐỌC.** Không có đường ghi nào được miễn R-06, theo bất kỳ ADR nào, mãi mãi.
+
+   > **Đính chính 2026-08-27** — ràng buộc này nói một lệnh cấm mà không nói đường ra, và
+   > sự im lặng ấy đã tốn một lỗ hổng thật. `AuthService.ChangePassword` cần thu hồi refresh
+   > token của một người **ở mọi phân vùng**; `SoftDeleteByUser` là đường GHI nên nó không
+   > xin miễn trừ được, và đợt viết mục 4 đã dừng lại ở chỗ đó — để nguyên câu thu hồi cũ
+   > chỉ chạy cho phân vùng đang mở, kèm một ghi chú "đó là một quyết định riêng". Kết quả:
+   > từ `rc.54` (lượt đầu tiên có người thật sự thuộc hai phân vùng), đổi mật khẩu ở Trụ sở
+   > **không** giết phiên ở phân vùng khác, và refresh token kia sống tiếp 30 ngày — đúng
+   > cái mà đổi mật khẩu sinh ra để chặn.
+   >
+   > **Đường ra đúng cho một đường ghi cần chạm nhiều phân vùng: LẶP, không miễn trừ.** Đọc
+   > danh sách phân vùng bằng đúng câu ĐỌC đã được miễn ở hàng (b), rồi gọi câu GHI một lần
+   > cho mỗi phân vùng — mỗi lời gọi vẫn mang `company_id = $`, nên không có gì phải miễn.
+   > Tất cả nằm trong **cùng một transaction** với lệnh ghi chính: một lệnh đổi mật khẩu
+   > thành công mà thu hồi hỏng giữa chừng để lại trạng thái tệ hơn cả hai đầu.
+   >
+   > **Hai cái bẫy của đường ra ấy, cả hai đều hỏng im lặng:**
+   >
+   > - **Phân trang.** Câu đọc nhận `page`/`page_size` theo R-12. Gọi nó một lần với cỡ
+   >   trang mặc định thì chỉ trang đầu bị thu hồi, và thao tác vẫn trả `204`. Phải lặp
+   >   **hết** mọi trang; một trần cứng kiểu "chừng này là quá đủ" vẫn là cùng một lỗi.
+   > - **Tập nguồn của quản trị hệ thống khác.** ADR-0036 mục 2 cho họ vào mọi phân vùng
+   >   còn sống mà **không** cần hàng `user_companies`, và mục 4 cấm thêm hàng ấy. Nên với
+   >   họ, `PhanVungTheoUser` trả về ít hơn hẳn tập phân vùng họ thật sự có phiên, và một
+   >   vòng lặp chỉ đọc bảng ấy sẽ bỏ sót đúng những phiên mạnh nhất trong hệ. Tập nguồn của
+   >   họ là danh sách phân vùng còn sống — đúng tập mà `PhanVungCuaToi` dùng cho họ theo
+   >   ADR-0036 mục 1.
+   >
+   > Lệnh cấm ở dòng trên **không đổi**: vẫn không đường ghi nào được miễn R-06.
 
 Ràng buộc 2 là ràng buộc quan trọng nhất và cũng là ràng buộc dễ trôi nhất. Nó phải có một
 test kiến trúc riêng, không dựa vào code review.
