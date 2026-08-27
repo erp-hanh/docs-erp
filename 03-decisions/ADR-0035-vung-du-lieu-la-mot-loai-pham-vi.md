@@ -122,3 +122,33 @@ lần đọc bảng nối. Đây là câu chạy trên **mọi** request có l�
 **Nợ để lại:** màn gán phạm vi hôm nay bày một danh sách kho phẳng. Sau bản này nó phải bày được
 cả hai thứ — vùng và kho lẻ — và phải nói rõ kho nào đến từ vùng nào, nếu không người gán sẽ gỡ
 một kho rồi ngạc nhiên vì nó vẫn còn đó.
+
+**Đính chính, lúc gỡ (2026-08-27). Quyết định này ĐÃ ĐƯỢC THI CÔNG, ĐÃ CHẠY, VÀ ĐÃ ĐƯỢC GỠ.**
+ADR ở lại vì ADR là bất biến; code thì không còn. Ai đọc tới đây rồi đi tìm `data_zones` trong
+`backend-erp` sẽ không thấy gì, và đó là trạng thái đúng chứ không phải một chỗ thi công còn dở.
+
+Đường đi đầy đủ: thi công xong và lên máy dev ở `v0.1.0-rc.56`. Sau đó chủ dự án chốt là không
+cần màn vùng dữ liệu nữa; `frontend-erp` gỡ màn ở `v0.1.0-rc.59`, còn backend đứng nguyên thêm
+một thời gian và thành **code chết** — hai bảng, năm endpoint, một loại phạm vi mới, không màn
+nào gọi tới. Phần backend gỡ ngày 2026-08-27.
+
+**Thứ đã đi.** Hai bảng `data_zone_warehouses` và `data_zones`, bằng migration
+**`000032_go_vung_du_lieu`** (bảng nối trước — `data_zone_id` mang khoá ngoại thật). Năm endpoint
+`/data-zones` cùng model, repository, service, handler và phần nối ở `modules/auth/module.go`.
+Năm quyền `auth.data_zone_*` ở mục 6, cùng chỗ chúng đứng trong `quan_tri_he_thong` — tập quyền
+của vai trò đó trở lại **mười sáu** mã của ADR-0031 mục 1. Mã lỗi
+`ERR_AUTH_DATA_ZONE_CODE_DUPLICATED` và dòng ánh xạ constraint của nó ở `C-API-http.md`. Và mục
+3 — `selectScopeIDsTheoActorSQL` trở lại dạng **một vế**, đúng hình dạng nó có trước ADR này;
+bốn mệnh đề `deleted_at IS NULL` của bốn bảng còn lại giữ nguyên không sót cái nào.
+
+**Thứ ở lại, cố ý.** Migration `000031` — lịch sử migration không sửa lại được, và một migration
+đã chạy trên dev thì càng không. Những hàng `user_company_role_scopes` mang
+`scope_type = 'data_zone'`, nếu còn: `000032` **không** dọn chúng, và file đó ghi rõ hai lẽ (xoá
+cứng một bảng nghiệp vụ là thứ R-18 cấm, và dọn ở đây làm bước lùi mất khả năng lùi). Hệ quả
+phải nói ra: một hàng như vậy sau `000032` không nở ra kho nào, nên người từng chỉ được gán vùng
+sẽ thấy phạm vi rỗng — fail-close, đúng chiều, nhưng im lặng.
+
+**Thứ ADR này vẫn còn giá trị.** Mục 2 — bảng phạm vi không đổi hình dạng, `scope_type` là tập
+mở — chưa bao giờ bị đụng tới và vẫn đúng. Ngày một loại phạm vi thứ hai thật sự cần đến, lập
+luận ở mục Alternatives (vì sao không chép lúc gán, vì sao không thêm một cột song song) dùng
+lại được nguyên vẹn. Thứ mất đi là một tính năng, không phải một quyết định.
