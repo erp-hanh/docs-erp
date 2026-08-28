@@ -1,0 +1,814 @@
+/* kho-van-v3.css - khối bố cục THÊM cho bản đề xuất v3 của module Kho vận.
+ *
+ * File này KHÔNG thay bo-cuc-v2.css, nó nối tiếp: mọi khối đã có ở v2 (dải đầu, dải tab,
+ * thanh lọc, chân bảng, dải chỉ số, thẻ ngữ cảnh, nhóm gập được, ô hai dòng, chip, mã)
+ * được dùng lại nguyên vẹn. Ở đây chỉ khai những khối mà v2 chưa có, và tất cả đều sinh ra
+ * từ đúng một lời chê: "bố cục rời rạc, mở ra trống trải, nhìn đơn sơ".
+ *
+ * Không một mã màu thô nào trong file này. Mọi giá trị đi qua token của frontend-erp. */
+
+/* ===== 0. Băng chọn màn để duyệt ============================================
+ * CHỈ có trong mockup. Nó không phải một thành phần của sản phẩm - thanh điều hướng bên
+ * trái mới là điều hướng thật. Băng này tồn tại để người duyệt nhảy giữa mười màn mà
+ * không phải mở mười file. */
+.bang-duyet {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  flex-wrap: wrap;
+  padding: var(--gian-3) var(--gian-4);
+  margin-bottom: var(--gian-4);
+  border: 1px dashed var(--mau-vien-dam);
+  border-radius: var(--bo-goc-lon);
+  background: var(--mau-nen-chim);
+}
+
+.bang-duyet > .nhan {
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mau-chu-mo);
+  margin-right: var(--gian-2);
+}
+
+.bang-duyet button {
+  padding: var(--gian-1) var(--gian-3);
+  border-radius: var(--bo-goc-tron);
+  font-size: var(--chu-xs);
+  background: var(--mau-nen-noi);
+}
+
+.bang-duyet button[aria-pressed='true'] {
+  background: var(--mau-chinh);
+  border-color: var(--mau-chinh);
+  color: var(--mau-chu-nhat);
+}
+
+.man[hidden] {
+  display: none;
+}
+
+/* ===== 1. Bố cục hai cột =====================================================
+ * Cột phụ 320px là chỗ ở của thứ trước đây không có chỗ: ngữ cảnh của bản ghi đang sửa,
+ * xem trước tác động, việc cần làm. Đây là câu trả lời trực tiếp cho "trống trải": màn
+ * form một cột hẹp giữa màn 1440px để lại hai dải trống hai bên rộng hơn cả chính nó. */
+.hai-cot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--gian-4);
+  align-items: start;
+}
+
+.hai-cot > .cot-phu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gian-4);
+  position: sticky;
+  top: var(--gian-4);
+}
+
+@media (max-width: 1200px) {
+  .hai-cot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hai-cot > .cot-phu {
+    position: static;
+  }
+}
+
+/* ===== 2. Thẻ có đầu thẻ =====================================================
+ * `.the` của v2 là một mặt phẳng trần. Một mặt phẳng trần cạnh một mặt phẳng trần khác
+ * thì mắt không biết cái nào nói về cái gì - đó chính là cảm giác "rời rạc". Đầu thẻ đặt
+ * tên cho mặt phẳng. */
+.dau-the {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-2);
+  padding: var(--gian-3) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  background: var(--mau-nen-nhat);
+  border-radius: var(--bo-goc-lon) var(--bo-goc-lon) 0 0;
+}
+
+.dau-the h2 {
+  margin: 0;
+  font-size: var(--chu-md);
+  font-weight: var(--dam-manh);
+  line-height: var(--dong-chat);
+}
+
+.dau-the .phu {
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+}
+
+.dau-the .day-nut {
+  margin-left: auto;
+}
+
+.than-the {
+  padding: var(--gian-4);
+}
+
+.than-the.khit {
+  padding: 0;
+}
+
+/* ===== 3. Ghi chú trên bảng ==================================================
+ * Chỗ của câu "con số này nghĩa là gì". Nó KHÔNG được leo lên dải đầu trang: dải đầu nói
+ * về tên màn, câu này nói về một cột trong bảng. Xem khuôn màn hình mục 0.1. */
+.ghi-chu-bang {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gian-2);
+  padding: var(--gian-2) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  background: var(--mau-chinh-nhat);
+  font-size: var(--chu-sm);
+  color: var(--mau-chu);
+}
+
+.ghi-chu-bang svg {
+  flex: none;
+  width: var(--co-bieu-tuong);
+  height: var(--co-bieu-tuong);
+  color: var(--mau-chinh);
+}
+
+/* ===== 4. Form ==============================================================
+ * Nhãn TRÊN ô, không phải bên trái: nhãn bên trái ép mọi nhãn về cùng một chiều rộng, và
+ * chiều rộng đó luôn thừa cho nhãn ngắn, luôn thiếu cho nhãn dài. */
+.luoi-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gian-4);
+}
+
+.luoi-form > .rong {
+  grid-column: 1 / -1;
+}
+
+.o-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gian-1);
+}
+
+.o-form > label {
+  font-size: var(--chu-sm);
+  font-weight: var(--dam-vua);
+  color: var(--mau-chu);
+  margin: 0;
+}
+
+.o-form > label .bat-buoc {
+  color: var(--mau-loi);
+  margin-left: 2px;
+}
+
+.o-form .goi-y {
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+  line-height: var(--dong-vua);
+}
+
+.o-form .loi-o {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-1);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-vua);
+  color: var(--mau-loi);
+}
+
+.o-form .dem-ky-tu {
+  margin-left: auto;
+  font-family: var(--font-so);
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+}
+
+.hang-nhan {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gian-2);
+}
+
+/* Chân trang dính của form. Nút Lưu không bao giờ trôi khỏi tầm mắt, kể cả form dài. */
+.chan-form {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-top: 1px solid var(--mau-vien);
+  background: var(--mau-nen-noi);
+  border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon);
+}
+
+.chan-form .day-nut {
+  margin-left: auto;
+}
+
+.chan-form .nhac {
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+}
+
+/* Bộ chọn loại chuyển động: ba nấc lớn, bấm một phát, không phải một <select> ba dòng.
+ * Đây là thao tác lặp lại nhiều nhất của thủ kho trong ngày. */
+.chon-loai {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gian-2);
+}
+
+.chon-loai button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gian-1);
+  padding: var(--gian-3);
+  text-align: left;
+  border-radius: var(--bo-goc);
+  line-height: var(--dong-vua);
+}
+
+.chon-loai button .ten {
+  font-weight: var(--dam-manh);
+  font-size: var(--chu-md);
+}
+
+.chon-loai button .mo-ta {
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+}
+
+.chon-loai button[aria-pressed='true'] {
+  border-color: var(--mau-chinh);
+  background: var(--mau-chinh-nhat);
+  box-shadow: inset 0 0 0 1px var(--mau-chinh);
+}
+
+.chon-loai button[aria-pressed='true'] .mo-ta {
+  color: var(--mau-chinh-dam);
+}
+
+/* ===== 5. Xem trước tồn sau khi ghi ==========================================
+ * R-19: đây là TẠM TÍNH ĐỂ NHÌN, không bao giờ đi vào body request. Backend vẫn là nơi
+ * duy nhất tính tồn. Dòng chữ dưới hộp nói đúng điều đó ra, để không ai đọc nhầm. */
+.xem-truoc {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--gian-2);
+  padding: var(--gian-4);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-nhat);
+}
+
+.xem-truoc .muc {
+  text-align: center;
+}
+
+.xem-truoc .muc dt {
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+}
+
+.xem-truoc .muc dd {
+  margin: var(--gian-1) 0 0;
+  font-size: var(--chu-2xl);
+  font-weight: var(--dam-manh);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.xem-truoc .muc dd .dv {
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-thuong);
+  color: var(--mau-chu-mo);
+}
+
+.xem-truoc .mui-ten {
+  color: var(--mau-chu-mo);
+}
+
+.xem-truoc .muc.tang dd {
+  color: var(--mau-tot);
+}
+
+.xem-truoc .muc.giam dd {
+  color: var(--mau-loi);
+}
+
+/* ===== 6. Khối thông tin của màn chi tiết ====================================
+ * Cặp nhãn - giá trị. Nhãn đứng TRÊN, cùng lý do với form. */
+.luoi-thong-tin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gian-4);
+  margin: 0;
+}
+
+.luoi-thong-tin > div > dt {
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-vua);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mau-chu-mo);
+}
+
+.luoi-thong-tin > div > dd {
+  margin: var(--gian-1) 0 0;
+  font-size: var(--chu-md);
+  line-height: var(--dong-vua);
+}
+
+.luoi-thong-tin > div > dd.so {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--dam-manh);
+}
+
+/* ===== 7. Sơ đồ quy trình của trang chủ ứng dụng =============================
+ * Bản đang chạy là một chuỗi bước trần trên nền trang. Ở đây mỗi bước là một thẻ mang
+ * đúng ba thứ: số bước, việc phải làm, và MỘT con số sống của chính bước đó. Con số sống
+ * là thứ biến sơ đồ từ tranh minh hoạ thành màn làm việc. */
+.chuoi-buoc {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gian-3);
+  counter-reset: buoc;
+}
+
+.buoc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gian-2);
+  padding: var(--gian-4);
+  background: var(--mau-nen-noi);
+  border: 1px solid var(--mau-vien);
+  border-radius: var(--bo-goc-lon);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color var(--nhip-nhanh) var(--duong-cong),
+    box-shadow var(--nhip-nhanh) var(--duong-cong);
+}
+
+.buoc:hover {
+  border-color: var(--mau-chinh);
+  box-shadow: var(--do-noi-1);
+}
+
+.buoc .so-buoc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gian-5);
+  height: var(--gian-5);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-chinh-nhat);
+  color: var(--mau-chinh-dam);
+  font-family: var(--font-so);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+}
+
+.buoc .ten-buoc {
+  font-size: var(--chu-md);
+  font-weight: var(--dam-manh);
+  line-height: var(--dong-chat);
+}
+
+.buoc .mo-ta-buoc {
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+  line-height: var(--dong-vua);
+}
+
+.buoc .so-song {
+  margin-top: auto;
+  padding-top: var(--gian-2);
+  border-top: 1px solid var(--mau-vien);
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+}
+
+.buoc .so-song strong {
+  font-family: var(--font-so);
+  font-size: var(--chu-xl);
+  font-weight: var(--dam-manh);
+  color: var(--mau-chu);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 8. Danh sách việc cần làm =============================================
+ * Trả lời câu "nhìn không ra tình hình kho". Mỗi dòng là một việc CÓ ĐƯỜNG RA - bấm vào
+ * là tới đúng màn xử lý, không phải một dòng cảnh báo cụt. */
+.day-viec {
+  display: flex;
+  flex-direction: column;
+}
+
+.viec {
+  display: flex;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-bottom: 1px solid var(--mau-vien);
+  text-decoration: none;
+  color: inherit;
+}
+
+.viec:last-child {
+  border-bottom: 0;
+}
+
+.viec:hover {
+  background: var(--mau-nen-nhat);
+}
+
+.viec > .dau-hieu {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gian-6);
+  height: var(--gian-6);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-nhat);
+  color: var(--mau-chu-mo);
+}
+
+.viec.canh-bao > .dau-hieu {
+  background: var(--mau-canh-bao-nhat);
+  color: var(--mau-canh-bao);
+}
+
+.viec.loi > .dau-hieu {
+  background: var(--mau-loi-nhat);
+  color: var(--mau-loi);
+}
+
+.viec .noi-dung {
+  min-width: 0;
+}
+
+.viec .tieu-de-viec {
+  font-size: var(--chu-md);
+  font-weight: var(--dam-vua);
+  line-height: var(--dong-vua);
+}
+
+.viec .phu-viec {
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+  line-height: var(--dong-vua);
+}
+
+.viec .dem-viec {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-so);
+  font-size: var(--chu-xl);
+  font-weight: var(--dam-manh);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 9. Dòng thời gian ======================================================
+ * Dùng ở màn chi tiết chuyển động và chi tiết vật tư. Không phải trang trí: nó trả lời
+ * "ai đã đụng vào bản ghi này" mà không cần mở một màn khác. */
+.dong-thoi-gian {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gian-4);
+  margin: 0;
+  padding: 0 0 0 var(--gian-5);
+  list-style: none;
+  border-left: 2px solid var(--mau-vien);
+}
+
+.dong-thoi-gian > li {
+  position: relative;
+}
+
+.dong-thoi-gian > li::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--gian-5) * -1 - 5px);
+  top: var(--gian-1);
+  width: var(--gian-2);
+  height: var(--gian-2);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-vien-dam);
+  box-shadow: 0 0 0 3px var(--mau-nen-noi);
+}
+
+.dong-thoi-gian > li.noi-bat::before {
+  background: var(--mau-chinh);
+}
+
+.dong-thoi-gian .luc {
+  font-family: var(--font-so);
+  font-size: var(--chu-xs);
+  color: var(--mau-chu-mo);
+}
+
+.dong-thoi-gian .viec-lam {
+  font-size: var(--chu-sm);
+  line-height: var(--dong-vua);
+}
+
+/* ===== 10. Số lớn có dấu ======================================================
+ * Cột lượng ở sổ chuyển động. Dấu cộng/trừ là kênh thứ hai bên cạnh màu - người không
+ * phân biệt được đỏ với xanh vẫn đọc đúng. */
+.luong {
+  font-family: var(--font-so);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--dam-manh);
+  white-space: nowrap;
+}
+
+.luong.tang {
+  color: var(--mau-tot);
+}
+
+.luong.giam {
+  color: var(--mau-loi);
+}
+
+.dv-nho {
+  font-family: var(--font-chu);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-thuong);
+  color: var(--mau-chu-mo);
+}
+
+/* ===== 12. Màn rỗng ===========================================================
+ * Một câu giải thích, và ĐÚNG MỘT đường ra. Đây là chỗ ở của lời dạy nghề bị đuổi khỏi
+ * dải đầu trang. */
+.man-rong {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gian-3);
+  padding: var(--gian-8) var(--gian-4);
+  text-align: center;
+}
+
+.man-rong .hinh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gian-8);
+  height: var(--gian-8);
+  border-radius: var(--bo-goc-tron);
+  background: var(--mau-chinh-nhat);
+  color: var(--mau-chinh);
+}
+
+.man-rong .hinh svg {
+  width: var(--gian-6);
+  height: var(--gian-6);
+}
+
+.man-rong h3 {
+  margin: 0;
+  font-size: var(--chu-lg);
+}
+
+.man-rong p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+  line-height: var(--dong-rong);
+}
+
+/* ===== 13. Khung xương ========================================================
+ * Trạng thái đang tải lần đầu. Không phải chữ "Đang tải...": một khối xám đúng hình dạng
+ * của thứ sắp hiện ra thì mắt không phải bố cục lại khi dữ liệu về. */
+.xuong {
+  display: block;
+  height: var(--gian-4);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-chim);
+  animation: tho var(--nhip-cho) ease-in-out infinite;
+}
+
+@keyframes tho {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xuong {
+    animation: none;
+  }
+}
+
+/* ===== 14. Ghi chú của người duyệt ============================================
+ * Khối vàng CHỈ có trong mockup. Nó đánh dấu chỗ chưa có ở backend, hoặc chỗ cố ý khác
+ * bản đang chạy. Vẽ một màn như thể tính năng đã có là cách nhanh nhất để cả đội tưởng
+ * nó đã có. */
+.chu-thich-thiet-ke {
+  margin-bottom: var(--gian-4);
+  padding: var(--gian-3) var(--gian-4);
+  border: 1px solid var(--mau-vien);
+  border-left: 3px solid var(--mau-chinh);
+  border-radius: var(--bo-goc);
+  background: var(--mau-nen-noi);
+  font-size: var(--chu-sm);
+  line-height: var(--dong-rong);
+  color: var(--mau-chu-mo);
+}
+
+.chu-thich-thiet-ke strong {
+  color: var(--mau-chu);
+}
+
+.chu-thich-thiet-ke ul {
+  margin: var(--gian-2) 0 0;
+  padding-left: var(--gian-5);
+}
+
+.chu-thich-thiet-ke li {
+  margin-bottom: var(--gian-1);
+}
+
+/* ===== 15. Chữ phụ ============================================================
+ * Ô bảng mang một giá trị "không có gì": 0 dòng tồn, chưa gán, không có ghi chú. Nó phải
+ * đọc ra là VẮNG chứ không phải là một con số ngang hàng các con số khác.
+ *
+ * Khai ở đây vì bo-cuc-v2.css dùng class này trong HTML mà quên khai - nên ở bản v2 mọi
+ * ô "Chưa gán" đang hiện đậm y như dữ liệu thật. */
+.chu-phu {
+  color: var(--mau-chu-mo);
+  font-weight: var(--dam-thuong);
+}
+
+/* ===== 16. Nút chỉ có biểu tượng ==============================================
+ * Cột Thao tác. Hai chữ "Sửa" "Xoá" lặp trên mọi hàng là hai cột chữ chạy dọc bảng, và
+ * mắt phải đọc lại chúng ở từng hàng dù chúng không bao giờ đổi.
+ *
+ * Ba ràng buộc bắt buộc, không được bỏ cái nào (luật 7 của skill):
+ *  - `aria-label` - trình đọc màn hình không thấy hình, nó chỉ có cái nhãn này.
+ *  - `title` - người dùng chuột rê lên là biết nút làm gì, không phải bấm thử.
+ *  - 32px mỗi chiều - dưới mức đó thì tay run hoặc chuột rẻ tiền sẽ bấm trượt. */
+.nut-bt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--gian-6);
+  height: var(--gian-6);
+  padding: 0;
+  flex: none;
+  color: var(--mau-chu-mo);
+}
+
+.nut-bt svg {
+  width: var(--co-bieu-tuong);
+  height: var(--co-bieu-tuong);
+}
+
+.nut-bt:hover:not(:disabled) {
+  color: var(--mau-chu);
+  border-color: var(--mau-vien-dam);
+}
+
+.nut-bt.nguy:hover:not(:disabled) {
+  color: var(--mau-loi);
+  border-color: var(--mau-loi);
+}
+
+/* Hàng nút thao tác: khoảng cách 4px, không phải 8px. Chúng là một nhóm, và nhóm đó phải
+ * đọc ra là MỘT khối chứ không phải ba nút rời. */
+td.phai .day-nut {
+  gap: var(--gian-1);
+}
+
+/* ===== 17. Chip tính chất hàng hoá ============================================
+ * Ba tính chất, ba màu, và mỗi chip mang cả chấm màu lẫn chữ - hai kênh, không chỉ mỗi
+ * màu. Cùng một mặt hàng có thể là thành phẩm ở xưởng này và nguyên vật liệu ở xưởng kia,
+ * nên tính chất là thuộc tính của công ty đang đăng nhập, không phải của bản thân mặt hàng. */
+.chip .cham.nvl {
+  background: var(--mau-canh-bao);
+}
+
+.chip .cham.tp {
+  background: var(--mau-chinh);
+}
+
+.chip .cham.hh {
+  background: var(--mau-tot);
+}
+
+/* ===== 18. Ô mã tự sinh ========================================================
+ * Mã hiện sẵn ngay khi chọn tính chất, và người dùng sửa đè được. Hai điều đó phải cùng
+ * đúng: hiện sẵn để người không có quy ước riêng cứ thế dùng, sửa được để người đã có bộ
+ * mã của mình không phải bỏ nó. */
+.o-ma-tu-sinh {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gian-2);
+}
+
+.o-ma-tu-sinh input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-so);
+  font-weight: var(--dam-vua);
+}
+
+.o-ma-tu-sinh .nut-bt {
+  height: auto;
+}
+
+/* ===== 19. Bảng dòng hàng của phiếu ============================================
+ * Dùng ở màn Nhập kho và Xuất kho. Hàng cuối là hàng THÊM MỚI, luôn ở đó, luôn trống -
+ * người gõ không phải đi tìm nút "Thêm dòng" trước mỗi dòng. */
+tr.hang-them td {
+  background: var(--mau-nen-nhat);
+}
+
+tr.hang-them input {
+  width: 100%;
+}
+
+.tong-phieu {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--gian-3);
+  padding: var(--gian-3) var(--gian-4);
+  border-top: 1px solid var(--mau-vien);
+  background: var(--mau-nen-nhat);
+}
+
+.tong-phieu .nhan {
+  font-size: var(--chu-sm);
+  color: var(--mau-chu-mo);
+}
+
+.tong-phieu .gia-tri {
+  font-family: var(--font-so);
+  font-size: var(--chu-xl);
+  font-weight: var(--dam-manh);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nhãn của khối thông tin viết hoa toàn bộ, nhưng một chip nằm trong nhãn thì KHÔNG - chip
+ * mang chữ của dữ liệu, không phải chữ của nhãn. */
+.luoi-thong-tin > div > dt .chip {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Ô số bước mang BIỂU TƯỢNG thay vì số, dùng cho các bước thay-nhau chứ không nối-tiếp.
+ * Đánh số 3-4-5 cho Nhập / Xuất / Điều chỉnh là dạy người mới một quy trình không có thật:
+ * ba việc đó thay nhau, không ai làm cả ba theo thứ tự. */
+.so-buoc svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ===== 20. Nhãn module ========================================================
+ * CHỈ có trong mockup. Nó trả lời một câu mà bản v3.4 để lửng: màn này thuộc module nào.
+ * Vẽ mười lăm màn liền một mạch thì ranh giới module tan đi lúc nào không biết - nhãn này
+ * là thứ bắt phải nói ra trước khi vẽ, và bắt phải sửa khi nói sai. */
+.nhan-module {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gian-1);
+  padding: 2px var(--gian-2);
+  margin-bottom: var(--gian-2);
+  border-radius: var(--bo-goc-tron);
+  font-family: var(--font-so);
+  font-size: var(--chu-xs);
+  font-weight: var(--dam-manh);
+  letter-spacing: 0.02em;
+  background: var(--mau-chinh-nhat);
+  color: var(--mau-chinh-dam);
+}
+
+.nhan-module.chung {
+  background: var(--mau-nen-chim);
+  color: var(--mau-chu-mo);
+}
+
+.nhan-module.ngoai {
+  background: var(--mau-canh-bao-nhat);
+  color: var(--mau-canh-bao);
+}

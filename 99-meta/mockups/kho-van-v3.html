@@ -1,0 +1,2820 @@
+<!doctype html>
+<!--
+  HỒ SƠ THIẾT KẾ - không phải code chạy thật.
+  Ngày: 2026-08-28 (bản v3.6, sau vòng duyệt thứ năm)
+  Trạng thái: CHỜ DUYỆT. Chưa có dòng nào của bản này lên code.
+
+  Đề xuất bố cục v3 cho toàn bộ module Kho vận. Nối tiếp bo-cuc-v2.css chứ không thay:
+  mọi khối của v2 dùng lại nguyên vẹn, phần thêm nằm ở kho-van-v3.css.
+
+  SÁU THAY ĐỔI của vòng duyệt thứ nhất, ghi ở đây để không ai phải đi tìm:
+   1. Cột Thao tác đổi từ chữ "Sửa" "Xoá" sang nút biểu tượng, kèm aria-label và title.
+   2. Nhập kho và Xuất kho tách thành HAI màn riêng, thêm màn Điều chỉnh tồn. Sổ chuyển
+      động lùi về đúng vai của nó: màn TRA CỨU, không ghi được.
+   3. "Vật tư" đổi tên thành "Hàng hoá" ở mọi chỗ nhìn thấy được.
+   4. Bỏ vạch mức tồn dưới cột Tổng tồn.
+   5. Tạo hàng hoá phải chọn TÍNH CHẤT: Nguyên vật liệu / Thành phẩm / Hàng hoá.
+   6. Mã hiện sẵn theo tính chất và sửa đè được.
+
+  BỐN THAY ĐỔI của vòng duyệt thứ hai (28/08, sau khi tra MISA và đọc lại CONTEXT.md):
+   7. Danh mục đổi tên thành "Vật tư hàng hoá". Bản v3.1 đổi thành "Hàng hoá" mà không đối
+      chiếu từ điển, trong khi mục từ đó ghi rõ `_Avoid_: hàng hoá`. MISA cũng gọi danh mục
+      là "Vật tư hàng hóa" và để "Hàng hóa" làm một giá trị bên trong. Xem ADR-0042.
+   8. BỎ phiếu nhiều dòng ở hai màn Nhập / Xuất. CONTEXT.md đặt `Phiếu` ngoài `inventory` và
+      ghi rõ chuyển động "không phải một chứng từ: không có số phiếu, không có trạng thái
+      duyệt". Hai màn vẫn tách riêng, nhưng mỗi lần ghi đúng MỘT dòng.
+   9. Tiền tố mã đổi theo tính chất: NVL0001 / TP0001 / HH0001, sinh ở MÁY CHỦ.
+  10. Sổ chuyển động trả lại cột Ghi chú - sau khi bỏ số phiếu, đó là chỗ duy nhất chứa số
+      phiếu giấy, nên ô tìm kiếm phải quét được cột đó.
+
+  BA THAY ĐỔI của vòng duyệt thứ ba (28/08, sau khi tra chứng từ kho của MISA AMIS):
+  11. ĐẢO LẠI mục 8: phiếu nhập / phiếu xuất QUAY LẠI, có nhiều dòng và nhiều trường hơn
+      (số phiếu, ngày, nhà cung cấp / khách hàng, người giao / người nhận, diễn giải, kèm
+      theo chứng từ gốc). Từ điển đã sửa theo và lý do ghi ở ADR-0043 - phiếu giờ THUỘC
+      `inventory`. Điều chỉnh tồn vẫn một dòng một lần, không đi qua phiếu.
+  12. Mã và tên là HAI CỘT RỜI trên mọi bảng. Ô hai dòng chỉ còn dùng cho cặp tên + mô tả.
+  13. Kho nằm ở TỪNG DÒNG của phiếu, không ở đầu phiếu; đầu phiếu chỉ có kho mặc định.
+      Một chuyến xe giao cho hai kho là ca có thật.
+
+  BA THAY ĐỔI của vòng duyệt thứ tư (28/08, sau khi tra chứng từ xuất kho và tính giá bán):
+  14. Phiếu xuất có ô LOẠI XUẤT: bán cho khách / xuất cho sản xuất / xuất dùng nội bộ /
+      xuất khác. Bản trước ngầm định mọi lần xuất đều là bán, và đó là sai - giá xuất kho
+      áp cho MỌI lần xuất, kể cả xuất nguyên vật liệu cho sản xuất (thành TK 621, tức
+      thành chi phí đi vào giá thành thành phẩm).
+  15. THÊM màn Chuyển kho. Chuyển giữa hai kho làm tổng tồn công ty KHÔNG đổi, nên nó
+      không phải một cặp phiếu xuất + phiếu nhập rời nhau. MISA có chức năng riêng.
+  16. THÊM màn Tính giá bán theo định mức - nằm NGOÀI module kho, đọc dữ liệu kho nhưng
+      không ghi gì vào sổ. Đây là báo giá (ước tính, dùng % người gõ), KHÔNG phải giá thành
+      (tiền thật đã chi, phân bổ theo tiêu thức). Hai thứ đó không được trộn.
+
+  HAI THAY ĐỔI của vòng duyệt thứ năm (28/08, sau khi tra cấu trúc phân hệ của MISA):
+  17. MỖI MÀN GẮN MỘT NHÃN MODULE ngay đầu khối ghi chú. Vẽ mười sáu màn liền một mạch thì
+      ranh giới module tan đi lúc nào không biết; nhãn này bắt phải nói ra trước khi vẽ.
+      Ba nhóm: `inventory` (Kho) · danh mục dùng chung · `sales` (ngoài Kho).
+  18. THÊM màn Lệnh sản xuất, và nó thuộc `inventory` chứ không phải một module sản xuất
+      riêng - MISA đặt nó ở Kho > Quy trình > Lệnh sản xuất. Lý do đúng: lệnh sản xuất
+      không tự làm gì, nó chỉ sinh ra hai việc kho (xuất NVL, nhập thành phẩm). Thứ thuộc
+      phân hệ Giá thành là phép TÍNH giá thành, không phải cái lệnh.
+
+  Ba thẻ <link> đầu trỏ ra ../frontend-erp/... nên file này chỉ mở đúng khi nằm ở
+  erp/mockup-erp/. Mở từ bản sao trong docs-erp thì mất toàn bộ token màu.
+
+  Dữ liệu trong đây là DỰNG. Chỗ nào cần trường backend CHƯA CÓ thì có băng vàng nói rõ.
+-->
+<html lang="vi" data-theme="sang">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kho vận - đề xuất bố cục v3.2</title>
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/tokens.css" />
+    <link rel="stylesheet" href="../frontend-erp/src/shared/styles/co-so.css" />
+    <link rel="stylesheet" href="bo-cuc-v2.css" />
+    <link rel="stylesheet" href="kho-van-v3.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <g id="i-luoi" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="5" cy="5" r="1" /><circle cx="10" cy="5" r="1" /><circle cx="15" cy="5" r="1" />
+          <circle cx="5" cy="10" r="1" /><circle cx="10" cy="10" r="1" /><circle cx="15" cy="10" r="1" />
+          <circle cx="5" cy="15" r="1" /><circle cx="10" cy="15" r="1" /><circle cx="15" cy="15" r="1" />
+        </g>
+        <g id="i-kho" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5 10 4l7 4.5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" /><path d="M8 17v-5h4v5" />
+        </g>
+        <g id="i-hop" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m10 3 7 3.8v6.4L10 17l-7-3.8V6.8z" /><path d="m3 6.8 7 3.7 7-3.7M10 10.5V17" />
+        </g>
+        <g id="i-ds" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h12M4 10h12M4 14h8" /></g>
+        <g id="i-so-do" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5" cy="10" r="2" /><circle cx="15" cy="5" r="2" /><circle cx="15" cy="15" r="2" /><path d="M6.8 9 13 6M6.8 11l6.2 3" />
+        </g>
+        <g id="i-cong" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></g>
+        <g id="i-tai" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v8m0 0 3-3m-3 3-3-3M4 15h12" /></g>
+        <g id="i-sua" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5 15.5 6.5 7 15H5v-2z" /></g>
+        <g id="i-xoa" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6h11M8 6V4.5h4V6M6.5 6l.7 9.5h5.6L13.5 6" /></g>
+        <g id="i-xem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 10S5.5 5 10 5s7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5" /><circle cx="10" cy="10" r="2" /></g>
+        <g id="i-lui" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 6.5 10l5.5 5.5" /></g>
+        <g id="i-nhap" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5v9m0 0 3.5-3.5M10 12.5 6.5 9M4 16.5h12" /></g>
+        <g id="i-xuat" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12.5v-9m0 0L6.5 7M10 3.5 13.5 7M4 16.5h12" /></g>
+        <g id="i-dieu-chinh" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7h10m0 0-3-3m3 3-3 3M16.5 13h-10m0 0 3-3m-3 3 3 3" /></g>
+        <g id="i-lenh" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z" /><path d="M8 7h4M8 10h4M8 13h2" /></g>
+        <g id="i-doi-kho" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h11m0 0-3-3m3 3-3 3M17 13.5H6m0 0 3-3m-3 3 3 3" /></g>
+        <g id="i-tien" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7" /><path d="M10 6v8M12 8.2c0-1-.9-1.7-2-1.7s-2 .7-2 1.6c0 2.2 4 1.2 4 3.4 0 .9-.9 1.6-2 1.6s-2-.7-2-1.7" /></g>
+        <g id="i-lam-moi" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8A6.2 6.2 0 1 0 16.4 12" /><path d="M16.4 4v4h-4" /></g>
+        <g id="i-canh-bao" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 17.5 16.5h-15z" /><path d="M10 8v4M10 14.3v.2" /></g>
+        <g id="i-tin" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7" /><path d="M10 9.2v4.3M10 6.6v.2" /></g>
+      </defs>
+    </svg>
+
+    <div class="vo-mockup">
+      <header class="thanh-dau-mockup">
+        <button class="nut" type="button" aria-label="Tất cả ứng dụng" style="border-color: transparent; background: none">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-luoi" /></svg>
+        </button>
+        <span style="display: flex; align-items: center; gap: var(--gian-2); font-weight: var(--dam-vua)">
+          <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); color: var(--mau-chinh)"><use href="#i-kho" /></svg>
+          Kho vận
+        </span>
+        <span style="padding-left: var(--gian-3); margin-left: var(--gian-1); border-left: 1px solid var(--mau-vien); font-size: var(--chu-sm)">
+          <span style="font-family: var(--font-so); font-weight: var(--dam-vua)">DEFAULT</span>
+          <span style="color: var(--mau-chu-mo)">&nbsp;CÔNG TY ĐẠI THẮNG</span>
+        </span>
+        <div class="day-thanh-dau">
+          <div class="chuyen-che-do" role="group" aria-label="Chế độ hiển thị">
+            <button type="button" aria-pressed="true" onclick="datCheDo('sang', this)">Sáng</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('toi', this)">Tối</button>
+            <button type="button" aria-pressed="false" onclick="datCheDo('he-thong', this)">Hệ thống</button>
+          </div>
+          <span class="anh-dai-dien" style="width: var(--gian-6); height: var(--gian-6); font-size: var(--chu-sm)">TK</span>
+        </div>
+      </header>
+
+      <!-- Thanh điều hướng chia HAI NHÓM sau khi tách nhập/xuất. Nhóm trên là DANH MỤC
+           (khai một lần rồi thôi), nhóm dưới là GHI SỔ (làm mỗi ngày). Không chia thì tám
+           mục xếp thành một cột phẳng, và mắt phải đọc cả tám mới tìm được cái cần. -->
+      <nav class="canh-mockup" aria-label="Điều hướng Kho vận">
+        <div class="nhan-nhom-canh">Kho vận</div>
+        <a class="muc-canh" href="#" data-di="quy-trinh"><svg viewBox="0 0 20 20"><use href="#i-so-do" /></svg><span>Quy trình</span></a>
+        <a class="muc-canh" href="#" data-di="ton"><svg viewBox="0 0 20 20"><use href="#i-ds" /></svg><span>Tồn kho</span><span class="huy-hieu">3 tồn âm</span></a>
+        <div class="nhan-nhom-canh">Ghi sổ</div>
+        <a class="muc-canh" href="#" data-di="nhap"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg><span>Nhập kho</span></a>
+        <a class="muc-canh" href="#" data-di="xuat"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg><span>Xuất kho</span></a>
+        <a class="muc-canh" href="#" data-di="lenh-sx"><svg viewBox="0 0 20 20"><use href="#i-lenh" /></svg><span>Lệnh sản xuất</span><span class="huy-hieu">2 đang chạy</span></a>
+        <a class="muc-canh" href="#" data-di="chuyen-kho"><svg viewBox="0 0 20 20"><use href="#i-doi-kho" /></svg><span>Chuyển kho</span></a>
+        <a class="muc-canh" href="#" data-di="dieu-chinh"><svg viewBox="0 0 20 20"><use href="#i-dieu-chinh" /></svg><span>Điều chỉnh tồn</span></a>
+        <a class="muc-canh" href="#" data-di="cd-so"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg><span>Sổ chuyển động</span></a>
+        <div class="nhan-nhom-canh">Danh mục</div>
+        <a class="muc-canh" href="#" data-di="hh-ds"><svg viewBox="0 0 20 20"><use href="#i-hop" /></svg><span>Vật tư hàng hoá</span></a>
+        <a class="muc-canh" href="#" data-di="kho-ds"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg><span>Kho</span></a>
+      </nav>
+
+      <main class="than-mockup">
+        <!-- BĂNG CHỌN MÀN - chỉ có trong mockup, không đề xuất vào sản phẩm. -->
+        <div class="bang-duyet" role="group" aria-label="Chọn màn để duyệt">
+          <span class="nhan">Duyệt màn</span>
+          <button class="nut" type="button" aria-pressed="true" data-man="quy-trinh">1. Quy trình</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="ton">2. Tồn kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="nhap">3. Nhập kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="xuat">4. Xuất kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="dieu-chinh">5. Điều chỉnh tồn</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="cd-so">6. Sổ chuyển động</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="cd-ct">7. Chi tiết chuyển động</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="hh-ds">8. Danh mục VTHH</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="hh-form">9. Thêm VTHH</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="hh-ct">10. Chi tiết VTHH</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="kho-ds">11. Danh sách kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="kho-form">12. Form kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="chuyen-kho">14. Chuyển kho</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="lenh-sx">15. Lệnh sản xuất</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="gia-ban">16. Tính giá bán</button>
+          <button class="nut" type="button" aria-pressed="false" data-man="trang-thai">13. Bốn trạng thái</button>
+        </div>
+
+        <!-- ================================================================ 1 -->
+        <section class="man" id="man-quy-trinh" aria-label="Trang chủ Kho vận">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 1 - Trang chủ Kho vận</strong> (<code>/kho-van</code>), khuôn E.
+            Sau khi tách nhập/xuất, sơ đồ quy trình đổi từ bốn bước thành <strong>hai hàng</strong>:
+            hàng trên là việc khai một lần (kho, hàng hoá), hàng dưới là việc làm mỗi ngày.
+            Chỉ <strong>hàng trên mới đánh số</strong> - nhập, xuất và điều chỉnh là ba việc
+            thay nhau chứ không phải ba bước nối tiếp, đánh số 3-4-5 cho chúng là dạy người mới
+            một quy trình không có thật. Mỗi thẻ vẫn mang một con số sống của chính nó.
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-so-do" /></svg></span>
+            <div class="chinh">
+              <h1>Kho vận</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">Cập nhật lúc 08:42 - 28/08/2026</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất báo cáo tồn</button>
+              <button class="nut-chinh" type="button" data-man="nhap"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg>Nhập kho</button>
+            </div>
+          </section>
+
+          <dl class="dai-chi-so">
+            <div class="o-chi-so"><dt>Kho đang dùng</dt><dd>8</dd></div>
+            <div class="o-chi-so"><dt>Hàng hoá trong danh mục</dt><dd>248</dd></div>
+            <div class="o-chi-so"><dt>Chuyển động hôm nay</dt><dd>37 <span class="phu">/ 412 tháng này</span></dd></div>
+            <div class="o-chi-so"><dt>Dòng tồn âm</dt><dd style="color: var(--mau-loi)">3</dd></div>
+          </dl>
+
+          <div class="hai-cot">
+            <div>
+              <section class="the" style="margin-bottom: var(--gian-4)">
+                <div class="dau-the">
+                  <h2>Khai một lần</h2>
+                  <span class="phu">làm trước, rồi hầu như không đụng lại</span>
+                </div>
+                <div class="than-the">
+                  <div class="chuoi-buoc">
+                    <a class="buoc" href="#" data-di="kho-ds">
+                      <span class="so-buoc">1</span>
+                      <span class="ten-buoc">Khai kho</span>
+                      <span class="mo-ta-buoc">Nơi hàng nằm. Mỗi chuyển động phải trỏ vào một kho có thật.</span>
+                      <span class="so-song"><strong>8</strong> kho đang dùng</span>
+                    </a>
+                    <a class="buoc" href="#" data-di="hh-ds">
+                      <span class="so-buoc">2</span>
+                      <span class="ten-buoc">Khai hàng hoá</span>
+                      <span class="mo-ta-buoc">Thứ được đếm, kèm tính chất và đơn vị tính.</span>
+                      <span class="so-song"><strong>248</strong> mặt hàng</span>
+                    </a>
+                  </div>
+                </div>
+              </section>
+
+              <section class="the" style="margin-bottom: var(--gian-4)">
+                <div class="dau-the">
+                  <h2>Làm mỗi ngày</h2>
+                  <span class="phu">Chọn việc đang cần - không phải làm cả bốn theo thứ tự</span>
+                </div>
+                <div class="than-the">
+                  <div class="chuoi-buoc">
+                    <a class="buoc" href="#" data-di="nhap">
+                      <span class="so-buoc"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></span>
+                      <span class="ten-buoc">Nhập kho</span>
+                      <span class="mo-ta-buoc">Hàng về. Tồn tăng lên.</span>
+                      <span class="so-song"><strong>21</strong> dòng hôm nay</span>
+                    </a>
+                    <a class="buoc" href="#" data-di="xuat">
+                      <span class="so-buoc"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></span>
+                      <span class="ten-buoc">Xuất kho</span>
+                      <span class="mo-ta-buoc">Hàng đi. Tồn giảm xuống.</span>
+                      <span class="so-song"><strong>15</strong> dòng hôm nay</span>
+                    </a>
+                    <a class="buoc" href="#" data-di="dieu-chinh">
+                      <span class="so-buoc"><svg viewBox="0 0 20 20"><use href="#i-dieu-chinh" /></svg></span>
+                      <span class="ten-buoc">Điều chỉnh tồn</span>
+                      <span class="mo-ta-buoc">Kiểm kê lệch sổ thì sửa cho khớp thực tế.</span>
+                      <span class="so-song"><strong>1</strong> dòng hôm nay</span>
+                    </a>
+                    <a class="buoc" href="#" data-di="ton">
+                      <span class="so-buoc"><svg viewBox="0 0 20 20"><use href="#i-ds" /></svg></span>
+                      <span class="ten-buoc">Đọc tồn</span>
+                      <span class="mo-ta-buoc">Số dư tính từ sổ. Không ai gõ tay được con số này.</span>
+                      <span class="so-song"><strong>1.284</strong> dòng tồn</span>
+                    </a>
+                  </div>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the">
+                  <h2>Chuyển động gần nhất</h2>
+                  <div class="day-nut"><button class="nut nut-nho" type="button" data-man="cd-so">Xem cả sổ</button></div>
+                </div>
+                <div class="khung-bang">
+                  <table class="bang-co-dinh">
+                    <thead>
+                      <tr>
+                        <th class="hep" style="width: 14%">Thời điểm</th>
+                        <th class="hep" style="width: 13%">Loại</th>
+                        <th class="hep" style="width: 12%">Mã hàng</th>
+                        <th class="cat" style="width: 25%">Tên hàng</th>
+                        <th class="cat" style="width: 19%">Kho</th>
+                        <th class="so" style="width: 17%">Lượng</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08 08:35</td>
+                        <td class="hep"><span class="chip tot"><span class="cham"></span>Nhập kho</span></td>
+                        <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0001</a></td><td class="cat">Thép cây D10 CB300</td>
+                        <td class="cat">Kho Tân Bình</td>
+                        <td class="so"><span class="luong tang">+1.200</span> <span class="dv-nho">kg</span></td>
+                      </tr>
+                      <tr>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08 08:12</td>
+                        <td class="hep"><span class="chip"><span class="cham" style="background: var(--mau-loi)"></span>Xuất kho</span></td>
+                        <td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0004</a></td><td class="cat">Xi măng PC40 bao 50kg</td>
+                        <td class="cat">Kho Tân Bình</td>
+                        <td class="so"><span class="luong giam">-80</span> <span class="dv-nho">bao</span></td>
+                      </tr>
+                      <tr>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">27/08 17:40</td>
+                        <td class="hep"><span class="chip"><span class="cham" style="background: var(--mau-canh-bao)"></span>Điều chỉnh</span></td>
+                        <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0009</a></td><td class="cat">Dầu Diesel 0,05S</td>
+                        <td class="cat">Kho Đà Nẵng 1</td>
+                        <td class="so"><span class="luong giam">-12,5</span> <span class="dv-nho">lít</span></td>
+                      </tr>
+                      <tr>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">27/08 16:05</td>
+                        <td class="hep"><span class="chip tot"><span class="cham"></span>Nhập kho</span></td>
+                        <td class="hep"><a class="ma" href="#" data-di="hh-ct">TP0002</a></td><td class="cat">Khung thép tiền chế mã A2</td>
+                        <td class="cat">Kho thành phẩm</td>
+                        <td class="so"><span class="luong tang">+18</span> <span class="dv-nho">cái</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the">
+                  <h2>Việc cần làm</h2>
+                  <span class="phu">4</span>
+                </div>
+                <div class="day-viec">
+                  <a class="viec loi" href="#" data-di="ton">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-canh-bao" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec">Tồn âm</span>
+                      <span class="phu-viec">Ghi xuất nhiều hơn số đã nhập</span>
+                    </span>
+                    <span class="dem-viec" style="color: var(--mau-loi)">3</span>
+                  </a>
+                  <a class="viec canh-bao" href="#" data-di="ton">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-ds" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec">Hàng sắp hết</span>
+                      <span class="phu-viec">Dưới mức tồn tối thiểu đã khai</span>
+                    </span>
+                    <span class="dem-viec" style="color: var(--mau-canh-bao)">11</span>
+                  </a>
+                  <a class="viec" href="#" data-di="kho-ds">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-kho" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec">Kho chưa có chuyển động</span>
+                      <span class="phu-viec">Khai xong nhưng chưa dùng lần nào</span>
+                    </span>
+                    <span class="dem-viec">2</span>
+                  </a>
+                  <a class="viec" href="#" data-di="hh-ds">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-hop" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec">Hàng hoá chưa có tồn ở kho nào</span>
+                      <span class="phu-viec">Có thể là mã khai thừa</span>
+                    </span>
+                    <span class="dem-viec">6</span>
+                  </a>
+                </div>
+              </section>
+
+              <div class="bao">
+                <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                <span>
+                  <strong>Chưa có ở backend.</strong> "Hàng sắp hết" cần một trường mức tồn tối thiểu
+                  trên hàng hoá, và ba con số kia cần endpoint đếm riêng. Nếu duyệt màn này thì đó là
+                  bốn việc backend phải làm trước.
+                </span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ================================================================ 2 -->
+        <section class="man" id="man-ton" hidden aria-label="Tồn kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 2 - Tồn kho</strong> (<code>/ton-kho</code>), khuôn A.
+            <strong>Cảnh báo bố cục:</strong> bảng này giờ mười cột và đang chạm trần đọc được -
+            tên hàng bắt đầu bị cắt. Chỗ chữa đúng là một nấc "Hiện: số lượng / số lượng + giá trị"
+            trên thanh lọc, y như MISA tách hai báo cáo <em>Tổng hợp tồn kho</em> (số lượng) và
+            <em>Sổ chi tiết vật tư hàng hoá</em> (số lượng + giá trị). Chưa dựng nấc đó ở bản này. Đây là màn người ta
+            mở nhiều nhất mà không sửa gì. <strong>Vạch mức tồn dưới cột Tồn đã bỏ</strong> theo góp
+            ý - con số tự nói đủ, vạch chỉ làm ô bảng cao thêm. Cột Thao tác giờ là nút biểu tượng.
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-ds" /></svg></span>
+            <div class="chinh">
+              <h1>Tồn kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">1.284 dòng tồn &middot; tính tới 08:42 hôm nay</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất Excel</button>
+              <button class="nut-chinh" type="button" data-man="nhap"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg>Nhập kho</button>
+            </div>
+          </section>
+
+          <dl class="dai-chi-so">
+            <div class="o-chi-so"><dt>Dòng tồn</dt><dd>1.284</dd></div>
+            <div class="o-chi-so"><dt>Mặt hàng có tồn</dt><dd>242 <span class="phu">/ 248</span></dd></div>
+            <div class="o-chi-so"><dt>Dòng tồn âm</dt><dd style="color: var(--mau-loi)">3</dd></div>
+            <div class="o-chi-so"><dt>Giá trị tồn cuối kỳ</dt><dd>1,84 <span class="phu">tỷ đồng</span></dd></div>
+          </dl>
+
+          <section class="the">
+            <div class="thanh-loc">
+              <div class="truong">
+                <label for="t-ky">Kỳ</label>
+                <select id="t-ky"><option>Tháng này</option><option>Tháng trước</option><option>Quý này</option><option>Từ đầu năm</option><option>Tự chọn ngày...</option></select>
+              </div>
+              <div class="truong">
+                <label for="t-kho">Kho</label>
+                <select id="t-kho"><option>Tất cả kho</option><option>KHO-TB-01 - Kho Tân Bình</option><option>KHO-DN-01 - Kho Đà Nẵng 1</option><option>KHO-HN-02 - Kho Hà Nội 2</option></select>
+              </div>
+              <div class="truong">
+                <label for="t-hh">Vật tư hàng hoá</label>
+                <input class="o-tim" id="t-hh" type="search" placeholder="Gõ mã hoặc tên mặt hàng" />
+              </div>
+              <div class="truong">
+                <label for="t-tc">Tính chất</label>
+                <select id="t-tc"><option>Tất cả</option><option>Nguyên vật liệu</option><option>Thành phẩm</option><option>Hàng hoá</option></select>
+              </div>
+              <div class="truong">
+                <label for="t-loc">Chỉ hiện</label>
+                <select id="t-loc"><option>Tất cả dòng tồn</option><option>Tồn âm</option><option>Tồn bằng 0</option><option>Có tồn</option></select>
+              </div>
+              <div class="day-phai">
+                <div class="truong">
+                  <label for="t-sd">Số dòng</label>
+                  <select id="t-sd"><option>20</option><option>50</option><option>100</option></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="ghi-chu-bang">
+              <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+              <span>Bốn cột số đọc theo <strong>kỳ đang lọc</strong>: tồn đầu kỳ, nhập trong kỳ, xuất trong kỳ, tồn cuối kỳ. Cả bốn đều <strong>tính ra từ sổ chuyển động</strong>, không phải ô sửa được - muốn đổi con số thì ghi một dòng điều chỉnh.</span>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 7%">Mã kho</th>
+                    <th class="cat" style="width: 11%">Tên kho</th>
+                    <th class="hep" style="width: 8%">Mã hàng</th>
+                    <th class="cat" style="width: 14%">Tên hàng</th>
+                    <th class="so" style="width: 9%">Tồn đầu</th>
+                    <th class="so" style="width: 8%">Nhập</th>
+                    <th class="so" style="width: 8%">Xuất</th>
+                    <th class="so" style="width: 10%">Tồn cuối</th>
+                    <th class="so" style="width: 13%">Giá trị tồn</th>
+                    <th class="phai hep" style="width: 12%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-01</a></td><td class="cat">Kho Tân Bình</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0001</a></td><td class="cat">Thép cây D10 CB300</td>
+                    <td class="so chu-phu">10.000</td>
+                    <td class="so"><span class="luong tang">4.200</span></td>
+                    <td class="so"><span class="luong giam">3.000</span></td>
+                    <td class="so"><span class="luong">11.200</span> <span class="dv-nho">kg</span></td>
+                    <td class="so"><span class="luong">207.200.000</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Ghi nhập kho cho dòng này" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Ghi xuất kho cho dòng này" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-01</a></td><td class="cat">Kho Tân Bình</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0004</a></td><td class="cat">Xi măng PC40</td>
+                    <td class="so chu-phu">900</td>
+                    <td class="so"><span class="luong tang">400</span></td>
+                    <td class="so"><span class="luong giam">480</span></td>
+                    <td class="so"><span class="luong">820</span> <span class="dv-nho">bao</span></td>
+                    <td class="so"><span class="luong">75.440.000</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Ghi nhập kho cho dòng này" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Ghi xuất kho cho dòng này" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TP-01</a></td><td class="cat">Kho thành phẩm</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">TP0002</a></td><td class="cat">Khung thép tiền chế mã A2</td>
+                    <td class="so chu-phu">46</td>
+                    <td class="so"><span class="luong tang">36</span></td>
+                    <td class="so"><span class="luong giam">18</span></td>
+                    <td class="so"><span class="luong">64</span> <span class="dv-nho">cái</span></td>
+                    <td class="so"><span class="luong">246.400.000</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Ghi nhập kho cho dòng này" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Ghi xuất kho cho dòng này" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-DN-01</a></td><td class="cat">Kho Đà Nẵng 1</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0009</a></td><td class="cat">Dầu Diesel 0,05S</td>
+                    <td class="so chu-phu">1.500</td>
+                    <td class="so"><span class="luong tang">800</span></td>
+                    <td class="so"><span class="luong giam">1.119,5</span></td>
+                    <td class="so"><span class="luong">1.180,5</span> <span class="dv-nho">lít</span></td>
+                    <td class="so"><span class="luong">25.262.700</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Ghi nhập kho cho dòng này" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Ghi xuất kho cho dòng này" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr style="background: var(--mau-loi-nhat)">
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-HN-02</a></td><td class="cat">Kho Hà Nội 2</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0001</a></td><td class="cat">Thép cây D10 CB300</td>
+                    <td class="so chu-phu">1.960</td>
+                    <td class="so"><span class="luong tang">0</span></td>
+                    <td class="so"><span class="luong giam">2.000</span></td>
+                    <td class="so"><span class="luong giam">-40</span> <span class="dv-nho">kg</span></td>
+                    <td class="so"><span class="luong giam">-740.000</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="dieu-chinh" aria-label="Điều chỉnh tồn cho dòng này" title="Điều chỉnh tồn"><svg viewBox="0 0 20 20"><use href="#i-dieu-chinh" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-02</a></td><td class="cat">Kho thành phẩm Tân Bình</td>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0011</a></td><td class="cat">Sơn chống rỉ Epoxy</td>
+                    <td class="so chu-phu">0</td>
+                    <td class="so"><span class="luong tang">40</span></td>
+                    <td class="so"><span class="luong giam">40</span></td>
+                    <td class="so"><span class="luong chu-phu">0</span> <span class="dv-nho">thùng</span></td>
+                    <td class="so"><span class="luong chu-phu">0</span> <span class="dv-nho">đ</span></td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động của dòng này" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Ghi nhập kho cho dòng này" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                      <button class="nut nut-bt" type="button" disabled aria-label="Không xuất được vì tồn đang bằng 0" title="Tồn đang bằng 0 nên không xuất được"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="chan-bang">
+              <span>Hiện 1-20 trong 1.284 dòng tồn</span>
+              <div class="day-nut">
+                <button class="nut nut-nho" type="button" disabled title="Đang ở trang đầu">Trang trước</button>
+                <span style="font-family: var(--font-so)">1 / 65</span>
+                <button class="nut nut-nho" type="button">Trang sau</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- ====== man 3 ====== -->
+        <section class="man" id="man-nhap" hidden aria-label="Phiếu nhập kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 3 - Phiếu nhập kho</strong> (<code>/nhap-kho</code>), khuôn B mở rộng.
+            Dựng theo cấu trúc chứng từ của MISA AMIS: <strong>thông tin chung ở đầu, bảng dòng
+            hàng ở dưới</strong>. Trường lấy từ MISA rồi cắt theo thứ hệ này có - giữ Số chứng từ,
+            Ngày, Đối tượng, Người giao hàng, Diễn giải, Kèm theo chứng từ gốc; bỏ
+            <em>Ngày hạch toán</em> (chưa có sổ kế toán nên nó không khác Ngày phiếu),
+            <em>Đơn giá</em> và <em>Thành tiền</em> (chưa có giá vốn, và R-19 cấm màn hình tính
+            tiền), <em>TK kho</em> và <em>TK chi phí</em> (chưa có hệ thống tài khoản).
+            <ul>
+              <li><strong>Mã hàng và Tên hàng là hai cột rời</strong>, như MISA và như bạn chốt. Ô hai dòng chỉ còn dùng cho cặp tên + ghi chú của dòng.</li>
+              <li><strong>Kho nằm ở từng dòng</strong>, không ở đầu phiếu. Đầu phiếu chỉ có kho mặc định điền sẵn - một chuyến xe giao cho hai kho là ca có thật, đặt kho ở đầu phiếu là cấm trước ca đó.</li>
+              <li>Hai cột <strong>Tồn hiện tại</strong> và <strong>Còn lại</strong> không có ở MISA - đây là phần thêm của hệ này, và ở màn Xuất chúng là cái chặn tay quan trọng nhất.</li>
+              <li>MISA gọi nút ghi là "Cất". Ở đây dùng "Ghi phiếu nhập" theo luật chữ của dự án: nút nói việc nó làm, và tên đó không đổi suốt luồng.</li>
+            </ul>
+            Việc này <strong>đảo lại</strong> vòng duyệt trước và đảo cả từ điển - đã ghi thành
+            <a href="#">ADR-0043</a>, và mục từ <em>Phiếu</em> trong CONTEXT.md đã sửa theo.</div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong" style="background: var(--mau-tot-nhat); color: var(--mau-tot)"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></span>
+            <div class="chinh">
+              <h1>Phiếu nhập kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">21 dòng đã nhập hôm nay</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="cd-so">Xem sổ</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="dau-the"><h2>Thông tin chung</h2><span class="phu">phần đầu phiếu</span></div>
+            <div class="than-the">
+              <div class="luoi-form" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <div class="o-form">
+                  <label for="nhap-so">Số phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <div class="o-ma-tu-sinh">
+                    <input id="nhap-so" value="PN-2026-0421" />
+                    <button class="nut nut-bt" type="button" aria-label="Lấy lại số phiếu kế tiếp" title="Lấy lại số phiếu kế tiếp: PN-2026-0421"><svg viewBox="0 0 20 20"><use href="#i-lam-moi" /></svg></button>
+                  </div>
+                  <span class="goi-y">Máy chủ cấp số kế tiếp. Sửa đè được nếu bạn đánh số theo phiếu giấy.</span>
+                </div>
+                <div class="o-form">
+                  <label for="nhap-ngay">Ngày phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="nhap-ngay" value="28/08/2026 08:35" style="font-family: var(--font-so)" />
+                  <span class="goi-y">Mặc định là bây giờ. Đây cũng là thời điểm của mọi dòng sổ sinh ra từ phiếu.</span>
+                </div>
+                <div class="o-form">
+                  <label for="nhap-kho">Kho mặc định</label>
+                  <input id="nhap-kho" type="search" value="KHO-TB-01 - Kho Tân Bình" placeholder="Gõ mã hoặc tên kho" />
+                  <span class="goi-y">Điền sẵn cho dòng mới. Đổi ở từng dòng được - một chuyến xe giao cho hai kho là ca có thật.</span>
+                </div>
+                <div class="o-form">
+                  <label for="nhap-dt">Nhà cung cấp</label>
+                  <input id="nhap-dt" type="search" value="Thép Hoà Phát - CN Miền Nam" placeholder="Gõ mã hoặc tên" />
+                  <span class="goi-y">Chưa có danh mục đối tác nên đây đang là ô chữ tự do - xem băng vàng cuối màn.</span>
+                </div>
+                <div class="o-form">
+                  <label for="nhap-ng">Người giao hàng</label>
+                  <input id="nhap-ng" value="Trần Văn Bảy - xe 51C-284.19" />
+                  <span class="goi-y">Người cầm hàng tới cửa kho. Không bắt buộc.</span>
+                </div>
+                <div class="o-form">
+                  <label for="nhap-ct">Kèm theo</label>
+                  <input id="nhap-ct" value="2" style="font-family: var(--font-so); text-align: right" />
+                  <span class="goi-y">Số chứng từ gốc kẹp cùng phiếu: biên bản giao nhận, phiếu cân, hoá đơn.</span>
+                </div>
+                <div class="o-form rong">
+                  <div class="hang-nhan">
+                    <label for="nhap-dg">Diễn giải</label>
+                    <span class="dem-ky-tu">33 / 2000</span>
+                  </div>
+                  <input id="nhap-dg" value="Nhận hàng theo đơn đặt số 4821" />
+                  <span class="goi-y">Lý do nhập kho. Hiện ở cột Ghi chú của mọi dòng sổ sinh ra từ phiếu này.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ghi-chu-bang">
+              <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+              <span>Ba dòng dưới đây thành <strong>ba dòng sổ</strong>. Đơn giá ở đây là <strong>giá chưa thuế</strong> - thuế GTGT đầu vào được khấu trừ nên nó không nhập vào giá trị hàng tồn; cho thuế lên phiếu nhập là chỗ giá trị tồn kho bị thổi lên 8-10% mà không ai thấy. Dòng đầu gõ theo <strong>bó</strong>, máy quy về kg theo đơn vị chuyển đổi.</span>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 10%">Mã hàng</th>
+                    <th style="width: 24%">Tên hàng</th>
+                    <th class="hep" style="width: 10%" title="Đơn vị tính">ĐVT</th>
+                    <th class="cat" style="width: 17%">Kho</th>
+                    <th class="so" style="width: 11%">Số lượng</th>
+                    <th class="so" style="width: 12%">Đơn giá</th>
+                    <th class="so" style="width: 12%">Thành tiền</th>
+                    <th class="phai hep" style="width: 4%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                      <td class="hep"><span class="ma">NVL0001</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Thép cây D10 CB300</div><div class="dong-duoi">10 bó = 1.170 kg &middot; 18.500 đ/kg</div></td>
+                      <td class="hep"><select aria-label="Đơn vị tính của dòng"><option>kg</option><option>Cây</option><option selected>Bó</option><option>cái</option><option>thùng</option></select></td>
+                      <td class="cat">KHO-TB-01 - Kho Tân Bình</td>
+                      <td class="so"><span class="luong tang">+10</span></td>
+                      <td class="so"><span class="luong">2.164.500</span></td>
+                      <td class="so"><span class="luong">21.645.000</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Thép cây D10 CB300 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td class="hep"><span class="ma">NVL0004</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Bu lông M12 x 60</div></td>
+                      <td class="hep"><select aria-label="Đơn vị tính của dòng"><option>kg</option><option>Cây</option><option>Bó</option><option selected>cái</option><option>thùng</option></select></td>
+                      <td class="cat">KHO-TB-01 - Kho Tân Bình</td>
+                      <td class="so"><span class="luong tang">+3.000</span></td>
+                      <td class="so"><span class="luong">2.400</span></td>
+                      <td class="so"><span class="luong">7.200.000</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Bu lông M12 x 60 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td class="hep"><span class="ma">HH0011</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Sơn chống rỉ Epoxy</div></td>
+                      <td class="hep"><select aria-label="Đơn vị tính của dòng"><option>kg</option><option>Cây</option><option>Bó</option><option>cái</option><option selected>thùng</option></select></td>
+                      <td class="cat">KHO-TB-02 - Kho thành phẩm TB</td>
+                      <td class="so"><span class="luong tang">+40</span></td>
+                      <td class="so"><span class="luong">620.000</span></td>
+                      <td class="so"><span class="luong">24.800.000</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Sơn chống rỉ Epoxy khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                  <tr class="hang-them">
+                    <td colspan="2"><input type="search" placeholder="Gõ mã hoặc tên hàng để thêm dòng..." aria-label="Mặt hàng của dòng mới" /></td>
+                    <td class="hep chu-phu">-</td>
+                    <td class="cat chu-phu">KHO-TB-01</td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Số lượng của dòng mới" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Đơn giá của dòng mới" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm dòng này vào phiếu" title="Thêm dòng vào phiếu"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="tong-phieu">
+              <span class="nhan">Tổng cộng</span>
+              <span class="nhan">3 dòng hàng &middot; tổng tiền hàng</span>
+              <span class="gia-tri">53.645.000 <span class="dv-nho">đ</span></span>
+            </div>
+
+            <div class="chan-form">
+              <span class="nhac">Ghi phiếu là ba dòng vào sổ cùng lúc. Sai một dòng thì cả phiếu không vào - không có chuyện hai dòng đầu đã ghi.</span>
+              <div class="day-nut">
+                <button class="nut" type="button">Huỷ phiếu</button>
+                <button class="nut" type="button">Ghi và lập phiếu mới</button>
+                <button class="nut-chinh" type="button">Ghi phiếu nhập kho</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span>
+              <strong>Bốn việc backend phải làm trước.</strong> (1) Bảng phiếu, và khoá ngoại từ
+              dòng chuyển động lên phiếu. (2) Một đường ghi <strong>nguyên tử</strong>: dòng thứ ba
+              vi phạm tồn thì cả phiếu không vào sổ - và phép kiểm tồn phải cộng dồn hai dòng cùng
+              một mặt hàng trong cùng phiếu trước khi kiểm. (3) Một <strong>danh mục đối tác</strong>
+              dùng chung cho nhà cung cấp và khách hàng; chưa có thì ô Đối tác là chữ tự do, chạy
+              được nhưng mất khả năng hỏi "tháng này ai giao nhiều nhất". (4) Đọc tồn
+              <strong>theo lô</strong> cho cột "Tồn hiện tại" - tồn ở hệ này là
+              <code>SUM(quantity)</code>, phiếu 20 dòng làm ngây thơ là 20 câu truy vấn.
+              Xem ADR-0043.
+            </span>
+          </div>
+        </section>
+
+        <!-- ====== man 4 ====== -->
+        <section class="man" id="man-xuat" hidden aria-label="Phiếu xuất kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 4 - Phiếu xuất kho</strong> (<code>/xuat-kho</code>), khuôn B mở rộng.
+            Cùng khuôn với phiếu nhập tới từng khoảng cách - người đã quen phiếu nhập thì không
+            phải học lại. Khác đúng bốn chỗ, và cả bốn đều do nghiệp vụ:
+            <ul>
+              <li>Sắc thái xanh đổi sang đỏ: xuất là hàng đi khỏi kho.</li>
+              <li>Đối tác đổi vai: <strong>Khách hàng</strong> thay cho Nhà cung cấp. Cùng một danh mục, khác vai theo loại phiếu - y như trường "Đối tượng" của MISA.</li>
+              <li><strong>Người nhận hàng</strong> thay cho Người giao hàng.</li>
+              <li>Dòng vượt tồn <strong>tô đỏ tại chỗ</strong>, nhưng nút Ghi vẫn bật - luật "tồn không được âm" là của máy chủ, và tồn màn hình đọc được luôn có thể đã cũ. Cả phiếu bị từ chối cùng lúc chứ không ghi lẻ vài dòng.</li>
+            </ul></div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong" style="background: var(--mau-loi-nhat); color: var(--mau-loi)"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></span>
+            <div class="chinh">
+              <h1>Phiếu xuất kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">15 dòng đã xuất hôm nay</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="cd-so">Xem sổ</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="dau-the"><h2>Thông tin chung</h2><span class="phu">phần đầu phiếu</span></div>
+            <div class="than-the">
+              <div class="luoi-form" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <div class="o-form">
+                  <label for="xuat-so">Số phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <div class="o-ma-tu-sinh">
+                    <input id="xuat-so" value="PX-2026-0288" />
+                    <button class="nut nut-bt" type="button" aria-label="Lấy lại số phiếu kế tiếp" title="Lấy lại số phiếu kế tiếp: PX-2026-0288"><svg viewBox="0 0 20 20"><use href="#i-lam-moi" /></svg></button>
+                  </div>
+                  <span class="goi-y">Máy chủ cấp số kế tiếp. Sửa đè được nếu bạn đánh số theo phiếu giấy.</span>
+                </div>
+                <div class="o-form">
+                  <label for="xuat-ngay">Ngày phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="xuat-ngay" value="28/08/2026 08:35" style="font-family: var(--font-so)" />
+                  <span class="goi-y">Mặc định là bây giờ. Đây cũng là thời điểm của mọi dòng sổ sinh ra từ phiếu.</span>
+                </div>
+                <div class="o-form">
+                  <label for="xuat-kho">Kho mặc định</label>
+                  <input id="xuat-kho" type="search" value="KHO-TB-01 - Kho Tân Bình" placeholder="Gõ mã hoặc tên kho" />
+                  <span class="goi-y">Điền sẵn cho dòng mới. Đổi ở từng dòng được - một chuyến xe giao cho hai kho là ca có thật.</span>
+                </div>
+                <div class="o-form">
+                  <label for="xuat-loai">Loại xuất <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <select id="xuat-loai">
+                    <option>Bán cho khách hàng</option>
+                    <option>Xuất cho sản xuất</option>
+                    <option>Xuất dùng nội bộ</option>
+                    <option>Xuất khác (biếu tặng, góp vốn)</option>
+                  </select>
+                  <span class="goi-y">Theo MISA. Chuyển sang kho khác <strong>không nằm ở đây</strong> - nó có màn riêng, vì tổng tồn công ty không đổi.</span>
+                </div>
+
+                <div class="o-form">
+                  <label for="xuat-dt">Khách hàng</label>
+                  <input id="xuat-dt" type="search" value="Công trình Bình Dương - tổ 2" placeholder="Gõ mã hoặc tên" />
+                  <span class="goi-y">Chưa có danh mục đối tác nên đây đang là ô chữ tự do - xem băng vàng cuối màn.</span>
+                </div>
+                <div class="o-form">
+                  <label for="xuat-ng">Người nhận hàng</label>
+                  <input id="xuat-ng" value="Lê Minh Tuấn - tổ trưởng" />
+                  <span class="goi-y">Người cầm hàng tới cửa kho. Không bắt buộc.</span>
+                </div>
+                <div class="o-form">
+                  <label for="xuat-ct">Kèm theo</label>
+                  <input id="xuat-ct" value="2" style="font-family: var(--font-so); text-align: right" />
+                  <span class="goi-y">Số chứng từ gốc kẹp cùng phiếu: biên bản giao nhận, phiếu cân, hoá đơn.</span>
+                </div>
+                <div class="o-form rong">
+                  <div class="hang-nhan">
+                    <label for="xuat-dg">Diễn giải</label>
+                    <span class="dem-ky-tu">33 / 2000</span>
+                  </div>
+                  <input id="xuat-dg" value="Xuất vật tư thi công đợt 3" />
+                  <span class="goi-y">Lý do xuất kho. Hiện ở cột Ghi chú của mọi dòng sổ sinh ra từ phiếu này.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ghi-chu-bang">
+              <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+              <span>Dòng <span class="ma">NVL0009</span> đang vượt tồn 380,5 lít. Nút Ghi <strong>vẫn bật</strong>: luật tồn là của máy chủ, và số tồn màn hình đọc được có thể đã cũ. <strong>Phiếu xuất không có ô đơn giá</strong> - giá vốn do máy chủ tính sau khi ghi, theo phương pháp bình quân tức thời từng kho; gõ tay một con số ở đây là ghi đè lên phép tính đó.</span>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 11%">Mã hàng</th>
+                    <th style="width: 28%">Tên hàng</th>
+                    <th class="hep" style="width: 7%" title="Đơn vị tính">ĐVT</th>
+                    <th class="cat" style="width: 17%">Kho</th>
+                    <th class="so" style="width: 12%">Xuất ra</th>
+                    <th class="so" style="width: 10%">Tồn</th>
+                    <th class="so" style="width: 10%">Còn lại</th>
+                    <th class="phai hep" style="width: 5%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                      <td class="hep"><span class="ma">HH0004</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Xi măng PC40</div></td>
+                      <td class="hep">bao</td>
+                      <td class="cat">KHO-TB-01 - Kho Tân Bình</td>
+                      <td class="so"><span class="luong giam">-80</span></td>
+                      <td class="so chu-phu">820</td>
+                      <td class="so"><span class="luong ">740</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Xi măng PC40 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td class="hep"><span class="ma">NVL0001</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Thép cây D10 CB300</div></td>
+                      <td class="hep">kg</td>
+                      <td class="cat">KHO-TB-01 - Kho Tân Bình</td>
+                      <td class="so"><span class="luong giam">-2.000</span></td>
+                      <td class="so chu-phu">11.200</td>
+                      <td class="so"><span class="luong ">9.200</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Thép cây D10 CB300 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr style="background: var(--mau-loi-nhat)">
+                      <td class="hep"><span class="ma">NVL0009</span></td>
+                      <td class="o-hai-dong"><div class="dong-tren">Dầu Diesel 0,05S</div><div class="dong-duoi" style="color: var(--mau-loi); font-weight: var(--dam-vua)">Vượt tồn 380,5 lít</div></td>
+                      <td class="hep">lít</td>
+                      <td class="cat">KHO-DN-01 - Kho Đà Nẵng 1</td>
+                      <td class="so"><span class="luong giam">-1.561</span></td>
+                      <td class="so chu-phu">1.180,5</td>
+                      <td class="so"><span class="luong giam">-380,5</span></td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Dầu Diesel 0,05S khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                  <tr class="hang-them">
+                    <td colspan="2"><input type="search" placeholder="Gõ mã hoặc tên hàng để thêm dòng..." aria-label="Mặt hàng của dòng mới" /></td>
+                    <td class="hep chu-phu">-</td>
+                    <td class="cat chu-phu">KHO-TB-01</td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Số lượng của dòng mới" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm dòng này vào phiếu" title="Thêm dòng vào phiếu"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="tong-phieu">
+              <span class="nhan">Tổng cộng</span>
+              <span class="gia-tri">3 dòng hàng</span>
+            </div>
+
+            <div class="chan-form">
+              <span class="nhac">1 dòng vượt tồn - máy chủ nhiều khả năng từ chối cả phiếu.</span>
+              <div class="day-nut">
+                <button class="nut" type="button">Huỷ phiếu</button>
+                <button class="nut" type="button">Ghi và lập phiếu mới</button>
+                <button class="nut-chinh" type="button">Ghi phiếu xuất kho</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span>
+              <strong>Bốn việc backend phải làm trước.</strong> (1) Bảng phiếu, và khoá ngoại từ
+              dòng chuyển động lên phiếu. (2) Một đường ghi <strong>nguyên tử</strong>: dòng thứ ba
+              vi phạm tồn thì cả phiếu không vào sổ - và phép kiểm tồn phải cộng dồn hai dòng cùng
+              một mặt hàng trong cùng phiếu trước khi kiểm. (3) Một <strong>danh mục đối tác</strong>
+              dùng chung cho nhà cung cấp và khách hàng; chưa có thì ô Đối tác là chữ tự do, chạy
+              được nhưng mất khả năng hỏi "tháng này ai giao nhiều nhất". (4) Đọc tồn
+              <strong>theo lô</strong> cho cột "Tồn hiện tại" - tồn ở hệ này là
+              <code>SUM(quantity)</code>, phiếu 20 dòng làm ngây thơ là 20 câu truy vấn.
+              Xem ADR-0043.
+            </span>
+          </div>
+        </section>
+
+        <section class="man" id="man-dieu-chinh" hidden aria-label="Điều chỉnh tồn">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 5 - Điều chỉnh tồn</strong> (<code>/dieu-chinh</code>), khuôn B. Màn thứ ba
+            sinh ra từ việc tách: điều chỉnh <em>không</em> giống nhập hay xuất, nên nó không nên
+            trốn trong cùng một form với hai cái kia.
+            <ul>
+              <li><strong>Gõ tồn THỰC TẾ, không gõ chênh lệch.</strong> Người kiểm kho đếm được "còn 1.168 lít", không đếm được "-12,5". Máy tự tính phần lệch.</li>
+              <li><strong>Lý do là bắt buộc.</strong> Một dòng điều chỉnh không lý do là một lỗ hổng trong sổ - sáu tháng sau không ai giải thích được vì sao mất 12,5 lít.</li>
+              <li>Một dòng một lần, không có phiếu nhiều dòng: điều chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.</li>
+            </ul>
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong" style="background: var(--mau-canh-bao-nhat); color: var(--mau-canh-bao)"><svg viewBox="0 0 20 20"><use href="#i-dieu-chinh" /></svg></span>
+            <div class="chinh">
+              <h1>Điều chỉnh tồn</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">1 dòng điều chỉnh hôm nay</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="cd-so">Xem sổ điều chỉnh</button>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <section class="the">
+              <div class="dau-the"><h2>Dòng điều chỉnh</h2></div>
+              <div class="than-the">
+                <div class="luoi-form">
+                  <div class="o-form">
+                    <label for="d-kho">Kho <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <input id="d-kho" type="search" value="KHO-DN-01 - Kho Đà Nẵng 1" placeholder="Gõ mã hoặc tên kho" />
+                  </div>
+                  <div class="o-form">
+                    <label for="d-hh">Vật tư hàng hoá <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <input id="d-hh" type="search" value="NVL0009 - Dầu Diesel 0,05S" placeholder="Gõ mã hoặc tên mặt hàng" />
+                  </div>
+                  <div class="o-form">
+                    <label for="d-so">Sổ đang ghi</label>
+                    <input id="d-so" value="1.180,5" disabled style="font-family: var(--font-so); text-align: right" />
+                    <span class="goi-y">Máy đọc ra, không sửa được.</span>
+                  </div>
+                  <div class="o-form">
+                    <label for="d-that">Thực tế trong kho <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <input id="d-that" value="1.168" style="font-family: var(--font-so); text-align: right; font-size: var(--chu-xl); font-weight: var(--dam-manh)" />
+                    <span class="goi-y">Con số bạn vừa đếm được, đơn vị tính <strong>lít</strong>.</span>
+                  </div>
+                  <div class="o-form rong">
+                    <label for="d-ly-do">Lý do lệch <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <select id="d-ly-do">
+                      <option>Hao hụt tự nhiên (bay hơi, rơi vãi)</option>
+                      <option>Hàng hỏng, phải huỷ</option>
+                      <option>Ghi sổ sai kỳ trước</option>
+                      <option>Mất hàng, đang truy</option>
+                      <option>Lý do khác - ghi rõ ở ô dưới</option>
+                    </select>
+                    <span class="goi-y">Bắt buộc. Sáu tháng sau, đây là thứ duy nhất giải thích được vì sao con số đổi.</span>
+                  </div>
+                  <div class="o-form rong">
+                    <label for="d-ck">Người cùng chứng kiến <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <input id="d-ck" value="Phạm Thị Lan - kế toán kho" />
+                    <span class="goi-y">
+                      Bắt buộc, và đây là chỗ hệ này <strong>cố ý chặt hơn</strong> một dòng điều chỉnh thường:
+                      một người tự sửa con số tồn của chính kho mình giữ, không ai ký cùng, là chỗ hở kiểm soát
+                      lớn nhất của cả module. MISA giải bằng <em>ban kiểm kê</em> trên phiếu kiểm kê; hệ này chưa
+                      có màn kiểm kê nên tối thiểu phải có một cái tên thứ hai.
+                    </span>
+                  </div>
+
+                  <div class="o-form rong">
+                    <div class="hang-nhan">
+                      <label for="d-gc">Ghi chú</label>
+                      <span class="dem-ky-tu">33 / 2000</span>
+                    </div>
+                    <textarea id="d-gc" rows="2">Kiểm kê quý 3, biên bản số KK-14</textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="chan-form">
+                <span class="nhac">Dòng điều chỉnh <strong>không sửa được</strong> sau khi ghi.</span>
+                <div class="day-nut">
+                  <button class="nut" type="button">Xoá form</button>
+                  <button class="nut-chinh" type="button">Ghi điều chỉnh</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Phần lệch máy tính ra</h2></div>
+                <div class="than-the">
+                  <dl class="xem-truoc">
+                    <div class="muc">
+                      <dt>Sổ đang ghi</dt>
+                      <dd>1.180,5 <span class="dv">lít</span></dd>
+                    </div>
+                    <span class="mui-ten" aria-hidden="true">
+                      <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-dieu-chinh" /></svg>
+                    </span>
+                    <div class="muc giam">
+                      <dt>Sau điều chỉnh</dt>
+                      <dd>1.168 <span class="dv">lít</span></dd>
+                    </div>
+                  </dl>
+                  <p style="margin: var(--gian-3) 0 0; font-size: var(--chu-md); text-align: center">
+                    Ghi vào sổ một dòng <span class="luong giam">-12,5</span> <span class="dv-nho">lít</span>
+                  </p>
+                  <p style="margin: var(--gian-3) 0 0; font-size: var(--chu-xs); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                    Bạn gõ con số <strong>thực tế</strong>; phần lệch là do máy tính ra. Đây là tạm
+                    tính để nhìn, máy chủ tính lại khi ghi.
+                  </p>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Điều chỉnh gần đây ở kho này</h2></div>
+                <div class="day-viec">
+                  <a class="viec canh-bao" href="#" data-di="cd-ct">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-dieu-chinh" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0009</span> Dầu Diesel</span>
+                      <span class="phu-viec">27/08 &middot; <span class="luong giam">-12,5</span> lít &middot; hao hụt bay hơi</span>
+                    </span>
+                  </a>
+                  <a class="viec canh-bao" href="#" data-di="cd-ct">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-dieu-chinh" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0009</span> Dầu Diesel</span>
+                      <span class="phu-viec">30/06 &middot; <span class="luong giam">-9</span> lít &middot; hao hụt bay hơi</span>
+                    </span>
+                  </a>
+                </div>
+                <div class="ghi-chu-bang" style="border-top: 1px solid var(--mau-vien); border-bottom: 0; border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon)">
+                  <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                  <span>Cùng một mặt hàng phải điều chỉnh nhiều lần thường là dấu hiệu <strong>quy trình ghi sổ đang hở</strong>, không phải hàng hao thật.</span>
+                </div>
+              </section>
+
+              <div class="bao">
+                <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                <span><strong>Chưa có ở backend.</strong> Danh sách lý do lệch cần một trường mới trên dòng chuyển động. Chưa có thì gộp lý do vào ô Ghi chú, nhưng lúc đó mất khả năng lọc theo lý do.</span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ================================================================ 6 -->
+        <section class="man" id="man-cd-so" hidden aria-label="Sổ chuyển động">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 6 - Sổ chuyển động</strong> (<code>/chuyen-dong</code>), khuôn A. Sau khi
+            tách, màn này <strong>chỉ còn tra cứu</strong> - nút "Ghi chuyển động" biến mất, thay
+            bằng ba nút đi tới ba màn ghi. Bộ lọc quan trọng hơn cả bảng, nên khoảng thời gian là
+            nấc đặt sẵn (hôm nay / 7 ngày / tháng này) thay vì bắt gõ hai ô ngày.
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg></span>
+            <div class="chinh">
+              <h1>Sổ chuyển động</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">412 dòng trong tháng 08/2026</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất Excel</button>
+            </div>
+          </section>
+
+          <dl class="dai-chi-so">
+            <div class="o-chi-so"><dt>Dòng trong khoảng đang lọc</dt><dd>412</dd></div>
+            <div class="o-chi-so"><dt>Nhập kho</dt><dd style="color: var(--mau-tot)">231</dd></div>
+            <div class="o-chi-so"><dt>Xuất kho</dt><dd style="color: var(--mau-loi)">168</dd></div>
+            <div class="o-chi-so"><dt>Điều chỉnh</dt><dd style="color: var(--mau-canh-bao)">13</dd></div>
+          </dl>
+
+          <section class="the">
+            <div class="thanh-loc">
+              <div class="truong">
+                <label for="s-khoang">Khoảng thời gian</label>
+                <select id="s-khoang"><option>Tháng này</option><option>Hôm nay</option><option>7 ngày gần nhất</option><option>Tháng trước</option><option>Tự chọn ngày...</option></select>
+              </div>
+              <div class="truong">
+                <label for="s-loai">Loại</label>
+                <select id="s-loai"><option>Tất cả</option><option>Nhập kho</option><option>Xuất kho</option><option>Điều chỉnh</option></select>
+              </div>
+              <div class="truong">
+                <label for="s-kho">Kho</label>
+                <select id="s-kho"><option>Tất cả kho</option><option>KHO-TB-01 - Kho Tân Bình</option><option>KHO-DN-01 - Kho Đà Nẵng 1</option></select>
+              </div>
+              <div class="truong">
+                <label for="s-hh">Vật tư hàng hoá</label>
+                <input class="o-tim" id="s-hh" type="search" placeholder="Gõ mã hoặc tên mặt hàng" />
+              </div>
+              <div class="day-phai">
+                <div class="truong">
+                  <label for="s-sd">Số dòng</label>
+                  <select id="s-sd"><option>20</option><option>50</option><option>100</option></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 10%">Thời điểm</th>
+                    <th class="hep" style="width: 8%">Loại</th>
+                    <th class="hep" style="width: 11%">Số phiếu</th>
+                    <th class="hep" style="width: 9%">Mã hàng</th>
+                    <th class="cat" style="width: 18%">Tên hàng</th>
+                    <th class="hep" style="width: 9%">Mã kho</th>
+                    <th class="so" style="width: 10%">Lượng</th>
+                    <th class="so" style="width: 11%">Tồn sau</th>
+                    <th class="cat" style="width: 12%">Ghi chú</th>
+                    <th class="phai hep" style="width: 9%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08 08:35</td>
+                    <td class="hep"><span class="chip tot"><span class="cham"></span>Nhập</span></td>
+                    <td class="hep"><a class="ma" href="#" data-di="cd-ct">PN-2026-0421</a></td><td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0001</a></td><td class="cat">Thép cây D10 CB300</td>
+                    <td class="hep">KHO-TB-01</td>
+                    <td class="so"><span class="luong tang">+1.200</span> <span class="dv-nho">kg</span></td>
+                    <td class="so"><span class="luong">11.200</span></td>
+                    <td class="cat">Phiếu NCC 4821</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-ct" aria-label="Xem chi tiết dòng chuyển động này" title="Xem chi tiết"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá dòng chuyển động này" title="Xoá dòng này khỏi sổ"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08 08:31</td>
+                    <td class="hep"><span class="chip tot"><span class="cham"></span>Nhập</span></td>
+                    <td class="hep"><a class="ma" href="#" data-di="cd-ct">PN-2026-0421</a></td><td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0004</a></td><td class="cat">Bu lông M12 x 60</td>
+                    <td class="hep">KHO-TB-01</td>
+                    <td class="so"><span class="luong tang">+3.000</span> <span class="dv-nho">cái</span></td>
+                    <td class="so"><span class="luong">12.500</span></td>
+                    <td class="cat">Phiếu NCC 4821</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-ct" aria-label="Xem chi tiết dòng chuyển động này" title="Xem chi tiết"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá dòng chuyển động này" title="Xoá dòng này khỏi sổ"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08 08:12</td>
+                    <td class="hep"><span class="chip"><span class="cham" style="background: var(--mau-loi)"></span>Xuất</span></td>
+                    <td class="hep"><a class="ma" href="#" data-di="cd-ct">PX-2026-0287</a></td><td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0004</a></td><td class="cat">Xi măng PC40</td>
+                    <td class="hep">KHO-TB-01</td>
+                    <td class="so"><span class="luong giam">-80</span> <span class="dv-nho">bao</span></td>
+                    <td class="so"><span class="luong">820</span></td>
+                    <td class="cat">Giao công trình Bình Dương</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-ct" aria-label="Xem chi tiết dòng chuyển động này" title="Xem chi tiết"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá dòng chuyển động này" title="Xoá dòng này khỏi sổ"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">27/08 17:40</td>
+                    <td class="hep"><span class="chip"><span class="cham" style="background: var(--mau-canh-bao)"></span>Điều chỉnh</span></td>
+                    <td class="hep chu-phu">-</td><td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0009</a></td><td class="cat">Dầu Diesel 0,05S</td>
+                    <td class="hep">KHO-DN-01</td>
+                    <td class="so"><span class="luong giam">-12,5</span> <span class="dv-nho">lít</span></td>
+                    <td class="so"><span class="luong">1.180,5</span></td>
+                    <td class="cat">Kiểm kê quý 3, hao hụt bay hơi</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-ct" aria-label="Xem chi tiết dòng chuyển động này" title="Xem chi tiết"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được vì bạn không có quyền xoá dòng sổ" title="Chỉ vai trò inventory.admin xoá được dòng sổ (inventory.movement_delete)"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">27/08 16:05</td>
+                    <td class="hep"><span class="chip tot"><span class="cham"></span>Nhập</span></td>
+                    <td class="hep"><a class="ma" href="#" data-di="cd-ct">PN-2026-0419</a></td><td class="hep"><a class="ma" href="#" data-di="hh-ct">TP0002</a></td><td class="cat">Khung thép tiền chế mã A2</td>
+                    <td class="hep">KHO-TP-01</td>
+                    <td class="so"><span class="luong tang">+18</span> <span class="dv-nho">cái</span></td>
+                    <td class="so"><span class="luong">64</span></td>
+                    <td class="cat chu-phu">Không có ghi chú</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="cd-ct" aria-label="Xem chi tiết dòng chuyển động này" title="Xem chi tiết"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá dòng chuyển động này" title="Xoá dòng này khỏi sổ"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="chan-bang">
+              <span>Hiện 1-20 trong 412 dòng</span>
+              <div class="day-nut">
+                <button class="nut nut-nho" type="button" disabled title="Đang ở trang đầu">Trang trước</button>
+                <span style="font-family: var(--font-so)">1 / 21</span>
+                <button class="nut nut-nho" type="button">Trang sau</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span><strong>Hai điều phải nhớ khi lên code.</strong> (1) Cột <strong>Số phiếu</strong> trỏ lên phiếu cha, và một phiếu ba dòng hiện thành ba hàng cùng số - đó là hình dạng đúng của một sổ: sổ ghi từng chuyển động, phiếu là thứ gom chúng lại. Dòng <em>điều chỉnh</em> không có phiếu nên để trống. Xem ADR-0043. (2) Nút Xoá bật/tắt theo <code>allowed_actions</code> của <em>chính dòng đó</em>, không theo vai trò đoán ở màn hình: <code>inventory.movement_delete</code> cấp tách khỏi <code>inventory.movement_create</code>, nên thủ kho ghi sổ hằng ngày <strong>không</strong> xoá được dòng nào.</span>
+          </div>
+        </section>
+
+        <!-- ================================================================ 7 -->
+        <section class="man" id="man-cd-ct" hidden aria-label="Chi tiết chuyển động">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 7 - Chi tiết chuyển động</strong> (<code>/chuyen-dong/:id</code>), khuôn C.
+            Màn này tồn tại vì đúng một việc: <strong>quyết định có xoá dòng này không</strong>. Nên
+            bố cục xoay quanh câu hỏi đó - tác động lên tồn hiện lớn ngay đầu màn, và nút Xoá đi kèm
+            câu nói rõ hậu quả thay vì một hộp thoại "Bạn có chắc không?".
+            Ở ảnh này nút Xoá <strong>đang khoá</strong>, vì người đăng nhập là thủ kho chứ không phải
+            <code>inventory.admin</code> - rê chuột lên nút để đọc lý do. Đó là hình dạng đúng của một
+            nút khoá: nói được vì sao, không phải một ô xám câm.
+          </div>
+
+          <section class="dai-dau">
+            <button class="nut" type="button" aria-label="Quay lại sổ chuyển động" data-man="cd-so" style="border-color: transparent; background: none">
+              <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-lui" /></svg>
+            </button>
+            <div class="chinh">
+              <h1>Nhập kho 1.200 kg</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">
+                <span class="ma">NVL0001</span> vào <span class="ma">KHO-TB-01</span> &middot; phiếu <a class="ma" href="#">PN-2026-0421</a> &middot; 28/08/2026 08:35
+              </p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="nhap">Ghi dòng tương tự</button>
+              <button class="nut-phu" type="button" disabled title="Chỉ vai trò inventory.admin xoá được dòng sổ (inventory.movement_delete)"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg>Xoá dòng này</button>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <div>
+              <section class="the" style="margin-bottom: var(--gian-4)">
+                <div class="dau-the"><h2>Dòng này đã làm gì với tồn</h2></div>
+                <div class="than-the">
+                  <dl class="xem-truoc">
+                    <div class="muc">
+                      <dt>Trước dòng này</dt>
+                      <dd>10.000 <span class="dv">kg</span></dd>
+                    </div>
+                    <span class="mui-ten" aria-hidden="true">
+                      <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-nhap" /></svg>
+                    </span>
+                    <div class="muc tang">
+                      <dt>Sau dòng này</dt>
+                      <dd>11.200 <span class="dv">kg</span></dd>
+                    </div>
+                  </dl>
+                  <p style="margin: var(--gian-3) 0 0; font-size: var(--chu-sm); line-height: var(--dong-rong)">
+                    Xoá dòng này thì tồn của <span class="ma">NVL0001</span> ở
+                    <span class="ma">KHO-TB-01</span> giảm 1.200 kg, còn <strong>10.000 kg</strong>.
+                  </p>
+                  <p style="margin: var(--gian-3) 0 0; font-size: var(--chu-xs); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                    Máy chủ <strong>có thể từ chối</strong>: nếu bỏ dòng này ra khỏi sổ làm tồn xuống
+                    âm - hàng đã nhập rồi đã xuất hết - thì lệnh xoá nhận 409, và cách chữa là ghi một
+                    <a href="#" data-di="dieu-chinh">dòng điều chỉnh có người ký</a>, không phải xoá dấu vết.
+                    Con số 10.000 kg ở trên là tạm tính để nhìn, không phải một lời hứa.
+                  </p>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Thông tin dòng</h2></div>
+                <div class="than-the">
+                  <dl class="luoi-thong-tin">
+                    <div><dt>Loại</dt><dd><span class="chip tot"><span class="cham"></span>Nhập kho</span></dd></div>
+                    <div><dt>Lượng</dt><dd class="so"><span class="luong tang">+1.200</span> <span class="dv-nho">kg</span></dd></div>
+                    <div><dt>Thời điểm xảy ra</dt><dd>28/08/2026 08:35</dd></div>
+                    <div><dt>Kho</dt><dd><a class="ma" href="#" data-di="kho-form">KHO-TB-01</a><br />Kho Tân Bình</dd></div>
+                    <div><dt>Vật tư hàng hoá</dt><dd><a class="ma" href="#" data-di="hh-ct">NVL0001</a><br />Thép cây D10 CB300</dd></div>
+                    <div><dt>Tính chất</dt><dd><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></dd></div>
+                    <div><dt>Đơn vị tính</dt><dd>kg - Ki lô gam</dd></div>
+                    <div><dt>Số phiếu</dt><dd><a class="ma" href="#">PN-2026-0421</a></dd></div>
+                    <div><dt>Nhà cung cấp</dt><dd>Thép Hoà Phát - CN Miền Nam</dd></div>
+                    <div><dt>Người giao hàng</dt><dd>Trần Văn Bảy - xe 51C-284.19</dd></div>
+                    <div style="grid-column: 1 / -1"><dt>Ghi chú</dt><dd>Nhận hàng theo phiếu NCC số 4821</dd></div>
+                  </dl>
+                </div>
+              </section>
+            </div>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Ai ghi dòng này</h2></div>
+                <div class="than-the">
+                  <ol class="dong-thoi-gian">
+                    <li class="noi-bat">
+                      <div class="luc">28/08/2026 08:35:12</div>
+                      <div class="viec-lam">Nguyễn Văn Vận ghi dòng này</div>
+                    </li>
+                  </ol>
+                  <p style="margin: var(--gian-4) 0 0; font-size: var(--chu-xs); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                    Một dòng chuyển động <strong>không sửa được</strong>, chỉ xoá được. Ghi sai thì
+                    xoá rồi ghi lại - như vậy sổ luôn nói đúng những gì đã xảy ra.
+                  </p>
+                </div>
+              </section>
+
+
+              <section class="the">
+                <div class="dau-the"><h2>Cùng phiếu PN-2026-0421</h2><span class="phu">2 dòng khác</span></div>
+                <div class="day-viec">
+                  <a class="viec" href="#" data-di="cd-ct">
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0004</span> Bu lông M12 x 60</span>
+                      <span class="phu-viec">08:31 &middot; <span class="luong tang">+3.000</span> cái &middot; KHO-TB-01</span>
+                    </span>
+                  </a>
+                  <a class="viec" href="#" data-di="cd-ct">
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">HH0011</span> Sơn chống rỉ Epoxy</span>
+                      <span class="phu-viec">08:28 &middot; <span class="luong tang">+40</span> thùng &middot; KHO-TB-02</span>
+                    </span>
+                  </a>
+                </div>
+                <div class="ghi-chu-bang" style="border-top: 1px solid var(--mau-vien); border-bottom: 0; border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon)">
+                  <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                  <span>Ba dòng này vào sổ <strong>cùng một lúc</strong>. Xoá một dòng không xoá hai dòng kia - xem băng vàng dưới.</span>
+                </div>
+              </section>
+
+              <div class="bao">
+                <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                <span>
+                  <strong>Một câu chưa chốt, cố ý để mở.</strong> Xoá thì xoá <em>một dòng</em> hay
+                  <em>cả phiếu</em>? Xoá một dòng làm phiếu máy lệch phiếu giấy đang kẹp trong tủ; xoá
+                  cả phiếu thì mất luôn những dòng không sai. Màn này đang vẽ theo vế "xoá một dòng",
+                  nhưng ADR-0043 ghi rõ đây là câu phải trả lời <strong>trước</strong> khi viết đường
+                  xoá, không phải lúc đang viết.
+                  <br /><br />
+                  Khối "Trước / sau dòng này" thì cần số dư tại thời điểm - một câu
+                  <code>SUM(quantity)</code> có mốc. Chưa có thì bỏ hẳn thẻ đó, đừng dựng thẻ rỗng.
+                </span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ================================================================ 8 -->
+        <section class="man" id="man-hh-ds" hidden aria-label="Danh mục vật tư hàng hoá">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; danh mục</span><br />
+            <strong>Màn 8 - Danh sách hàng hoá</strong> (<code>/hang-hoa</code>), khuôn A.
+            Đổi tên từ "Vật tư" theo góp ý. <strong>Tính chất</strong> thành cột và thành bộ lọc:
+            đây là thứ chia danh mục 248 mặt hàng thành ba nhóm người ta thật sự nghĩ theo. Mã trong
+            cột đầu là mã tự sinh theo tính chất, đọc lên là biết ngay nhóm nào.
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-hop" /></svg></span>
+            <div class="chinh">
+              <h1>Vật tư hàng hoá</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">248 mặt hàng &middot; 92 nguyên vật liệu, 41 thành phẩm, 115 hàng hoá</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất Excel</button>
+              <button class="nut-chinh" type="button" data-man="hh-form"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>Thêm mặt hàng</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="thanh-loc">
+              <div class="truong">
+                <label for="h-tim">Tìm theo mã hoặc tên</label>
+                <input class="o-tim" id="h-tim" type="search" placeholder="NVL0001, thép cây..." />
+              </div>
+              <div class="truong">
+                <label for="h-tc">Tính chất</label>
+                <select id="h-tc"><option>Tất cả</option><option>Nguyên vật liệu</option><option>Thành phẩm</option><option>Hàng hoá</option></select>
+              </div>
+              <div class="truong">
+                <label for="h-dv">Đơn vị tính</label>
+                <select id="h-dv"><option>Tất cả</option><option>kg - Ki lô gam</option><option>bao - Bao</option><option>lít - Lít</option><option>cái - Cái</option><option>thùng - Thùng</option></select>
+              </div>
+              <div class="truong">
+                <label for="h-sx">Sắp xếp</label>
+                <select id="h-sx"><option>Mã tăng dần</option><option>Tên tăng dần</option><option>Mới tạo trước</option></select>
+              </div>
+              <div class="day-phai">
+                <div class="truong">
+                  <label for="h-sd">Số dòng</label>
+                  <select id="h-sd"><option>20</option><option>50</option><option>100</option></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 10%">Mã hàng</th>
+                    <th style="width: 26%">Tên hàng</th>
+                    <th class="hep" style="width: 16%">Tính chất</th>
+                    <th class="hep" style="width: 11%" title="Đơn vị tính">ĐVT</th>
+                    <th class="so" style="width: 14%">Tổng tồn</th>
+                    <th class="so hep" style="width: 9%">Số kho</th>
+                    <th class="phai hep" style="width: 14%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0001</a></td><td class="o-hai-dong"><div class="dong-tren">Thép cây D10 CB300</div><div class="dong-duoi">Thép xây dựng, cây 11,7m</div></td>
+                    <td class="hep"><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></td>
+                    <td class="hep">kg</td>
+                    <td class="so"><span class="luong">18.400</span> <span class="dv-nho">kg</span></td>
+                    <td class="so hep">4</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Thép cây D10 CB300" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Thép cây D10 vì còn tồn ở 4 kho" title="Còn tồn ở 4 kho nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0004</a></td><td class="o-hai-dong"><div class="dong-tren">Bu lông M12 x 60</div><div class="dong-duoi">Thép mạ kẽm, kèm long đen</div></td>
+                    <td class="hep"><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></td>
+                    <td class="hep">cái</td>
+                    <td class="so"><span class="luong">12.500</span> <span class="dv-nho">cái</span></td>
+                    <td class="so hep">3</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Bu lông M12 x 60" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Bu lông M12 vì còn tồn ở 3 kho" title="Còn tồn ở 3 kho nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">NVL0009</a></td><td class="o-hai-dong"><div class="dong-tren">Dầu Diesel 0,05S</div><div class="dong-duoi">Nhiên liệu máy công trình</div></td>
+                    <td class="hep"><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></td>
+                    <td class="hep">lít</td>
+                    <td class="so"><span class="luong">2.860,5</span> <span class="dv-nho">lít</span></td>
+                    <td class="so hep">5</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Dầu Diesel 0,05S" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Dầu Diesel vì còn tồn ở 5 kho" title="Còn tồn ở 5 kho nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">TP0002</a></td><td class="o-hai-dong"><div class="dong-tren">Khung thép tiền chế mã A2</div><div class="dong-duoi">Xưởng mình làm ra, giao khách</div></td>
+                    <td class="hep"><span class="chip"><span class="cham tp"></span>Thành phẩm</span></td>
+                    <td class="hep">cái</td>
+                    <td class="so"><span class="luong">64</span> <span class="dv-nho">cái</span></td>
+                    <td class="so hep">1</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Khung thép tiền chế mã A2" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Khung thép A2 vì còn tồn ở 1 kho" title="Còn tồn ở 1 kho nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0004</a></td><td class="o-hai-dong"><div class="dong-tren">Xi măng PC40</div><div class="dong-duoi">Mua về bán lại, bao 50kg</div></td>
+                    <td class="hep"><span class="chip"><span class="cham hh"></span>Hàng hoá</span></td>
+                    <td class="hep">bao</td>
+                    <td class="so"><span class="luong">1.240</span> <span class="dv-nho">bao</span></td>
+                    <td class="so hep">3</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Xi măng PC40" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Xi măng PC40 vì còn tồn ở 3 kho" title="Còn tồn ở 3 kho nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="hh-ct">HH0011</a></td><td class="o-hai-dong"><div class="dong-tren">Sơn chống rỉ Epoxy</div><div class="dong-duoi">Thùng 18 lít, hai thành phần</div></td>
+                    <td class="hep"><span class="chip"><span class="cham hh"></span>Hàng hoá</span></td>
+                    <td class="hep">thùng</td>
+                    <td class="so"><span class="luong chu-phu">0</span> <span class="dv-nho">thùng</span></td>
+                    <td class="so hep chu-phu">0</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="hh-form" aria-label="Sửa Sơn chống rỉ Epoxy" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá Sơn chống rỉ Epoxy" title="Xoá khỏi danh mục"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="chan-bang">
+              <span>Hiện 1-20 trong 248 mặt hàng</span>
+              <div class="day-nut">
+                <button class="nut nut-nho" type="button" disabled title="Đang ở trang đầu">Trang trước</button>
+                <span style="font-family: var(--font-so)">1 / 13</span>
+                <button class="nut nut-nho" type="button">Trang sau</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span>
+              <strong>Chưa có ở backend.</strong> Bốn thứ: trường <code>tinh_chat</code>, hai cột
+              tổng hợp "Tổng tồn" và "Số kho có", và dòng mô tả ở ô hai dòng. Không làm dòng mô tả
+              thì bỏ nó và để bảng một dòng - đừng để một dòng trống dưới mỗi tên.
+            </span>
+          </div>
+        </section>
+
+        <!-- ================================================================ 9 -->
+        <section class="man" id="man-hh-form" hidden aria-label="Thêm vật tư hàng hoá">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; danh mục</span><br />
+            <strong>Màn 9 - Thêm / Sửa hàng hoá</strong> (<code>/hang-hoa/moi</code>), khuôn B.
+            Đây là màn mang hai thay đổi lớn nhất của vòng duyệt này:
+            <ul>
+              <li><strong>Tính chất là ô đầu tiên</strong>, ba nút bấm lớn thay vì một danh sách xổ. Nó phải đứng trước ô Mã, vì chính nó quyết định mã sinh ra là VT, SP hay HH.</li>
+              <li><strong>Mã hiện sẵn ngay khi chọn tính chất</strong> - <span class="ma">NVL0013</span> là số kế tiếp trong nhóm nguyên vật liệu - và <strong>sửa đè được</strong>: ai đã có bộ mã riêng thì gõ mã của mình vào, hệ thống không ép.</li>
+            </ul>
+            <strong>MISA làm gì</strong> (tra tài liệu chính thức 28/08/2026): AMIS Kế toán có
+            <em>sáu</em> tính chất - Hàng hóa · Dịch vụ · Nguyên vật liệu · Thành phẩm · Công cụ dụng
+            cụ · Combo sản phẩm; MISA SME 2023 chỉ có bốn. Hệ này lấy <strong>ba</strong>, và lý do
+            cắt nằm ở ADR-0042: <em>Dịch vụ</em> không nằm trong kho nào nên nhận nó vào đây là phá
+            bất biến "mọi mã trong danh mục đều có thể có tồn"; <em>Combo</em> cần định mức chưa có;
+            <em>Công cụ dụng cụ</em> hoãn chứ không loại - nó chỉ khác nguyên vật liệu ở tài khoản kế
+            toán mà hệ chưa có kế toán.
+            <br /><br />
+            Thứ đáng giá nhất tra được không nằm trong bảng đó: MISA gọi danh mục là
+            <strong>"Vật tư hàng hóa"</strong>, còn <strong>"Hàng hóa"</strong> là một giá trị bên
+            trong. Họ đã gặp đúng va chạm tên gọi của đợt này và giải bằng cách cho cái ô lớn một cái
+            tên riêng - hệ này theo y như vậy.
+          </div>
+
+          <section class="dai-dau">
+            <button class="nut" type="button" aria-label="Quay lại danh mục vật tư hàng hoá" data-man="hh-ds" style="border-color: transparent; background: none">
+              <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-lui" /></svg>
+            </button>
+            <div class="chinh">
+              <h1>Thêm vật tư hàng hoá</h1>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <section class="the">
+              <div class="dau-the"><h2>Thông tin mặt hàng</h2></div>
+              <div class="than-the">
+                <div class="luoi-form">
+                  <div class="o-form rong">
+                    <label id="nhan-tc">Tính chất <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <div class="chon-loai" role="group" aria-labelledby="nhan-tc">
+                      <button type="button" aria-pressed="true">
+                        <span class="ten">Nguyên vật liệu</span>
+                        <span class="mo-ta">Mua về để làm ra thứ khác. Mã bắt đầu bằng NVL.</span>
+                      </button>
+                      <button type="button" aria-pressed="false">
+                        <span class="ten">Thành phẩm</span>
+                        <span class="mo-ta">Xưởng mình làm ra. Mã bắt đầu bằng TP.</span>
+                      </button>
+                      <button type="button" aria-pressed="false">
+                        <span class="ten">Hàng hoá</span>
+                        <span class="mo-ta">Mua về bán lại, không qua sản xuất. Mã bắt đầu bằng HH.</span>
+                      </button>
+                    </div>
+                    <span class="goi-y">
+                      Cùng một mặt hàng có thể là <strong>thành phẩm</strong> của xưởng khác nhưng là
+                      <strong>nguyên vật liệu</strong> của xưởng mình. Chọn theo vai của nó
+                      <em>trong công ty này</em>, không theo bản thân món hàng.
+                    </span>
+                  </div>
+
+                  <div class="o-form">
+                    <div class="hang-nhan">
+                      <label for="h-ma">Mã <span class="bat-buoc" aria-hidden="true">*</span></label>
+                      <span class="dem-ky-tu">7 / 64</span>
+                    </div>
+                    <div class="o-ma-tu-sinh">
+                      <input id="h-ma" value="NVL0013" />
+                      <button class="nut nut-bt" type="button" aria-label="Lấy lại mã tự sinh kế tiếp" title="Lấy lại mã tự sinh: NVL0013"><svg viewBox="0 0 20 20"><use href="#i-lam-moi" /></svg></button>
+                    </div>
+                    <span class="goi-y">Máy chủ cấp số kế tiếp của nhóm. <strong>Sửa đè được</strong> nếu công ty bạn đã có bộ mã riêng.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <div class="hang-nhan">
+                      <label for="h-ten">Tên mặt hàng <span class="bat-buoc" aria-hidden="true">*</span></label>
+                      <span class="dem-ky-tu">18 / 255</span>
+                    </div>
+                    <input id="h-ten" value="Thép cây D12 CB300" />
+                    <span class="goi-y">Tên thủ kho đọc lên khi kiểm hàng.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-dvt">Đơn vị tính <span class="bat-buoc" aria-hidden="true">*</span></label>
+                    <input id="h-dvt" type="search" value="kg - Ki lô gam" placeholder="Gõ để tìm trong 14 đơn vị tính" />
+                    <span class="goi-y">Chọn xong và đã có chuyển động thì <strong>không đổi được nữa</strong>.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-nhom">Nhóm hàng</label>
+                    <input id="h-nhom" type="search" value="Thép &rsaquo; Thép cây" placeholder="Gõ để tìm hoặc tạo nhóm mới" />
+                    <span class="goi-y">Cây nhóm do công ty tự đặt, <strong>khác Tính chất</strong>: tính chất có đúng ba giá trị cố định, nhóm thì bao nhiêu cấp cũng được.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-kho-nd">Kho ngầm định</label>
+                    <input id="h-kho-nd" type="search" value="KHO-NL-01 - Kho nguyên liệu" placeholder="Gõ mã hoặc tên kho" />
+                    <span class="goi-y">Điền sẵn khi mặt hàng này lên phiếu. Không bắt buộc.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-gia-mua">Đơn giá mua</label>
+                    <input id="h-gia-mua" value="18.500" style="font-family: var(--font-so); text-align: right" />
+                    <span class="goi-y">Giá điền sẵn khi mặt hàng này lên phiếu nhập, đơn vị <strong>đồng / kg</strong>. Sửa được trên từng phiếu - đây chỉ là gợi ý.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-thue">Thuế suất GTGT</label>
+                    <select id="h-thue"><option>8%</option><option>0%</option><option>5%</option><option>10%</option><option>Không chịu thuế</option><option>Không kê khai</option></select>
+                    <span class="goi-y">Giá trị mặc định chảy sang chứng từ mua bán sau này. <strong>Không lên phiếu nhập kho</strong> - xem ghi chú ở khối Đơn giá bên dưới.</span>
+                  </div>
+
+                  <div class="o-form">
+                    <label for="h-toi-thieu">Mức tồn tối thiểu</label>
+                    <input id="h-toi-thieu" value="2.000" style="font-family: var(--font-so); text-align: right" />
+                    <span class="goi-y">Không bắt buộc. Tồn xuống dưới mức này thì hiện ở "Việc cần làm" của trang chủ.</span>
+                  </div>
+
+                  <div class="o-form rong">
+                    <div class="hang-nhan">
+                      <label for="h-mo-ta">Mô tả</label>
+                      <span class="dem-ky-tu">25 / 500</span>
+                    </div>
+                    <textarea id="h-mo-ta" rows="2">Thép xây dựng, cây 11,7m</textarea>
+                    <span class="goi-y">Không bắt buộc. Hiện ở dòng dưới tên trong bảng danh sách.</span>
+                  </div>
+
+                  <div class="o-form rong">
+                    <label id="nhan-tt">Trạng thái</label>
+                    <div class="chon-loai" role="group" aria-labelledby="nhan-tt" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+                      <button type="button" aria-pressed="true">
+                        <span class="ten">Đang theo dõi</span>
+                        <span class="mo-ta">Chọn được trên phiếu nhập, phiếu xuất, điều chỉnh.</span>
+                      </button>
+                      <button type="button" aria-pressed="false">
+                        <span class="ten">Ngừng theo dõi</span>
+                        <span class="mo-ta">Không chọn được nữa, nhưng dòng sổ cũ giữ nguyên.</span>
+                      </button>
+                    </div>
+                    <span class="goi-y">
+                      Đây là cách cho một mã <strong>về hưu</strong>. Xoá không làm được việc đó: mặt hàng
+                      còn tồn hoặc còn dòng sổ thì xoá bị chặn, mà xoá được thì lịch sử cũng mất theo.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dau-the" style="border-top: 1px solid var(--mau-vien); border-radius: 0">
+                <h2>Đơn vị chuyển đổi</h2>
+                <span class="phu">mua một đơn vị, xuất một đơn vị khác</span>
+              </div>
+              <div class="ghi-chu-bang">
+                <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                <span>
+                  <strong>Chọn đơn vị tính chính là đơn vị NHỎ NHẤT</strong> - đây là lời khuyên của
+                  chính MISA, và lý do là sai số làm tròn: lấy "thùng" làm đơn vị chính rồi xuất lẻ
+                  7 hộp thì tồn thành 0,35 thùng, và mọi báo cáo mang theo cái đuôi thập phân đó.
+                  Lấy "kg" làm chính thì mọi con số đều nguyên.
+                </span>
+              </div>
+              <div class="khung-bang">
+                <table class="bang-co-dinh">
+                  <thead>
+                    <tr>
+                      <th style="width: 26%">Đơn vị chuyển đổi</th>
+                      <th class="hep" style="width: 18%">Phép</th>
+                      <th class="so" style="width: 18%">Tỷ lệ</th>
+                      <th style="width: 30%">Đọc ra là</th>
+                      <th class="phai hep" style="width: 8%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Cây</td>
+                      <td class="hep">Nhân</td>
+                      <td class="so"><span class="luong">11,7</span></td>
+                      <td class="chu-phu">1 cây = 11,7 kg</td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ đơn vị chuyển đổi Cây" title="Bỏ dòng này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td>Bó</td>
+                      <td class="hep">Nhân</td>
+                      <td class="so"><span class="luong">117</span></td>
+                      <td class="chu-phu">1 bó = 117 kg (10 cây)</td>
+                      <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ đơn vị chuyển đổi Bó" title="Bỏ dòng này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                    </tr>
+                    <tr class="hang-them">
+                      <td><input type="search" placeholder="Gõ tên đơn vị..." aria-label="Đơn vị chuyển đổi mới" /></td>
+                      <td class="hep"><select aria-label="Phép chuyển đổi"><option>Nhân</option><option>Chia</option></select></td>
+                      <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Tỷ lệ chuyển đổi" style="text-align: right; font-family: var(--font-so)" /></td>
+                      <td class="chu-phu">-</td>
+                      <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm đơn vị chuyển đổi" title="Thêm dòng"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="dau-the" style="border-top: 1px solid var(--mau-vien); border-radius: 0">
+                <h2>Định mức nguyên vật liệu</h2>
+                <span class="phu">chỉ hiện khi tính chất là Thành phẩm</span>
+              </div>
+              <div class="than-the">
+                <div class="bao" style="margin: 0">
+                  <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                  <span>
+                    <strong>Khối này để trống có chủ ý, chờ bạn quyết.</strong> Định mức chỉ sinh ra
+                    giá trị khi có <strong>một màn tiêu thụ nó</strong> - Lệnh sản xuất, thứ biến
+                    "làm 10 khung A2" thành "xuất 450 kg thép + 200 bu lông, nhập 10 khung thành phẩm".
+                    Chưa có màn đó thì đây là một bảng không ai điền, và điền rồi cũng không có gì chạy.
+                    Mặt hàng đang mở là <em>Nguyên vật liệu</em> nên khối này vốn không hiện.
+                  </span>
+                </div>
+              </div>
+
+              <div class="chan-form">
+                <span class="nhac">Mã và đơn vị tính chính <strong>không đổi được</strong> sau khi mặt hàng đã có chuyển động. Tính chất và đơn vị chuyển đổi thì đổi lúc nào cũng được.</span>
+                <div class="day-nut">
+                  <button class="nut" type="button" data-man="hh-ds">Huỷ</button>
+                  <button class="nut-chinh" type="button">Lưu mặt hàng</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Ba tính chất khác nhau chỗ nào</h2></div>
+                <div class="than-the">
+                  <dl class="luoi-thong-tin" style="grid-template-columns: minmax(0, 1fr); gap: var(--gian-4)">
+                    <div>
+                      <dt><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></dt>
+                      <dd style="font-size: var(--chu-sm); color: var(--mau-chu-mo)">Mua về rồi đưa vào sản xuất. Thép cây, bu lông, dầu máy. Mã <span class="ma">NVL0001</span>.</dd>
+                    </div>
+                    <div>
+                      <dt><span class="chip"><span class="cham tp"></span>Thành phẩm</span></dt>
+                      <dd style="font-size: var(--chu-sm); color: var(--mau-chu-mo)">Xưởng mình làm ra rồi giao khách. Khung thép tiền chế. Mã <span class="ma">TP0001</span>.</dd>
+                    </div>
+                    <div>
+                      <dt><span class="chip"><span class="cham hh"></span>Hàng hoá</span></dt>
+                      <dd style="font-size: var(--chu-sm); color: var(--mau-chu-mo)">Mua về bán lại nguyên trạng, không qua sản xuất. Xi măng, sơn. Mã <span class="ma">HH0001</span>.</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div class="ghi-chu-bang" style="border-top: 1px solid var(--mau-vien); border-bottom: 0; border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon)">
+                  <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                  <span>Chọn nhầm thì <strong>sửa lại lúc nào cũng được</strong>, kể cả khi đã có chuyển động: tính chất chỉ là cách phân nhóm, đổi nó không làm sai một con số nào đã ghi. Mã và đơn vị tính thì khác - hai cái đó khoá.</span>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Ba mã gần giống</h2><span class="phu">tránh khai trùng</span></div>
+                <div class="day-viec">
+                  <a class="viec" href="#" data-di="hh-ct">
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0001</span> Thép cây D10 CB300</span>
+                      <span class="phu-viec">Nguyên vật liệu &middot; kg</span>
+                    </span>
+                  </a>
+                  <a class="viec" href="#" data-di="hh-ct">
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0002</span> Thép cây D12 CB300</span>
+                      <span class="phu-viec">Nguyên vật liệu &middot; kg</span>
+                    </span>
+                  </a>
+                  <a class="viec" href="#" data-di="hh-ct">
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec"><span class="ma">NVL0007</span> Thép tấm dày 5mm</span>
+                      <span class="phu-viec">Nguyên vật liệu &middot; kg</span>
+                    </span>
+                  </a>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <!-- =============================================================== 10 -->
+        <section class="man" id="man-hh-ct" hidden aria-label="Chi tiết vật tư hàng hoá">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; danh mục</span><br />
+            <strong>Màn 10 - Chi tiết hàng hoá</strong> (<code>/hang-hoa/:id</code>), khuôn C.
+            Hai bảng (tồn theo kho, chuyển động) gom vào <strong>dải tab có số đếm</strong> - hai
+            mặt của cùng một mặt hàng, đúng ca dùng tab. Ba nút hành động chính giờ là ba màn ghi
+            riêng biệt, không còn một nút "Ghi chuyển động" chung.
+          </div>
+
+          <section class="dai-dau">
+            <button class="nut" type="button" aria-label="Quay lại danh mục vật tư hàng hoá" data-man="hh-ds" style="border-color: transparent; background: none">
+              <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-lui" /></svg>
+            </button>
+            <div class="chinh">
+              <h1>Thép cây D10 CB300</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">
+                <span class="ma">NVL0001</span> &middot;
+                <span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span>
+                &middot; kg &middot; tổng tồn 18.400 kg ở 4 kho
+              </p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="hh-form"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg>Sửa</button>
+              <button class="nut-phu" type="button" data-man="xuat"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg>Xuất kho</button>
+              <button class="nut-chinh" type="button" data-man="nhap"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg>Nhập kho</button>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <div>
+              <div class="dai-tab" role="tablist" style="margin-bottom: var(--gian-4)">
+                <button class="tab" type="button" role="tab" aria-selected="true">Tồn theo kho <span class="dem">4</span></button>
+                <button class="tab" type="button" role="tab" aria-selected="false">Chuyển động <span class="dem">128</span></button>
+              </div>
+
+              <section class="the">
+                <div class="ghi-chu-bang">
+                  <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                  <span>Tồn là <strong>số dư tính từ sổ chuyển động</strong>, không phải một ô có thể sửa. Muốn đổi con số thì ghi một dòng điều chỉnh.</span>
+                </div>
+                <div class="khung-bang">
+                  <table class="bang-co-dinh">
+                    <thead>
+                      <tr>
+                        <th class="hep" style="width: 14%">Mã kho</th>
+                        <th style="width: 32%">Tên kho</th>
+                        <th class="so" style="width: 18%">Tồn</th>
+                        <th class="hep" style="width: 16%">CĐ gần nhất</th>
+                        <th class="phai hep" style="width: 20%">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Tân Bình</div><div class="dong-duoi">Lô B2, KCN Tân Bình</div></td>
+                        <td class="so"><span class="luong">11.200</span> <span class="dv-nho">kg</span></td>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">28/08</td>
+                        <td class="phai hep"><div class="day-nut">
+                          <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động ở Kho Tân Bình" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Nhập kho vào Kho Tân Bình" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Xuất kho từ Kho Tân Bình" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                        </div></td>
+                      </tr>
+                      <tr>
+                        <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-NL-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho nguyên liệu</div><div class="dong-duoi">Lô C1, KCN Tân Bình</div></td>
+                        <td class="so"><span class="luong">4.800</span> <span class="dv-nho">kg</span></td>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">26/08</td>
+                        <td class="phai hep"><div class="day-nut">
+                          <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động ở Kho nguyên liệu" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Nhập kho vào Kho nguyên liệu" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Xuất kho từ Kho nguyên liệu" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                        </div></td>
+                      </tr>
+                      <tr>
+                        <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-DN-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Đà Nẵng 1</div><div class="dong-duoi">KCN Hoà Khánh, Đà Nẵng</div></td>
+                        <td class="so"><span class="luong">2.440</span> <span class="dv-nho">kg</span></td>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">19/08</td>
+                        <td class="phai hep"><div class="day-nut">
+                          <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động ở Kho Đà Nẵng 1" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="nhap" aria-label="Nhập kho vào Kho Đà Nẵng 1" title="Ghi nhập kho"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="xuat" aria-label="Xuất kho từ Kho Đà Nẵng 1" title="Ghi xuất kho"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                        </div></td>
+                      </tr>
+                      <tr style="background: var(--mau-loi-nhat)">
+                        <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-HN-02</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Hà Nội 2</div><div class="dong-duoi">Cụm CN Nguyên Khê, Hà Nội</div></td>
+                        <td class="so"><span class="luong giam">-40</span> <span class="dv-nho">kg</span></td>
+                        <td class="hep" style="font-family: var(--font-so); font-size: var(--chu-sm)">14/08</td>
+                        <td class="phai hep"><div class="day-nut">
+                          <button class="nut nut-bt" type="button" data-man="cd-so" aria-label="Xem sổ chuyển động ở Kho Hà Nội 2" title="Xem sổ chuyển động"><svg viewBox="0 0 20 20"><use href="#i-xem" /></svg></button>
+                          <button class="nut nut-bt" type="button" data-man="dieu-chinh" aria-label="Điều chỉnh tồn ở Kho Hà Nội 2" title="Điều chỉnh tồn"><svg viewBox="0 0 20 20"><use href="#i-dieu-chinh" /></svg></button>
+                        </div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="chan-bang"><span>4 kho có dòng tồn của mặt hàng này</span></div>
+              </section>
+            </div>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Thông tin</h2></div>
+                <div class="than-the">
+                  <dl class="luoi-thong-tin" style="grid-template-columns: minmax(0, 1fr)">
+                    <div><dt>Mã</dt><dd><span class="ma">NVL0001</span></dd></div>
+                    <div><dt>Tên</dt><dd>Thép cây D10 CB300</dd></div>
+                    <div><dt>Tính chất</dt><dd><span class="chip"><span class="cham nvl"></span>Nguyên vật liệu</span></dd></div>
+                    <div><dt>Đơn vị tính</dt><dd>kg - Ki lô gam</dd></div>
+                    <div><dt>Tổng tồn</dt><dd class="so">18.400 <span class="dv-nho">kg</span></dd></div>
+                    <div><dt>Mức tồn tối thiểu</dt><dd class="so">2.000 <span class="dv-nho">kg</span></dd></div>
+                    <div><dt>Tạo lúc</dt><dd>03/06/2026 bởi Trần Thị Hà</dd></div>
+                  </dl>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Cần chú ý</h2></div>
+                <div class="day-viec">
+                  <a class="viec loi" href="#" data-di="dieu-chinh">
+                    <span class="dau-hieu"><svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-canh-bao" /></svg></span>
+                    <span class="noi-dung">
+                      <span class="tieu-de-viec">Tồn âm ở Kho Hà Nội 2</span>
+                      <span class="phu-viec">-40 kg. Soát lại sổ hoặc ghi một dòng điều chỉnh.</span>
+                    </span>
+                  </a>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <!-- =============================================================== 11 -->
+        <section class="man" id="man-kho-ds" hidden aria-label="Danh sách kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; danh mục</span><br />
+            <strong>Màn 11 - Danh sách kho</strong> (<code>/kho</code>), khuôn A. Cùng khuôn với màn
+            Hàng hoá tới từng khoảng cách - đó là điểm, không phải sự lười. Cột "Phụ trách" và
+            "Trạng thái" của bản v2 <em>bỏ đi</em>: dữ liệu kho chỉ có mã, tên, địa chỉ, nên hai cột
+            kia là hai cột bịa.
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-kho" /></svg></span>
+            <div class="chinh">
+              <h1>Kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">8 kho trong công ty này</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất Excel</button>
+              <button class="nut-chinh" type="button" data-man="kho-form"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>Thêm kho</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="thanh-loc">
+              <div class="truong">
+                <label for="kho-tim">Tìm theo mã hoặc tên</label>
+                <input class="o-tim" id="kho-tim" type="search" placeholder="KHO-TB, Kho Tân Bình..." />
+              </div>
+              <div class="truong">
+                <label for="kho-sx">Sắp xếp</label>
+                <select id="kho-sx"><option>Mã tăng dần</option><option>Tên tăng dần</option><option>Mới tạo trước</option></select>
+              </div>
+              <div class="day-phai">
+                <div class="truong">
+                  <label for="kho-sd">Số dòng</label>
+                  <select id="kho-sd"><option>20</option><option>50</option><option>100</option></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 12%">Mã kho</th>
+                    <th style="width: 24%">Tên kho</th>
+                    <th class="cat" style="width: 28%">Địa chỉ</th>
+                    <th class="so hep" style="width: 11%">Dòng tồn</th>
+                    <th class="so hep" style="width: 12%">CĐ 30 ngày</th>
+                    <th class="phai hep" style="width: 13%">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Tân Bình</div><div class="dong-duoi">Kho tổng, nhận hàng nhà cung cấp</div></td>
+                    <td class="cat">Lô B2, KCN Tân Bình, TP.HCM</td>
+                    <td class="so hep">193</td>
+                    <td class="so hep">411</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho Tân Bình" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Kho Tân Bình vì còn 193 dòng tồn" title="Còn 193 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-TB-02</a></td><td class="o-hai-dong"><div class="dong-tren">Kho thành phẩm Tân Bình</div><div class="dong-duoi">Đầu ra sản xuất, chờ giao khách</div></td>
+                    <td class="cat">Lô C2, KCN Tân Bình, TP.HCM</td>
+                    <td class="so hep">76</td>
+                    <td class="so hep">288</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho thành phẩm Tân Bình" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Kho thành phẩm Tân Bình vì còn 76 dòng tồn" title="Còn 76 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-DN-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Đà Nẵng 1</div><div class="dong-duoi">Chi nhánh miền Trung</div></td>
+                    <td class="cat">KCN Hoà Khánh, Liên Chiểu, Đà Nẵng</td>
+                    <td class="so hep">37</td>
+                    <td class="so hep">61</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho Đà Nẵng 1" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Kho Đà Nẵng 1 vì còn 37 dòng tồn" title="Còn 37 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-NL-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho nguyên liệu</div><div class="dong-duoi">Nguyên liệu đầu vào sản xuất</div></td>
+                    <td class="cat">Lô C1, KCN Tân Bình, TP.HCM</td>
+                    <td class="so hep">86</td>
+                    <td class="so hep">142</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho nguyên liệu" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Kho nguyên liệu vì còn 86 dòng tồn" title="Còn 86 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-HN-02</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Hà Nội 2</div><div class="dong-duoi">Kho linh kiện thay thế</div></td>
+                    <td class="cat">Cụm CN Nguyên Khê, Đông Anh, Hà Nội</td>
+                    <td class="so hep">112</td>
+                    <td class="so hep">203</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho Hà Nội 2" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được Kho Hà Nội 2 vì còn 112 dòng tồn" title="Còn 112 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><a class="ma" href="#" data-di="kho-form">KHO-CT-01</a></td><td class="o-hai-dong"><div class="dong-tren">Kho Cần Thơ</div><div class="dong-duoi">Mới khai, chưa dùng</div></td>
+                    <td class="cat">KCN Trà Nóc 1, Bình Thuỷ, Cần Thơ</td>
+                    <td class="so hep chu-phu">0</td>
+                    <td class="so hep chu-phu">0</td>
+                    <td class="phai hep"><div class="day-nut">
+                      <button class="nut nut-bt" type="button" data-man="kho-form" aria-label="Sửa Kho Cần Thơ" title="Sửa"><svg viewBox="0 0 20 20"><use href="#i-sua" /></svg></button>
+                      <button class="nut nut-bt nguy" type="button" aria-label="Xoá Kho Cần Thơ" title="Xoá kho này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                    </div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="chan-bang">
+              <span>Hiện 1-8 trong 8 kho</span>
+              <div class="day-nut">
+                <button class="nut nut-nho" type="button" disabled title="Đang ở trang đầu">Trang trước</button>
+                <span style="font-family: var(--font-so)">1 / 1</span>
+                <button class="nut nut-nho" type="button" disabled title="Đang ở trang cuối">Trang sau</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <!-- =============================================================== 12 -->
+        <section class="man" id="man-kho-form" hidden aria-label="Sửa kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; danh mục</span><br />
+            <strong>Màn 12 - Thêm / Sửa kho</strong> (<code>/kho/moi</code>, <code>/kho/:id</code>),
+            khuôn B. Màn "trống trải" nặng nhất của bản cũ: ba ô nhập trong một cột 640px giữa màn
+            1440px. Cột phụ lấp phần trống bằng ngữ cảnh thật - kho này đang có gì, ai vừa sửa nó.
+          </div>
+
+          <section class="dai-dau">
+            <button class="nut" type="button" aria-label="Quay lại danh sách kho" data-man="kho-ds" style="border-color: transparent; background: none">
+              <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong)"><use href="#i-lui" /></svg>
+            </button>
+            <div class="chinh">
+              <h1>Sửa kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)"><span class="ma">KHO-TB-01</span> Kho Tân Bình</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="ton">Xem tồn của kho này</button>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <section class="the">
+              <div class="dau-the"><h2>Thông tin kho</h2></div>
+              <div class="than-the">
+                <div class="luoi-form">
+                  <div class="o-form">
+                    <div class="hang-nhan">
+                      <label for="k-ma">Mã kho <span class="bat-buoc" aria-hidden="true">*</span></label>
+                      <span class="dem-ky-tu">9 / 64</span>
+                    </div>
+                    <input id="k-ma" value="KHO-TB-01" style="font-family: var(--font-so)" />
+                    <span class="goi-y">Viết hoa, không dấu, dùng dấu gạch ngang. Mã đã có chuyển động thì không đổi được nữa.</span>
+                  </div>
+                  <div class="o-form">
+                    <div class="hang-nhan">
+                      <label for="k-ten">Tên kho <span class="bat-buoc" aria-hidden="true">*</span></label>
+                      <span class="dem-ky-tu">13 / 255</span>
+                    </div>
+                    <input id="k-ten" value="Kho Tân Bình" />
+                    <span class="goi-y">Tên người trong công ty gọi hằng ngày.</span>
+                  </div>
+                  <div class="o-form rong">
+                    <div class="hang-nhan">
+                      <label for="k-dc">Địa chỉ</label>
+                      <span class="dem-ky-tu">28 / 255</span>
+                    </div>
+                    <input id="k-dc" value="Lô B2, KCN Tân Bình, TP.HCM" />
+                    <span class="goi-y">Không bắt buộc. Dùng khi in phiếu và khi tài xế hỏi đường.</span>
+                  </div>
+
+                  <div class="o-form rong">
+                    <div class="hang-nhan">
+                      <label for="k-gc">Ghi chú</label>
+                      <span class="dem-ky-tu">0 / 500</span>
+                    </div>
+                    <textarea id="k-gc" rows="2" placeholder="Giờ mở cửa, tên người phụ trách, lối vào xe tải..."></textarea>
+                  </div>
+
+                  <div class="o-form rong">
+                    <label id="nhan-ktt">Trạng thái</label>
+                    <div class="chon-loai" role="group" aria-labelledby="nhan-ktt" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+                      <button type="button" aria-pressed="true">
+                        <span class="ten">Đang dùng</span>
+                        <span class="mo-ta">Chọn được trên mọi phiếu.</span>
+                      </button>
+                      <button type="button" aria-pressed="false">
+                        <span class="ten">Ngừng dùng</span>
+                        <span class="mo-ta">Không ghi thêm được, tồn và sổ cũ vẫn tra được.</span>
+                      </button>
+                    </div>
+                    <span class="goi-y">Cách cho một kho <strong>về hưu</strong> mà không mất lịch sử. Kho còn tồn thì không xoá được, nên nếu chỉ có nút Xoá thì không có đường ra nào.</span>
+                  </div>
+                </div>
+              </div>
+              <div class="chan-form">
+                <span class="nhac">Sửa lần cuối 21/08/2026 bởi Nguyễn Văn Vận</span>
+                <div class="day-nut">
+                  <button class="nut" type="button" data-man="kho-ds">Huỷ</button>
+                  <button class="nut-chinh" type="button">Lưu kho</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Kho này đang có gì</h2></div>
+                <div class="than-the">
+                  <dl class="luoi-thong-tin">
+                    <div><dt>Dòng tồn</dt><dd class="so">193</dd></div>
+                    <div><dt>Chuyển động 30 ngày</dt><dd class="so">411</dd></div>
+                    <div><dt>Chuyển động gần nhất</dt><dd>28/08/2026 08:35</dd></div>
+                  </dl>
+                </div>
+                <div class="ghi-chu-bang" style="border-top: 1px solid var(--mau-vien); border-bottom: 0; border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon)">
+                  <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+                  <span>Kho còn tồn thì <strong>không xoá được</strong>. Muốn ngừng dùng thì để tồn về 0 rồi xoá.</span>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Lịch sử sửa</h2></div>
+                <div class="than-the">
+                  <ol class="dong-thoi-gian">
+                    <li class="noi-bat">
+                      <div class="luc">21/08/2026 14:02</div>
+                      <div class="viec-lam">Nguyễn Văn Vận đổi địa chỉ</div>
+                    </li>
+                    <li>
+                      <div class="luc">12/07/2026 09:30</div>
+                      <div class="viec-lam">Nguyễn Văn Vận đổi tên kho</div>
+                    </li>
+                    <li>
+                      <div class="luc">03/06/2026 16:18</div>
+                      <div class="viec-lam">Trần Thị Hà tạo kho</div>
+                    </li>
+                  </ol>
+                </div>
+              </section>
+
+              <div class="bao">
+                <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                <span><strong>Chưa có ở backend.</strong> Lịch sử sửa cần endpoint đọc bảng audit. Nếu chưa làm thì bỏ hẳn thẻ này, đừng để một thẻ rỗng.</span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+
+        <!-- ====== man 14 ====== -->
+        <section class="man" id="man-chuyen-kho" hidden aria-label="Phiếu chuyển kho">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module">inventory &middot; Kho</span><br />
+            <strong>Màn 14 - Phiếu chuyển kho</strong> (<code>/chuyen-kho</code>), khuôn B mở rộng.
+            Màn này lượt trước tôi <strong>không thấy là thiếu</strong>, và nó lộ ra khi bạn hỏi
+            "xuất kho cho khách hàng hay xuất kho như thế nào". Chuyển 500 kg thép từ Tân Bình sang
+            Đà Nẵng: <strong>tổng tồn công ty không đổi</strong>, chỉ đổi chỗ.
+            <ul>
+              <li>Gõ một phiếu xuất rồi một phiếu nhập là <strong>sai nghiệp vụ</strong>: hai chứng từ rời có thể lệch nhau, và không ai truy được chúng vốn là một cặp.</li>
+              <li>Đầu phiếu có <strong>hai ô kho</strong>: kho xuất và kho nhập. Đây là chỗ duy nhất trong module có hai kho trên một chứng từ.</li>
+              <li><strong>Không có ô đơn giá.</strong> MISA nói rõ: giá vốn "chuyển từ kho đi sang kho đến", máy tự tính theo phương pháp đã thiết lập. Gõ tay ở đây là làm lệch giá vốn giữa hai kho.</li>
+              <li>Thứ tự đúng trong sản phẩm là mục thứ tư của nhóm Ghi sổ, ngay sau Nhập và Xuất - ở băng duyệt nó xếp cuối chỉ vì thêm sau.</li>
+            </ul>
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong" style="background: var(--mau-chinh-nhat); color: var(--mau-chinh)"><svg viewBox="0 0 20 20"><use href="#i-doi-kho" /></svg></span>
+            <div class="chinh">
+              <h1>Phiếu chuyển kho</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">4 phiếu chuyển trong tháng này</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="cd-so">Xem sổ</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="dau-the"><h2>Thông tin chung</h2><span class="phu">phần đầu phiếu</span></div>
+            <div class="than-the">
+              <div class="luoi-form" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <div class="o-form">
+                  <label for="ck-so">Số phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <div class="o-ma-tu-sinh">
+                    <input id="ck-so" value="PC-2026-0032" />
+                    <button class="nut nut-bt" type="button" aria-label="Lấy lại số phiếu kế tiếp" title="Lấy lại số phiếu kế tiếp: PC-2026-0032"><svg viewBox="0 0 20 20"><use href="#i-lam-moi" /></svg></button>
+                  </div>
+                </div>
+                <div class="o-form">
+                  <label for="ck-ngay">Ngày phiếu <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="ck-ngay" value="28/08/2026 09:20" style="font-family: var(--font-so)" />
+                </div>
+                <div class="o-form">
+                  <label for="ck-nvc">Người vận chuyển</label>
+                  <input id="ck-nvc" value="Nguyễn Văn Sáu - xe 51C-902.44" />
+                  <span class="goi-y">Không bắt buộc. Ghi để truy khi hàng đi đường mà chưa tới.</span>
+                </div>
+                <div class="o-form">
+                  <label for="ck-di">Kho xuất <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="ck-di" type="search" value="KHO-TB-01 - Kho Tân Bình" placeholder="Gõ mã hoặc tên kho" />
+                  <span class="goi-y">Hàng rời khỏi kho này.</span>
+                </div>
+                <div class="o-form">
+                  <label for="ck-den">Kho nhập <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="ck-den" type="search" value="KHO-DN-01 - Kho Đà Nẵng 1" placeholder="Gõ mã hoặc tên kho" />
+                  <span class="goi-y">Hàng về kho này. Phải khác kho xuất.</span>
+                </div>
+                <div class="o-form">
+                  <div class="hang-nhan">
+                    <label for="ck-dg">Diễn giải</label>
+                    <span class="dem-ky-tu">31 / 2000</span>
+                  </div>
+                  <input id="ck-dg" value="Tiếp hàng cho công trình miền Trung" />
+                </div>
+              </div>
+            </div>
+
+            <div class="ghi-chu-bang">
+              <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+              <span>
+                Mỗi dòng sinh ra <strong>hai dòng sổ</strong>: một dòng xuất ở Kho Tân Bình và một dòng
+                nhập ở Kho Đà Nẵng 1, cùng thuộc một phiếu. <strong>Tổng tồn công ty không đổi</strong> -
+                nếu sau khi ghi mà tổng đổi thì đó là lỗi, không phải nghiệp vụ.
+              </span>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 11%">Mã hàng</th>
+                    <th style="width: 27%">Tên hàng</th>
+                    <th class="hep" style="width: 9%" title="Đơn vị tính">ĐVT</th>
+                    <th class="so" style="width: 13%">Số lượng</th>
+                    <th class="so" style="width: 13%">Tồn kho xuất</th>
+                    <th class="so" style="width: 13%">Còn ở kho xuất</th>
+                    <th class="so" style="width: 10%">Về kho nhập</th>
+                    <th class="phai hep" style="width: 4%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><span class="ma">NVL0001</span></td>
+                    <td>Thép cây D10 CB300</td>
+                    <td class="hep">kg</td>
+                    <td class="so"><span class="luong">500</span></td>
+                    <td class="so chu-phu">11.200</td>
+                    <td class="so"><span class="luong">10.700</span></td>
+                    <td class="so"><span class="luong">2.940</span></td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Thép cây D10 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><span class="ma">HH0004</span></td>
+                    <td>Xi măng PC40</td>
+                    <td class="hep">bao</td>
+                    <td class="so"><span class="luong">120</span></td>
+                    <td class="so chu-phu">820</td>
+                    <td class="so"><span class="luong">700</span></td>
+                    <td class="so"><span class="luong">120</span></td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Xi măng PC40 khỏi phiếu" title="Bỏ dòng này khỏi phiếu"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr class="hang-them">
+                    <td colspan="2"><input type="search" placeholder="Gõ mã hoặc tên hàng để thêm dòng..." aria-label="Mặt hàng của dòng mới" /></td>
+                    <td class="hep chu-phu">-</td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Số lượng chuyển của dòng mới" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm dòng này vào phiếu" title="Thêm dòng vào phiếu"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="tong-phieu">
+              <span class="nhan">Tổng cộng</span>
+              <span class="gia-tri">2 dòng hàng</span>
+            </div>
+
+            <div class="chan-form">
+              <span class="nhac">Ghi phiếu là bốn dòng vào sổ cùng lúc: hai dòng xuất, hai dòng nhập.</span>
+              <div class="day-nut">
+                <button class="nut" type="button">Huỷ phiếu</button>
+                <button class="nut-chinh" type="button">Ghi phiếu chuyển kho</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span>
+              <strong>Ràng buộc backend riêng của màn này.</strong> Một phiếu chuyển sinh ra dòng sổ
+              <strong>theo cặp</strong>, và cặp đó phải bất khả phân: xoá một dòng xuất mà để lại dòng
+              nhập là tạo hàng từ hư không. Phép kiểm tồn âm chỉ chạy ở <em>kho xuất</em>. Và giá vốn
+              đi theo hàng - lô chuyển sang kho đến mang đúng đơn giá vốn nó có ở kho đi, nếu không
+              thì chuyển kho thành một cách rửa giá vốn.
+            </span>
+          </div>
+        </section>
+
+
+        <!-- ====== man 15 ====== -->
+        <section class="man" id="man-lenh-sx" hidden aria-label="Lệnh sản xuất">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module ngoai">production &middot; KHÔNG thuộc inventory</span><br />
+            <strong>Màn 15 - Lệnh sản xuất</strong> (<code>/lenh-san-xuat</code>), khuôn B mở rộng.
+            <strong>Màn này thuộc module <code>production</code>, không thuộc <code>inventory</code>.</strong>
+            MISA đặt Lệnh sản xuất ở <em>Kho &rsaquo; Quy trình</em>, và tôi đã suýt lấy đó làm căn cứ
+            xếp nó vào <code>inventory</code>. Sai, vì lẫn hai thứ khác nhau:
+            <strong>phân hệ ở giao diện</strong> (chỗ người dùng bấm vào) và
+            <strong>module ở code</strong> (ranh giới sở hữu dữ liệu).
+            <a href="#">ADR-0017</a> chốt mười hai module, trong đó <code>production</code> trả lời
+            đúng câu <em>"lệnh sản xuất nào đang chạy, cần vật tư gì, qua công đoạn nào"</em>; và
+            chính ADR đó nói rõ nó <strong>không</strong> chốt cách gom module thành phân hệ ở giao
+            diện. Nên: dữ liệu lệnh thuộc <code>production</code>, còn <em>đặt lối vào ở menu Kho vận
+            như MISA thì vẫn được</em> - hai quyết định rời nhau.
+            <ul>
+              <li><strong>Hai tab, đúng như MISA:</strong> Thành phẩm (làm ra cái gì, bao nhiêu) và Định mức xuất NVL (mỗi cái tốn những gì).</li>
+              <li>Cột <strong>Thiếu</strong> ở tab định mức không có ở MISA - phần thêm của hệ này. Biết thiếu vật tư gì <em>trước</em> khi chạy lệnh đáng giá hơn nhiều so với biết lúc phiếu xuất bị từ chối.</li>
+              <li>Bạn chốt xưởng làm <strong>theo lệnh</strong>, nên mỗi lệnh gắn một đơn hàng, và giá thành sau này tập hợp chi phí theo chính đơn hàng đó.</li>
+            </ul>
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong"><svg viewBox="0 0 20 20"><use href="#i-lenh" /></svg></span>
+            <div class="chinh">
+              <h1>Lệnh sản xuất</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">2 lệnh đang chạy</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button" data-man="gia-ban">Tính giá bán</button>
+            </div>
+          </section>
+
+          <section class="the">
+            <div class="dau-the"><h2>Thông tin chung</h2></div>
+            <div class="than-the">
+              <div class="luoi-form" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <div class="o-form">
+                  <label for="sx-so">Số lệnh <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <div class="o-ma-tu-sinh">
+                    <input id="sx-so" value="LSX-2026-0117" />
+                    <button class="nut nut-bt" type="button" aria-label="Lấy lại số lệnh kế tiếp" title="Lấy lại số lệnh kế tiếp: LSX-2026-0117"><svg viewBox="0 0 20 20"><use href="#i-lam-moi" /></svg></button>
+                  </div>
+                </div>
+                <div class="o-form">
+                  <label for="sx-ngay">Ngày lệnh <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="sx-ngay" value="28/08/2026" style="font-family: var(--font-so)" />
+                </div>
+                <div class="o-form">
+                  <label for="sx-tt">Tình trạng <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <select id="sx-tt"><option>Đang thực hiện</option><option>Chưa thực hiện</option><option>Hoàn thành</option><option>Đã huỷ</option></select>
+                  <span class="goi-y">Chỉ lệnh <strong>chưa hoàn thành</strong> mới lập được phiếu xuất nguyên vật liệu.</span>
+                </div>
+                <div class="o-form">
+                  <label for="sx-dh">Đơn hàng <span class="bat-buoc" aria-hidden="true">*</span></label>
+                  <input id="sx-dh" type="search" value="DH-2026-0088 - Công ty Xây dựng Miền Trung" placeholder="Gõ số đơn hàng hoặc tên khách" />
+                  <span class="goi-y">Bắt buộc vì xưởng làm <strong>theo lệnh</strong>: giá thành sẽ tập hợp chi phí theo chính đơn hàng này.</span>
+                </div>
+                <div class="o-form">
+                  <label for="sx-han">Hạn giao</label>
+                  <input id="sx-han" value="15/09/2026" style="font-family: var(--font-so)" />
+                </div>
+                <div class="o-form">
+                  <div class="hang-nhan">
+                    <label for="sx-dg">Diễn giải</label>
+                    <span class="dem-ky-tu">28 / 2000</span>
+                  </div>
+                  <input id="sx-dg" value="Khung thép nhà xưởng đợt 3" />
+                </div>
+              </div>
+            </div>
+
+            <div class="dai-tab" role="tablist" style="margin: 0; border-top: 1px solid var(--mau-vien); border-radius: 0">
+              <button class="tab" type="button" role="tab" aria-selected="true">Thành phẩm <span class="dem">1</span></button>
+              <button class="tab" type="button" role="tab" aria-selected="false">Định mức xuất NVL <span class="dem">3</span></button>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 12%">Mã hàng</th>
+                    <th style="width: 30%">Tên thành phẩm</th>
+                    <th class="hep" style="width: 9%" title="Đơn vị tính">ĐVT</th>
+                    <th class="so" style="width: 12%">Cần làm</th>
+                    <th class="so" style="width: 12%">Đã nhập kho</th>
+                    <th class="so" style="width: 11%">Còn lại</th>
+                    <th class="cat" style="width: 10%">Kho nhập</th>
+                    <th class="phai hep" style="width: 4%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><span class="ma">TP0002</span></td>
+                    <td>Khung thép tiền chế mã A2</td>
+                    <td class="hep">cái</td>
+                    <td class="so"><span class="luong">50</span></td>
+                    <td class="so"><span class="luong tang">18</span></td>
+                    <td class="so"><span class="luong">32</span></td>
+                    <td class="cat">KHO-TP-01</td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Khung thép A2 khỏi lệnh" title="Bỏ dòng này khỏi lệnh"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr class="hang-them">
+                    <td colspan="2"><input type="search" placeholder="Gõ mã hoặc tên thành phẩm..." aria-label="Thành phẩm của dòng mới" /></td>
+                    <td class="hep chu-phu">-</td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Số lượng cần làm" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="cat chu-phu">KHO-TP-01</td>
+                    <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm thành phẩm vào lệnh" title="Thêm dòng"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="ghi-chu-bang">
+              <svg viewBox="0 0 20 20"><use href="#i-tin" /></svg>
+              <span>
+                Bảng dưới là tab <strong>Định mức xuất NVL</strong>, hiện sẵn ở đây để bạn duyệt cả
+                hai cùng lúc. Định mức lấy từ danh mục thành phẩm và <strong>sửa được cho riêng lệnh
+                này</strong> - lô này dùng thép dày hơn thì sửa ở đây, không đụng vào định mức gốc.
+              </span>
+            </div>
+
+            <div class="khung-bang">
+              <table class="bang-co-dinh">
+                <thead>
+                  <tr>
+                    <th class="hep" style="width: 12%">Mã hàng</th>
+                    <th style="width: 26%">Tên nguyên vật liệu</th>
+                    <th class="hep" style="width: 9%" title="Đơn vị tính">ĐVT</th>
+                    <th class="so" style="width: 12%">Định mức / 1</th>
+                    <th class="so" style="width: 12%">Tổng cần</th>
+                    <th class="so" style="width: 12%">Tồn hiện có</th>
+                    <th class="so" style="width: 13%">Thiếu</th>
+                    <th class="phai hep" style="width: 4%"><span class="chi-doc-man-hinh">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="hep"><span class="ma">NVL0001</span></td>
+                    <td>Thép cây D10 CB300</td>
+                    <td class="hep">kg</td>
+                    <td class="so"><span class="luong">45</span></td>
+                    <td class="so"><span class="luong">2.250</span></td>
+                    <td class="so chu-phu">11.200</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Thép cây D10 khỏi định mức" title="Bỏ dòng này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr>
+                    <td class="hep"><span class="ma">NVL0004</span></td>
+                    <td>Bu lông M12 x 60</td>
+                    <td class="hep">cái</td>
+                    <td class="so"><span class="luong">20</span></td>
+                    <td class="so"><span class="luong">1.000</span></td>
+                    <td class="so chu-phu">12.500</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Bu lông M12 khỏi định mức" title="Bỏ dòng này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr style="background: var(--mau-canh-bao-nhat)">
+                    <td class="hep"><span class="ma">HH0011</span></td>
+                    <td class="o-hai-dong"><div class="dong-tren">Sơn chống rỉ Epoxy</div><div class="dong-duoi" style="color: var(--mau-canh-bao); font-weight: var(--dam-vua)">Phải nhập thêm trước khi chạy lệnh</div></td>
+                    <td class="hep">thùng</td>
+                    <td class="so"><span class="luong">0,08</span></td>
+                    <td class="so"><span class="luong">4</span></td>
+                    <td class="so chu-phu">0</td>
+                    <td class="so"><span class="luong giam">4</span></td>
+                    <td class="phai hep"><button class="nut nut-bt nguy" type="button" aria-label="Bỏ dòng Sơn chống rỉ khỏi định mức" title="Bỏ dòng này"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button></td>
+                  </tr>
+                  <tr class="hang-them">
+                    <td colspan="2"><input type="search" placeholder="Gõ mã hoặc tên nguyên vật liệu..." aria-label="Nguyên vật liệu của dòng mới" /></td>
+                    <td class="hep chu-phu">-</td>
+                    <td class="so"><input inputmode="decimal" placeholder="0" aria-label="Định mức cho một thành phẩm" style="text-align: right; font-family: var(--font-so)" /></td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="so chu-phu">-</td>
+                    <td class="phai hep"><button class="nut nut-bt" type="button" aria-label="Thêm nguyên vật liệu vào định mức" title="Thêm dòng"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="chan-form">
+              <span class="nhac" style="color: var(--mau-canh-bao); font-weight: var(--dam-vua)">Thiếu 4 thùng sơn chống rỉ - lập phiếu nhập trước, hoặc xuất thiếu rồi bù sau.</span>
+              <div class="day-nut">
+                <button class="nut" type="button" data-man="nhap">Lập phiếu nhập NVL còn thiếu</button>
+                <button class="nut" type="button" data-man="xuat">Lập phiếu xuất NVL</button>
+                <button class="nut-chinh" type="button" data-man="nhap">Lập phiếu nhập thành phẩm</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="bao" style="margin-top: var(--gian-4)">
+            <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+            <span>
+              <strong>Ba module chạm nhau ở màn này, và đây là ranh giới phải giữ.</strong>
+              Lệnh thuộc <code>production</code>. Phiếu xuất NVL và phiếu nhập thành phẩm mà nó sinh
+              ra thuộc <code>inventory</code> - <code>production</code> <em>gọi sang</em> chứ không tự
+              ghi vào sổ kho. Còn phép tính giá thành thì <strong>chưa có chủ</strong>: ADR-0017
+              không có module <code>costing</code>, và mười hai module đã chốt thì thêm một cái là
+              phải sửa chính ADR đó. Hai đường đi được: nhét giá thành vào <code>production</code>,
+              hoặc vào <code>accounting</code>. Chưa chọn, và <strong>không chọn vội</strong>.
+              <br /><br />
+              Hệ quả trước mắt: <strong>phiếu nhập thành phẩm của lệnh này chưa có đơn giá.</strong>
+              Giá thành chưa tính được lúc nhập kho. MISA giải bằng một tiện ích riêng - nhập kho
+              trước với giá tạm tính, cuối kỳ tính giá thành xong thì chạy "Cập nhật giá nhập kho
+              thành phẩm" ghi đè lại. Đó là việc phải làm cùng module <code>costing</code>.
+            </span>
+          </div>
+        </section>
+
+        <!-- ====== man 16 ====== -->
+        <section class="man" id="man-gia-ban" hidden aria-label="Tính giá bán theo định mức">
+          <div class="chu-thich-thiet-ke">
+            <span class="nhan-module ngoai">sales &middot; Bán hàng - KHÔNG thuộc Kho</span><br />
+            <strong>Màn 16 - Tính giá bán theo định mức</strong> (<code>/tinh-gia-ban</code>).
+            Đây <strong>không phải màn của module Kho</strong> - thanh điều hướng bên trái không có
+            nó, và đó là cố ý: nó đọc dữ liệu kho nhưng không ghi gì vào sổ kho.
+            <ul>
+              <li><strong>Đây là ƯỚC TÍNH để chào khách, không phải giá vốn.</strong> Không một con số nào ở màn này đi vào sổ. Trộn hai thứ là chỗ sổ sách bắt đầu nói dối.</li>
+              <li>MISA có chức năng <em>Tính giá bán</em> với công thức <code>Giá bán mới = Giá gốc × (100 + Tỷ lệ %) / 100</code>, nhưng "giá gốc" của họ là giá mua hoặc giá bán cũ - <strong>không cộng dồn từ định mức</strong>. Phần cộng dồn theo định mức là của hệ này, vì xưởng bạn tự làm ra thành phẩm.</li>
+              <li>Hai ô <strong>%</strong> do bạn gõ. Ở đây điều đó <em>đúng</em> - báo giá vốn là ước tính. Chính hai ô này mà đem sang tính giá thành thì mới sai, vì lúc đó phải là tiền thật đã chi.</li>
+            </ul>
+          </div>
+
+          <section class="dai-dau">
+            <span class="o-bieu-tuong" style="background: var(--mau-tot-nhat); color: var(--mau-tot)"><svg viewBox="0 0 20 20"><use href="#i-tien" /></svg></span>
+            <div class="chinh">
+              <h1>Tính giá bán</h1>
+              <p style="margin: 0; font-size: var(--chu-sm); color: var(--mau-chu-mo)">Theo định mức nguyên vật liệu</p>
+            </div>
+            <div class="day-nut">
+              <button class="nut-phu" type="button"><svg viewBox="0 0 20 20"><use href="#i-tai" /></svg>Xuất báo giá</button>
+            </div>
+          </section>
+
+          <div class="hai-cot">
+            <div>
+              <section class="the" style="margin-bottom: var(--gian-4)">
+                <div class="dau-the"><h2>Báo giá cho</h2></div>
+                <div class="than-the">
+                  <div class="luoi-form" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                    <div class="o-form">
+                      <label for="gb-sp">Thành phẩm <span class="bat-buoc" aria-hidden="true">*</span></label>
+                      <input id="gb-sp" type="search" value="TP0002 - Khung thép tiền chế A2" placeholder="Gõ mã hoặc tên thành phẩm" />
+                      <span class="goi-y">Chỉ chọn được mặt hàng có tính chất <strong>Thành phẩm</strong> và đã khai định mức.</span>
+                    </div>
+                    <div class="o-form">
+                      <label for="gb-sl">Số lượng</label>
+                      <input id="gb-sl" value="50" style="font-family: var(--font-so); text-align: right" />
+                      <span class="goi-y">Đơn vị tính <strong>cái</strong>.</span>
+                    </div>
+                    <div class="o-form">
+                      <label for="gb-kh">Khách hàng</label>
+                      <input id="gb-kh" type="search" value="Công ty Xây dựng Miền Trung" placeholder="Gõ tên khách" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dau-the" style="border-top: 1px solid var(--mau-vien); border-radius: 0">
+                  <h2>Nguyên vật liệu theo định mức</h2>
+                  <span class="phu">cho 1 cái</span>
+                </div>
+                <div class="khung-bang">
+                  <table class="bang-co-dinh">
+                    <thead>
+                      <tr>
+                        <th class="hep" style="width: 12%">Mã hàng</th>
+                        <th style="width: 28%">Tên hàng</th>
+                        <th class="hep" style="width: 9%" title="Đơn vị tính">ĐVT</th>
+                        <th class="so" style="width: 13%">Định mức</th>
+                        <th class="so" style="width: 17%">Đơn giá</th>
+                        <th class="so" style="width: 21%">Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="hep"><span class="ma">NVL0001</span></td>
+                        <td>Thép cây D10 CB300</td>
+                        <td class="hep">kg</td>
+                        <td class="so"><span class="luong">45</span></td>
+                        <td class="so"><span class="luong">18.500</span></td>
+                        <td class="so"><span class="luong">832.500</span></td>
+                      </tr>
+                      <tr>
+                        <td class="hep"><span class="ma">NVL0004</span></td>
+                        <td>Bu lông M12 x 60</td>
+                        <td class="hep">cái</td>
+                        <td class="so"><span class="luong">20</span></td>
+                        <td class="so"><span class="luong">2.400</span></td>
+                        <td class="so"><span class="luong">48.000</span></td>
+                      </tr>
+                      <tr>
+                        <td class="hep"><span class="ma">HH0011</span></td>
+                        <td>Sơn chống rỉ Epoxy</td>
+                        <td class="hep">thùng</td>
+                        <td class="so"><span class="luong">0,08</span></td>
+                        <td class="so"><span class="luong">620.000</span></td>
+                        <td class="so"><span class="luong">49.600</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="tong-phieu">
+                  <span class="nhan">Tiền nguyên vật liệu cho 1 cái</span>
+                  <span class="gia-tri">930.100 <span class="dv-nho">đ</span></span>
+                </div>
+              </section>
+
+              <section class="the">
+                <div class="dau-the"><h2>Cộng thêm</h2><span class="phu">hai tỷ lệ do bạn gõ</span></div>
+                <div class="than-the">
+                  <div class="luoi-form">
+                    <div class="o-form">
+                      <label for="gb-chung">% chi phí chung</label>
+                      <input id="gb-chung" value="18" style="font-family: var(--font-so); text-align: right" />
+                      <span class="goi-y">Điện, nhà xưởng, quản lý, hao mòn máy. Đây là <strong>ước tính của bạn</strong>, không phải tiền thật đã chi - xem thẻ bên phải.</span>
+                    </div>
+                    <div class="o-form">
+                      <label for="gb-nc">Tiền nhân công cho 1 cái</label>
+                      <input id="gb-nc" value="240.000" style="font-family: var(--font-so); text-align: right" />
+                      <span class="goi-y">Gõ thẳng số tiền, không phải %. Nhân công không tỷ lệ với tiền vật tư.</span>
+                    </div>
+                    <div class="o-form">
+                      <label for="gb-lai">% lợi nhuận mong muốn</label>
+                      <input id="gb-lai" value="25" style="font-family: var(--font-so); text-align: right" />
+                      <span class="goi-y">Tính trên tổng giá vốn ước tính. Theo dạng công thức của MISA: giá bán = giá gốc × (100 + tỷ lệ) / 100.</span>
+                    </div>
+                    <div class="o-form">
+                      <label for="gb-thue">Thuế suất GTGT</label>
+                      <select id="gb-thue"><option>8%</option><option>0%</option><option>5%</option><option>10%</option></select>
+                      <span class="goi-y">Chỉ để in ra báo giá. Không liên quan tới giá vốn.</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="cot-phu">
+              <section class="the">
+                <div class="dau-the"><h2>Giá đề xuất</h2><span class="phu">cho 1 cái</span></div>
+                <div class="than-the">
+                  <dl class="luoi-thong-tin" style="grid-template-columns: minmax(0, 1fr); gap: var(--gian-3)">
+                    <div><dt>Nguyên vật liệu</dt><dd class="so">930.100 <span class="dv-nho">đ</span></dd></div>
+                    <div><dt>Nhân công</dt><dd class="so">240.000 <span class="dv-nho">đ</span></dd></div>
+                    <div><dt>Chi phí chung 18%</dt><dd class="so">210.618 <span class="dv-nho">đ</span></dd></div>
+                    <div style="border-top: 1px solid var(--mau-vien); padding-top: var(--gian-3)">
+                      <dt>Giá vốn ước tính</dt><dd class="so">1.380.718 <span class="dv-nho">đ</span></dd>
+                    </div>
+                    <div><dt>Lợi nhuận 25%</dt><dd class="so">345.180 <span class="dv-nho">đ</span></dd></div>
+                  </dl>
+                </div>
+                <div class="tong-phieu" style="border-radius: 0">
+                  <span class="nhan">Giá bán chưa thuế</span>
+                  <span class="gia-tri">1.725.898 <span class="dv-nho">đ</span></span>
+                </div>
+                <div class="tong-phieu" style="border-radius: 0 0 var(--bo-goc-lon) var(--bo-goc-lon); background: var(--mau-tot-nhat)">
+                  <span class="nhan">50 cái, đã gồm thuế 8%</span>
+                  <span class="gia-tri" style="color: var(--mau-tot)">93.198.492 <span class="dv-nho">đ</span></span>
+                </div>
+              </section>
+
+              <div class="bao">
+                <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                <span>
+                  <strong>Con số này không phải giá thành.</strong> Nó dùng % bạn gõ, nên tổng chi phí
+                  chung phân bổ cho cả năm sẽ <em>không khớp</em> tiền điện nước nhà xưởng thật đã trả.
+                  Chênh lệch đó là bình thường ở một bản báo giá và là <strong>sai</strong> ở một sổ kế
+                  toán. Muốn con số khớp sổ thì phải làm module tính giá thành: tập hợp chi phí thật
+                  trong kỳ rồi phân bổ theo tiêu thức, chứ không nhân một tỷ lệ.
+                  <br /><br />
+                  Mọi phép nhân chia trên màn này <strong>máy chủ tính</strong>, màn hình chỉ hiện lại
+                  (R-19). Tạm tính để nhìn thì được; tạm tính đi vào body request thì không.
+                </span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- =============================================================== 13 -->
+        <section class="man" id="man-trang-thai" hidden aria-label="Bốn trạng thái">
+          <div class="chu-thich-thiet-ke">
+            <strong>Bốn trạng thái của mỗi màn danh sách.</strong> Không phải một màn thứ mười ba -
+            đây là bốn mặt mà <em>mọi</em> màn danh sách ở trên đều phải có. Thiếu một trong bốn là
+            màn hình chưa xong, và đó là chỗ hay bị bỏ quên nhất khi lên code.
+          </div>
+
+          <div class="hai-cot" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+            <section class="the">
+              <div class="dau-the"><h2>1. Đang tải lần đầu</h2><span class="phu">khung xương</span></div>
+              <div class="than-the">
+                <p style="margin: 0 0 var(--gian-4); font-size: var(--chu-sm); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                  Khối xám đúng hình dạng của thứ sắp hiện ra, không phải chữ "Đang tải...". Mắt
+                  không phải bố cục lại khi dữ liệu về.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: var(--gian-3)">
+                  <span class="xuong" style="width: 40%"></span>
+                  <span class="xuong"></span>
+                  <span class="xuong"></span>
+                  <span class="xuong" style="width: 80%"></span>
+                  <span class="xuong" style="width: 60%"></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="the">
+              <div class="dau-the"><h2>2. Rỗng</h2><span class="phu">một lời mời</span></div>
+              <div class="man-rong">
+                <span class="hinh"><svg viewBox="0 0 20 20"><use href="#i-hop" /></svg></span>
+                <h3>Chưa có mặt hàng nào</h3>
+                <p>
+                  Hàng hoá là thứ được đếm trong kho. Mỗi lần nhập, xuất hay điều chỉnh đều phải trỏ
+                  vào một mặt hàng có thật, nên đây là việc phải làm trước khi ghi sổ lần đầu.
+                </p>
+                <button class="nut-chinh" type="button" data-man="hh-form"><svg viewBox="0 0 20 20"><use href="#i-cong" /></svg>Thêm mặt hàng đầu tiên</button>
+              </div>
+            </section>
+
+            <section class="the">
+              <div class="dau-the"><h2>3. Lỗi</h2><span class="phu">có mã tra cứu</span></div>
+              <div class="than-the">
+                <div class="bao" style="border-color: var(--mau-loi); background: var(--mau-loi-nhat); margin-bottom: var(--gian-4)">
+                  <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-loi)"><use href="#i-canh-bao" /></svg>
+                  <span>
+                    <strong style="color: var(--mau-loi)">Không tải được danh sách hàng hoá.</strong><br />
+                    Máy chủ không trả lời. Thử lại sau ít phút; nếu vẫn vậy thì đọc mã dưới đây cho tổng đài.<br />
+                    <span style="font-family: var(--font-so); font-size: var(--chu-xs)">Mã tra cứu: 7f3a91c4-2e88-4d10-9b6e-51ac0d7f2233</span>
+                  </span>
+                </div>
+                <div class="day-nut">
+                  <button class="nut-chinh" type="button">Thử lại</button>
+                  <button class="nut" type="button">Chép mã tra cứu</button>
+                </div>
+                <p style="margin: var(--gian-4) 0 0; font-size: var(--chu-sm); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                  Ba mã lỗi, ba cách xử: <strong>422</strong> giữ nguyên form và tô từng ô sai &middot;
+                  <strong>409</strong> nói dữ liệu đã cũ và mời tải lại &middot; <strong>403</strong>
+                  giữ nguyên màn hình, không đăng xuất, không tự thử lại.
+                </p>
+              </div>
+            </section>
+
+            <section class="the">
+              <div class="dau-the"><h2>4. Không có quyền</h2><span class="phu">403</span></div>
+              <div class="than-the">
+                <div class="bao" style="margin-bottom: var(--gian-4)">
+                  <svg viewBox="0 0 20 20" style="width: var(--co-bieu-tuong); height: var(--co-bieu-tuong); flex: none; color: var(--mau-canh-bao)"><use href="#i-canh-bao" /></svg>
+                  <span>
+                    <strong>Bạn không có quyền xem tồn kho.</strong><br />
+                    Hỏi người quản trị phân vùng của công ty bạn để được cấp quyền
+                    <code>inventory.balance_read</code>.
+                  </span>
+                </div>
+                <p style="margin: 0 0 var(--gian-4); font-size: var(--chu-sm); color: var(--mau-chu-mo); line-height: var(--dong-rong)">
+                  Nút bị khoá phải <strong>nói được vì sao</strong>. Với nút chỉ có biểu tượng thì
+                  điều đó càng bắt buộc - không có chữ nào để đoán. Rê chuột lên ba nút dưới đây.
+                </p>
+                <div class="day-nut">
+                  <button class="nut nut-bt nguy" type="button" disabled aria-label="Không xoá được kho vì còn 193 dòng tồn" title="Còn 193 dòng tồn nên không xoá được"><svg viewBox="0 0 20 20"><use href="#i-xoa" /></svg></button>
+                  <button class="nut nut-bt" type="button" disabled aria-label="Không ghi được nhập kho vì thiếu quyền" title="Bạn không có quyền inventory.movement_create"><svg viewBox="0 0 20 20"><use href="#i-nhap" /></svg></button>
+                  <button class="nut nut-bt" type="button" disabled aria-label="Không xuất được vì tồn đang bằng 0" title="Tồn đang bằng 0 nên không xuất được"><svg viewBox="0 0 20 20"><use href="#i-xuat" /></svg></button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      function datCheDo(che, nut) {
+        const goc = document.documentElement;
+        if (che === 'he-thong') goc.removeAttribute('data-theme');
+        else goc.setAttribute('data-theme', che);
+        for (const anh of nut.parentElement.children) anh.setAttribute('aria-pressed', String(anh === nut));
+      }
+
+      // Màn nào sáng mục điều hướng nào. Ba màn con (form, chi tiết) sáng mục CHA của nó -
+      // không có dòng này thì mở màn Sửa kho là cả thanh điều hướng tối om, và người dùng
+      // mất dấu mình đang ở nhánh nào.
+      const MUC_CHA = {
+        'kho-form': 'kho-ds',
+        'hh-form': 'hh-ds',
+        'hh-ct': 'hh-ds',
+        'cd-ct': 'cd-so',
+      };
+
+      function moMan(ten) {
+        for (const man of document.querySelectorAll('.man')) man.hidden = man.id !== 'man-' + ten;
+        for (const nut of document.querySelectorAll('.bang-duyet button')) {
+          nut.setAttribute('aria-pressed', String(nut.dataset.man === ten));
+        }
+        const sang = MUC_CHA[ten] || ten;
+        for (const muc of document.querySelectorAll('.muc-canh')) {
+          if (muc.dataset.di === sang) muc.setAttribute('aria-current', 'page');
+          else muc.removeAttribute('aria-current');
+        }
+        window.scrollTo(0, 0);
+      }
+
+      document.addEventListener('click', (su) => {
+        const dich = su.target.closest('[data-man], [data-di]');
+        if (!dich) return;
+        su.preventDefault();
+        moMan(dich.dataset.man || dich.dataset.di);
+      });
+
+      moMan('quy-trinh');
+    </script>
+  </body>
+</html>

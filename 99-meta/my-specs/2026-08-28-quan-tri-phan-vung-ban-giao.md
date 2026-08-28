@@ -102,12 +102,38 @@ Tra ngày 2026-08-28 theo nếp đã dùng ở `mockup-erp/kho-van-v3.html`:
    khai thuế riêng**. Ba ô sau là thứ hệ này chưa có và sẽ cần khi làm ADR-0033 (phân vùng
    nhiều cấp).
 
-## Ba việc còn nợ
+## Đã bấm thử trên dev — và bắt được hai lỗi
 
-1. **Chưa bấm thử trên dev.** 1276 test xanh không nói được ca `dung_lai_tai_khoan_cu` và ca
-   `422 ERR_AUTH_ADMIN_NOT_ELIGIBLE` có đọc được trên màn thật hay không. Deploy một bản rc
-   rồi đi thử bằng `qa-admin`.
-2. **Chưa có checker cho ba ngoại lệ R-06.** ADR-0040 và ADR-0041 đều tự ghi nợ này. Nay có
+Deploy `v0.1.0-rc.70` rồi đăng nhập bằng `qa-admin@erp.test` (đã sẵn là quản trị hệ thống).
+Cả ba màn chạy số liệu thật và khớp database: 4 phân vùng hiện chip "Chưa có người quản trị",
+đúng bằng số mà backfill cố ý không đoán.
+
+Ba đường đã đi qua và đối chiếu lại với database:
+
+- **Đặt người quản trị** — chip đổi từ vàng sang xanh, và `user_companies.is_admin` có hàng
+  thật.
+- **422 `ERR_AUTH_ADMIN_NOT_ELIGIBLE`** — tô đúng ô, lỗi nằm dưới ô, không đẩy lên banner.
+- **Tạo phân vùng với email đã có chủ** — hiện đúng câu "Mật khẩu bạn vừa gõ ĐÃ BỊ BỎ QUA",
+  và `QA-KIEM-70` có `qa-thukho@erp.test` làm quản trị trong database.
+
+**Hai lỗi chỉ bấm tay mới thấy, đã sửa ở `v0.1.0-rc.71`:**
+
+1. Tám thông điệp lỗi của `company_service` đi thẳng ra màn hình mà **viết không dấu**. Riêng
+   thông điệp không-bổ-nhiệm-được còn lộ mã quyền `auth.role_assign` — một chuỗi nội bộ với
+   người không làm kỹ thuật.
+2. Ô chọn người hiện **hai câu chồng nhau** nói cùng một việc: thông điệp từ backend, rồi một
+   câu viết sẵn ở frontend tả cả hai lý do. Backend biết **đúng** lý do nào vừa hỏng còn
+   frontend thì không, nên câu viết sẵn luôn thừa mất một nửa. Đã gỡ.
+
+**1276 test frontend vẫn xanh sau khi gỡ câu thừa** — tức không test nào phủ chỗ đó. Đây là
+bằng chứng cụ thể cho việc một bộ test xanh không thay được một lần bấm tay.
+
+Còn lại trên dev: phân vùng `QA-KIEM-70` do lần kiểm chứng này tạo ra. Xoá lúc nào cũng được,
+nhưng phải gỡ người ra khỏi nó trước.
+
+## Hai việc còn nợ
+
+1. **Chưa có checker cho ba ngoại lệ R-06.** ADR-0040 và ADR-0041 đều tự ghi nợ này. Nay có
    một câu ghi hợp lệ nên checker tương lai không thể là "cấm mọi `UPDATE` nhận `company_id`
    từ path" mà phải là danh sách trắng theo tên hàm, giống map `hamMienCompanyID` của
    ADR-0034.
