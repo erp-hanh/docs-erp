@@ -581,6 +581,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_INVALID_CREDENTIALS` | `401` | Email hoặc mật khẩu không đúng | Đăng nhập sai email **hoặc** sai mật khẩu — hai ca dùng chung một mã và một thông điệp, xem ghi chú dưới bảng |
 | `ERR_AUTH_FORBIDDEN` | `403` | Bạn không có quyền thực hiện thao tác này | Kiểm quyền ở service thất bại (R-15) |
 | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email này đã được dùng. Hãy dùng một địa chỉ khác | Tạo hoặc sửa user với email đã có chủ — vi phạm `uq_users_email_active`. Từ migration `000030` (ADR-0034 mục 1) index đó là `users(email)`, duy nhất **toàn hệ**: cùng một email ở công ty khác cũng bị từ chối, và người dùng không có đường vòng nào. Thông điệp không nói ai đang giữ địa chỉ đó — chủ nhân có thể thuộc phân vùng khác |
+| `ERR_AUTH_PHONE_DUPLICATED` | `409` | Số điện thoại này đã được dùng. Hãy dùng một số khác | Tạo hoặc sửa user với số điện thoại đã có chủ — vi phạm `uq_users_phone_active`. Cùng migration `000030` làm nó duy nhất **toàn hệ** như email, nên mọi mệnh đề của dòng trên áp y nguyên cho dòng này. Mã đi RIÊNG chứ không gộp vào mã email: người vừa nhập cả hai ô không suy ra được ô nào bị từ chối nếu hai ràng buộc dùng chung một mã |
 | `ERR_AUTH_COMPANY_CODE_DUPLICATED` | `409` | Mã phân vùng đã được dùng | Tạo phân vùng với mã đã có ở một phân vùng còn sống - vi phạm `uq_companies_code` |
 | `ERR_AUTH_COMPANY_IN_USE` | `409` | Phân vùng còn người dùng đang hoạt động, không vô hiệu hoá được | Vô hiệu hoá một phân vùng còn ít nhất một người dùng chưa bị xoá mềm |
 | `ERR_AUTH_ROLE_CODE_DUPLICATED` | `409` | Mã vai trò đã được dùng trong phân vùng này | Tạo vai trò mà mã sinh ra đã có trong **cùng** phân vùng — vi phạm `uq_roles_company_id_code`. Đường ghi tự sinh mã và tự tra trùng kể cả hàng đã xoá mềm ([ADR-0027](../03-decisions/ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) mục 3), nên mã này là hàng rào cuối cho một lần chạy song song |
@@ -696,6 +697,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_orders_company_id_code` | `ERR_ORDER_CODE_DUPLICATED` | `409` | — |
 | `ck_orders_status` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — |
 | `uq_users_email_active` | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | — |
+| `uq_users_phone_active` | `ERR_AUTH_PHONE_DUPLICATED` | `409` | — |
 | `uq_companies_code` | `ERR_AUTH_COMPANY_CODE_DUPLICATED` | `409` | — |
 | `uq_machines_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
 | `uq_maintenance_plans_company_id_code` | `ERR_MACHINE_CODE_DUPLICATED` | `409` | — |
