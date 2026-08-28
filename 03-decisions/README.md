@@ -62,6 +62,7 @@ Khuôn để viết ADR mới nằm ở `05-templates/ADR-template.md`.
 | ADR-0035 | Vùng dữ liệu là một loại phạm vi, không phải một cột mới | Accepted (2026-08-24) | R-06, R-18 | [ADR-0035-vung-du-lieu-la-mot-loai-pham-vi.md](ADR-0035-vung-du-lieu-la-mot-loai-pham-vi.md) |
 | ADR-0036 | Quản trị hệ thống đi được mọi phân vùng mà không cần là thành viên | Accepted (2026-08-27) | R-06 | [ADR-0036-quan-tri-he-thong-di-duoc-moi-phan-vung.md](ADR-0036-quan-tri-he-thong-di-duoc-moi-phan-vung.md) |
 | ADR-0037 | Quản trị hệ thống chỉ bổ nhiệm được người bổ nhiệm được người khác | Accepted (2026-08-27) | R-15 | [ADR-0037-quan-tri-he-thong-chi-bo-nhiem-quan-tri.md](ADR-0037-quan-tri-he-thong-chi-bo-nhiem-quan-tri.md) |
+| ADR-0038 | Admin của phân vùng đặt ra vai trò, và chỉ tích được những quyền chính họ đang giữ | Accepted (2026-08-27) | — | [ADR-0038-admin-phan-vung-dat-ra-vai-tro.md](ADR-0038-admin-phan-vung-dat-ra-vai-tro.md) |
 
 Cột `Constrains` là danh sách Rule mà ADR đó là lý do tồn tại. Nó phải khớp **hai
 chiều** với trường `Decisions` của Rule tương ứng trong

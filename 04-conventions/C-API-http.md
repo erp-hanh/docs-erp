@@ -579,6 +579,10 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_AUTH_EMAIL_DUPLICATED` | `409` | Email đã được dùng trong công ty này | Tạo hoặc sửa user với email đã tồn tại trong **cùng** công ty — vi phạm `uq_users_email_active`. Cùng một email ở công ty khác thì hợp lệ |
 | `ERR_AUTH_COMPANY_CODE_DUPLICATED` | `409` | Mã phân vùng đã được dùng | Tạo phân vùng với mã đã có ở một phân vùng còn sống - vi phạm `uq_companies_code` |
 | `ERR_AUTH_COMPANY_IN_USE` | `409` | Phân vùng còn người dùng đang hoạt động, không vô hiệu hoá được | Vô hiệu hoá một phân vùng còn ít nhất một người dùng chưa bị xoá mềm |
+| `ERR_AUTH_ROLE_CODE_DUPLICATED` | `409` | Mã vai trò đã được dùng trong phân vùng này | Tạo vai trò mà mã sinh ra đã có trong **cùng** phân vùng — vi phạm `uq_roles_company_id_code`. Đường ghi tự sinh mã và tự tra trùng kể cả hàng đã xoá mềm ([ADR-0027](../03-decisions/ADR-0027-permission-module-moi-vao-cong-ty-da-co.md) mục 3), nên mã này là hàng rào cuối cho một lần chạy song song |
+| `ERR_AUTH_ROLE_PERMISSION_UNKNOWN` | `422` | Mã quyền không tồn tại | Một phần tử của `permissions` không có trong danh mục hằng tiêm từ composition root. `permission_code` là TEXT trần dưới database ([ADR-0023](../03-decisions/ADR-0023-vai-tro-xuong-database.md) mục 2), nên phép kiểm này sống ở tầng service. Kèm `error.fields` trỏ vào `permissions` |
+| `ERR_AUTH_ROLE_PERMISSION_FORBIDDEN` | `422` | Bạn không cấp được quyền này cho vai trò | Mã quyền có thật nhưng actor thiếu `<module>.role_assign` của module sở hữu nó ([ADR-0024](../03-decisions/ADR-0024-tham-quyen-tren-vai-tro-tinh-tu-tap-quyen.md) mục 2). `422` chứ không `403`: actor **có** quyền gọi endpoint, thứ bị từ chối là một giá trị trong body |
+| `ERR_AUTH_ROLE_SYSTEM_LOCKED` | `422` | Vai trò hệ thống: chỉ sửa được tên và mô tả | `PATCH /roles/:id` gửi `permissions` hoặc `dang_dung` cho một vai trò `is_system = true` ([ADR-0038](../03-decisions/ADR-0038-admin-phan-vung-dat-ra-vai-tro.md)). Kèm `error.fields` trỏ đúng trường bị từ chối |
 | `ERR_COMMON_MALFORMED_REQUEST` | `400` | Dữ liệu gửi lên không đọc được | Thân JSON **chưa đọc được** vì sai cú pháp hoặc body rỗng; hoặc query param không ép được về kiểu của field (`page=abc`) — đường bind này tách riêng khỏi thân JSON và giữ nguyên `400`, cố ý ngoài phạm vi hợp đồng 422/400 dưới đây. Sai kiểu một field **bên trong** thân JSON không còn ở mã này — xem `ERR_COMMON_VALIDATION_FAILED`. **Không** kèm `error.fields` |
 | `ERR_COMMON_NOT_FOUND` | `404` | Không tìm thấy bản ghi | Không có bản ghi, **hoặc** bản ghi thuộc công ty khác |
 | `ERR_COMMON_VALIDATION_FAILED` | `422` | Dữ liệu gửi lên không hợp lệ | Sai hình dạng request — từ bind (`binding:"..."`, hoặc sai kiểu một field trong thân JSON) **hoặc** từ validate nghiệp vụ ở tầng service (`apperr.ValidationFailed`). Từ chặng E, cả hai nguồn đều kèm `error.fields`; trước đó chỉ nguồn bind có field |
@@ -698,6 +702,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_warehouses_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
 | `uq_stock_items_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
 | `uq_units_code` | `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | — |
+| `uq_roles_company_id_code` | `ERR_AUTH_ROLE_CODE_DUPLICATED` | `409` | — |
 | `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
 
