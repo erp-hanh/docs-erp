@@ -1,6 +1,6 @@
-# Bàn giao: màn Quản trị phân vùng — backend xong, frontend chưa
+# Bàn giao: màn Quản trị phân vùng
 
-Ngày 2026-08-28. Backend đã lên `main` cả hai repo. **Frontend chưa làm.**
+Ngày 2026-08-28. Backend và frontend đều đã lên `main`, CI xanh cả ba repo.
 
 Nền: [ADR-0039](../../03-decisions/ADR-0039-mot-nguoi-quan-tri-moi-phan-vung.md),
 [ADR-0040](../../03-decisions/ADR-0040-doc-cheo-phan-vung-neo-vao-companies.md),
@@ -66,10 +66,47 @@ Ba bài đáng kể nhất:
 Phép đếm người và phép chặn gỡ người quản trị đều đã qua **phép thử đột biến**: trả câu SQL /
 gỡ cửa chặn thì test đỏ đúng chỗ.
 
+## Frontend
+
+`frontend-erp` `09ffa2a`, CI xanh (test 155s, lint 41s, arch 32s), 1276 test.
+
+- **Form tạo phân vùng** gửi đủ năm field. Trước đó nó gửi `{code, name}` trong khi backend
+  đã đổi hợp đồng — nút Tạo **hỏng thật** trên dev, không phải thiếu tính năng. Ca "email đã
+  có chủ ở phân vùng khác" được nói ra bằng chữ: hệ dùng lại tài khoản cũ và **mật khẩu vừa
+  gõ đã bị bỏ qua**. Im lặng ở đây nghĩa là người vừa đặt một mật khẩu sẽ đọc nó cho đồng
+  nghiệp dùng.
+- **Mặt Quản trị** bỏ hết dữ liệu giả: xoá `quan-tri-phan-vung-mau.ts`, gỡ hai dải cảnh báo
+  và cờ `xemTruoc`. Cột người quản trị có bốn nhánh phân biệt được trên màn — có người / chưa
+  có ai / chưa hỏi xong / hỏi hỏng. Ba nhánh sau đều là "không có tên người" nhưng dẫn tới ba
+  việc khác hẳn: chờ, đi giao việc, báo sự cố.
+- **Màn người dùng của một phân vùng** đặt làm **màn con** `/quan-tri/phan-vung/:id/nguoi`,
+  không phải mặt thứ ba của dải tab: hai mặt kia nói về *tập* phân vùng, màn này nói về *đúng
+  một* phân vùng và không có id thì nó không tồn tại.
+
+Tên ô trong `error.fields` đã **đối chiếu với backend chứ không đoán**:
+`PUT /companies/:id/admin` trả `user_id`, `POST /companies` trả `admin_email`.
+
+## Tra MISA AMIS — ba dữ kiện, ghi lại để đọc lại
+
+Tra ngày 2026-08-28 theo nếp đã dùng ở `mockup-erp/kho-van-v3.html`:
+
+1. **Đơn vị của MISA không có trường "người phụ trách".** Quản trị là một **vai trò**
+   (`Quản trị hệ thống`, `Quản trị bảo mật`), còn quyền xem dữ liệu thì gán **theo từng
+   người** vào từng cấp tổ chức. Tức MISA **không** có khái niệm "mỗi chi nhánh một người
+   quản trị" mà ADR-0039 vừa dựng. Dữ kiện này **không** làm đảo quyết định — người quyết đã
+   chọn ép cứng và backend đã chạy — nhưng nó là bằng chứng cần có nếu ngày nào đó đọc lại.
+2. **MISA có "Ngừng sử dụng" tách hẳn khỏi xoá.** Đúng món nợ ADR-0019 đã ghi: hệ này đang
+   dùng chung `deleted_at` nên không có cách nào tạm dừng một phân vùng đang có người.
+3. Form khai đơn vị của MISA: **Mã đơn vị\*, Tên đơn vị\*, Cấp tổ chức** (Chi nhánh / Văn
+   phòng / Phòng ban / Phân xưởng / Nhóm), **Loại chi nhánh** (độc lập / phụ thuộc), **Kê
+   khai thuế riêng**. Ba ô sau là thứ hệ này chưa có và sẽ cần khi làm ADR-0033 (phân vùng
+   nhiều cấp).
+
 ## Ba việc còn nợ
 
-1. **Frontend chưa làm.** Màn hình vẫn chạy `quan-tri-phan-vung-mau.ts` và vẫn treo hai dải
-   cảnh báo "dữ liệu mẫu". Ba endpoint mà hai dải đó nêu tên nay đã có thật.
+1. **Chưa bấm thử trên dev.** 1276 test xanh không nói được ca `dung_lai_tai_khoan_cu` và ca
+   `422 ERR_AUTH_ADMIN_NOT_ELIGIBLE` có đọc được trên màn thật hay không. Deploy một bản rc
+   rồi đi thử bằng `qa-admin`.
 2. **Chưa có checker cho ba ngoại lệ R-06.** ADR-0040 và ADR-0041 đều tự ghi nợ này. Nay có
    một câu ghi hợp lệ nên checker tương lai không thể là "cấm mọi `UPDATE` nhận `company_id`
    từ path" mà phải là danh sách trắng theo tên hàm, giống map `hamMienCompanyID` của
