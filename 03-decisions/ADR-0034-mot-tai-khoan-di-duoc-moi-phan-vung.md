@@ -179,6 +179,37 @@ Ba ràng buộc, và cả ba kiểm được bằng máy:
 Ràng buộc 2 là ràng buộc quan trọng nhất và cũng là ràng buộc dễ trôi nhất. Nó phải có một
 test kiến trúc riêng, không dựa vào code review.
 
+> **Đính chính 2026-08-28** — bảng trên có **bốn** hàng kể từ hôm nay. Hàng (d) được thêm
+> theo đúng cơ chế mà ràng buộc 1 đặt ra: thêm một hàm vào danh sách miễn trừ là một lần sửa
+> ADR, và đây là lần sửa ấy.
+>
+> | Câu | Hàm | Vì sao không thể có `company_id` |
+> |---|---|---|
+> | (d) tra người theo email để trả lời "đã có trong hệ chưa" | `UserRepository.ByEmailToanHeRutGon` | Câu hỏi tự nó là câu hỏi toàn hệ. Lọc theo phân vùng thì luôn trả "chưa có" cho đúng ca cần phát hiện: một người đang làm ở phân vùng khác |
+>
+> **Vì sao cần nó.** Một người kiêm nhiệm hai đơn vị phải là MỘT hàng `users` với NHIỀU hàng
+> `user_companies`. Hôm nay không có đường nào tạo ra hàng gán thứ hai, nên quản trị gõ email
+> của người đã có trong hệ thì nhận `409` trống và bế tắc. Để màn hình mời được "thêm người
+> này vào đơn vị của bạn", service phải tra được người đó — và câu tra ấy chạy khi chưa biết
+> người đó ở phân vùng nào. Thiết kế đầy đủ ở
+> `99-meta/my-specs/2026-08-28-kiem-nhiem-nhieu-phan-vung-design.md`.
+>
+> **Ba ràng buộc, đặt hẹp hơn ba hàng cũ:**
+>
+> - **Chỉ `UserService` gọi.** Không phải `AuthService` như ba hàng kia, và bộ kiểm phải phân
+>   biệt được hai chỗ gọi đó chứ không nới thành "service nào cũng được".
+> - **Chỉ trả `id` và `full_name`.** Hậu tố `RutGon` nằm trong tên để chính cái tên nói ra
+>   điều đó. Một hàm trả `*model.User` đầy đủ sẽ được dùng lại cho việc khác trong sáu tháng
+>   nữa, và lúc ấy nó là một câu đọc toàn hệ không ai còn nhớ là đã được miễn trừ vì lý do gì.
+> - **Chỉ đọc.** Ràng buộc 3 không đổi một chữ: không đường ghi nào được miễn R-06. Đường ghi
+>   của đợt này — gán và gỡ một người khỏi một phân vùng — lấy `company_id` từ actor nên
+>   không xin miễn trừ gì cả.
+>
+> **Cái giá, nói ra chứ không giấu:** quản trị của một phân vùng bây giờ xác nhận được rằng
+> một email có tồn tại ở đâu đó trong hệ. `409` hiện tại đã làm đúng việc ấy rồi — khác biệt
+> là bản mới kèm họ tên. Đó là lượng thông tin tối thiểu để hỏi "có phải người này không";
+> phân vùng họ đang làm, vai trò, số điện thoại đều KHÔNG được trả.
+
 ### 4. Đăng nhập hai bước
 
 ```
