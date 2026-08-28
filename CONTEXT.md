@@ -21,37 +21,66 @@ chứa các màn của `inventory`.
 _Avoid_: module kho vận, phân hệ kho vận
 
 **`inventory`**:
-Module trả lời: vật tư đang có bao nhiêu, ở kho nào, vào ra thế nào.
+Module trả lời: vật tư hàng hoá đang có bao nhiêu, ở kho nào, vào ra thế nào.
 _Avoid_: module kho vận, module kho hàng, warehouse module
 
 **`yard`**:
 Module trả lời: container nào nằm ô nào, bao lâu, cước bao nhiêu. Là một **nguồn doanh thu
-dịch vụ**, không phải chỗ chứa vật tư của công ty.
+dịch vụ**, không phải chỗ chứa vật tư hàng hoá của công ty.
 _Avoid_: kho bãi, kho container
 
 ### Trong `inventory`
 
 **Kho**:
-Một địa điểm chứa vật tư của một công ty. Khác hẳn **bãi** — bãi giữ container của khách,
-kho giữ vật tư của mình.
+Một địa điểm chứa vật tư hàng hoá của một công ty. Khác hẳn **bãi** — bãi giữ container
+của khách, kho giữ hàng của mình.
 _Avoid_: nhà kho, warehouse, điểm lưu trữ
 
-**Vật tư**:
-Một mã hàng trong danh mục của một công ty.
-_Avoid_: hàng hoá, sản phẩm, mặt hàng, SKU
+**Vật tư hàng hoá**:
+Một mã hàng trong danh mục của một công ty. Tên gọi này mang cả cụm bốn chữ vì chữ ngắn
+nào cũng đã có nghĩa hẹp hơn: "vật tư" đọc ra nguyên liệu đầu vào, "hàng hoá" là tên của
+một **tính chất** cụ thể bên trong chính danh mục này. Cụm bốn chữ là chữ dân kế toán kho
+Việt Nam đang dùng, và MISA đặt tên danh mục tương ứng đúng như vậy.
+_Avoid_: vật tư, hàng hoá, sản phẩm, mặt hàng, SKU
+
+**Tính chất**:
+Vai của một vật tư hàng hoá **trong chính công ty này**: nguyên vật liệu, thành phẩm, hay
+hàng hoá. Cùng một món có thể là thành phẩm của xưởng khác mà là nguyên vật liệu ở đây —
+tính chất nói về vai, không nói về bản thân món hàng, nên hai công ty xếp khác nhau là
+chuyện thường chứ không phải mâu thuẫn.
+
+Nó nói **ý định chính** của mã, không nói từng lần dùng: thép cây thỉnh thoảng bán lại
+nguyên trạng vẫn là nguyên vật liệu. Đổi được bất cứ lúc nào kể cả khi đã có chuyển động,
+vì nó không đụng vào một con số nào đã ghi — khác hẳn **mã** và **đơn vị tính**.
+_Avoid_: loại, nhóm, phân loại, chủng loại, kiểu
 
 **Chuyển động kho**:
-Một lần hàng vào hoặc ra, ghi thành **một dòng sổ**. Nó không phải một chứng từ: không có
-số phiếu, không có trạng thái duyệt.
-_Avoid_: giao dịch kho, phiếu nhập, phiếu xuất, bút toán kho
+Một lần hàng vào hoặc ra **của một mặt hàng ở một kho**, ghi thành **một dòng sổ**. Đây là
+thứ duy nhất tồn được tính ra từ đó, và một dòng đã ghi thì **không sửa được, chỉ xoá**.
+
+Dòng nhập và dòng xuất luôn thuộc về một **phiếu**; dòng **điều chỉnh** thì không — điều
+chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.
+_Avoid_: giao dịch kho, bút toán kho
 
 **Phiếu**:
-Một chứng từ có mã, nhiều dòng và trạng thái duyệt. Phiếu **không thuộc `inventory`** —
-nó là thứ `purchasing` và `sales` mang tới.
-_Avoid_: chứng từ kho, đơn nhập, đơn xuất
+Một chứng từ nhập kho hoặc xuất kho: có số, có ngày, có **đối tác**, và mang **nhiều dòng
+hàng**. Mỗi dòng hàng sinh ra đúng một **chuyển động kho**. Phiếu là thứ người ta cầm trên
+tay và ký; dòng sổ là thứ máy tính tồn từ đó.
+
+Phiếu **thuộc `inventory`** kể từ [ADR-0043](03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md).
+Trước đó nó bị đặt ở `purchasing` và `sales`, và mục từ này ghi ngược lại điều đang thấy.
+
+Phiếu **không có trạng thái duyệt** — ghi là vào sổ ngay. Thứ cần duyệt là **đơn mua** và
+**đơn bán**, và chúng vẫn ở ngoài module này.
+_Avoid_: chứng từ kho, đơn nhập, đơn xuất, hoá đơn
+
+**Đối tác**:
+Bên kia của một phiếu: **nhà cung cấp** ở phiếu nhập, **khách hàng** ở phiếu xuất. Cùng một
+danh mục, khác vai theo loại phiếu — y như cách MISA dùng một trường "Đối tượng" cho cả hai.
+_Avoid_: đối tượng, bên bán, bên mua, NCC
 
 **Tồn**:
-Số lượng còn lại của một cặp (kho, vật tư), **tính ra từ sổ** khi cần chứ không phải một
+Số lượng còn lại của một cặp (kho, vật tư hàng hoá), **tính ra từ sổ** khi cần chứ không phải một
 giá trị được lưu ở đâu đó.
 _Avoid_: số dư kho, tồn kho hiện tại, quantity on hand
 
@@ -66,7 +95,7 @@ dòng chuyển động đầu tiên, không bằng một đường riêng nào.
 _Avoid_: số dư đầu, tồn ban đầu, tồn khởi tạo
 
 **Đơn vị tính**:
-Đơn vị đo của một vật tư. Dùng chung cho mọi module, nên thêm được nhưng **không sửa và
+Đơn vị đo của một vật tư hàng hoá. Dùng chung cho mọi module, nên thêm được nhưng **không sửa và
 không xoá** — sửa một đơn vị đang dùng là làm sai toàn bộ số lượng lịch sử trỏ vào nó.
 _Avoid_: đơn vị, ĐVT, unit
 
@@ -124,7 +153,7 @@ trò là **dữ liệu cấp công ty do quản trị tự khai**, không còn l
 _Avoid_: nhóm quyền, chức danh, group
 
 **Quyền**:
-Một hành động đơn lẻ hệ kiểm được, ví dụ "tạo vật tư". Không gán trực tiếp cho người —
+Một hành động đơn lẻ hệ kiểm được, ví dụ "tạo vật tư hàng hoá". Không gán trực tiếp cho người —
 quyền chỉ tới qua vai trò. Tập mã quyền ở lại trong code kể cả sau ADR-0023.
 _Avoid_: permission, chức năng, thao tác
 
