@@ -1,6 +1,6 @@
 # ADR-0034: Một tài khoản đi được mọi phân vùng, và hai câu truy vấn chạy trước khi có phân vùng
 
-**Status:** Proposed (2026-08-25) — đính chính mục 3 ngày 2026-08-25 và 2026-08-27, xem hai khối trích ở đó
+**Status:** Proposed (2026-08-25) — đính chính mục 3 ngày 2026-08-25, 2026-08-27 và 2026-08-28, đính chính mục 2 ngày 2026-08-28; xem các khối trích tại chỗ
 
 ## Context
 
@@ -99,6 +99,107 @@ không phải lúc thêm comment thứ ba.
 
 **Vùng mù phải biết:** `checkR06` chỉ quét `CREATE TABLE`, nên một `ALTER TABLE users DROP
 COLUMN company_id` **không** làm bộ kiểm đỏ. Bộ kiểm im lặng đúng chỗ nó nên nói to nhất.
+
+> **Đính chính 2026-08-28** — mục này chốt cột thành lai lịch từ 2026-08-25, nhưng **sáu câu
+> truy vấn của `UserRepository` vẫn dùng nó làm phạm vi cho tới hôm nay**. Từ hôm nay chúng
+> hỏi `user_companies`.
+>
+> **Cái đã bỏ sót.** Đính chính 2026-08-25 gỡ cột này khỏi **bốn đường của `AuthService`** —
+> `select-company`, `refresh`, `/auth/me`, `change-password` — và dừng ở đó. Nó không rà phần
+> còn lại của repo. Sáu câu dưới đây ở lại nguyên trạng, mỗi câu mang một mệnh đề
+> `WHERE company_id = $1` trên chính bảng `users`, và mệnh đề ấy đã hết nghĩa từ chính mục này:
+>
+> | Câu | Đường đi qua nó |
+> |---|---|
+> | `selectUserByIDSQL` | `GET /users/:id`, `PATCH /users/:id`, `PUT /users/:id/roles` |
+> | `countUsersSQL` | `GET /users` — khối `meta.total` |
+> | `listUsersMoiNhatSQL`, `listUsersCuNhatSQL`, `listUsersEmailTangSQL`, `listUsersEmailGiamSQL` | `GET /users` |
+> | `softDeleteUserSQL` | `DELETE /users/:id` |
+>
+> **Vì sao nó im lặng suốt ba ngày.** Không ai thuộc quá một phân vùng, nên
+> `users.company_id` và "phân vùng người này đang làm" luôn trùng nhau, và một mệnh đề sai
+> cho ra kết quả đúng ở mọi hàng đang có. Bộ kiểm cũng không nói được gì: R-06 hỏi câu SQL
+> **có** `company_id = $` hay không, chứ không hỏi cột ấy còn nghĩa gì. Sáu câu này chưa bao
+> giờ đỏ, và chúng cũng sẽ không đỏ sau hôm nay.
+>
+> **Cái bẫy sập khi nào.** Đợt "kiêm nhiệm nhiều phân vùng"
+> (`99-meta/my-specs/2026-08-28-kiem-nhiem-nhieu-phan-vung-design.md`) mở đúng đường tạo ra
+> người thuộc hai phân vùng. Đo ngay sau đó, đứng từ phân vùng thứ hai: người vừa được gán
+> **không có trong `GET /users`**, `GET /users/:id` của họ trả **404**, và
+> `PUT /users/:id/roles` trả **404 sau khi đã ghi xong** rồi rollback. Tức hai endpoint vừa
+> dựng chạy đúng trong test mà không dùng được từ màn hình nào.
+>
+> **Hình dạng mới**, dùng chung cho cả sáu:
+>
+> ```sql
+> FROM users u
+> JOIN user_companies gan ON gan.user_id = u.id
+> WHERE gan.company_id = $1 AND gan.deleted_at IS NULL AND u.deleted_at IS NULL
+> ```
+>
+> Đây **không** phải một cách viết vòng của mệnh đề cũ — nó hỏi một câu khác. Câu cũ hỏi
+> *"người này có được TẠO RA ở phân vùng tôi không"*; câu mới hỏi *"người này có ĐANG LÀM
+> VIỆC ở phân vùng tôi không"*, đúng câu mà mọi endpoint dưới `/users` vẫn tưởng mình đang
+> hỏi. R-06 không bị nới một ly: `$1` vẫn đến từ `actor.CompanyID`, không bao giờ từ request;
+> nó chỉ được đối chiếu ở bảng mà mệnh đề ấy có nghĩa — cùng đúng một câu mà đính chính
+> 2026-08-25 đã viết cho `ByIDToanHe`.
+>
+> **Ba câu CỐ Ý không đổi**, vì cả ba không hỏi câu hỏi phạm vi:
+>
+> - `insertUserSQL` — nó GHI lai lịch, và lai lịch là đúng thứ cột này còn lại.
+> - `updateUserSQL` — `$1` của nó là `u.CompanyID`, tức chính giá trị vừa đọc lên từ hàng,
+>   nên nó không lọc phân vùng gì cả. Cửa chặn của đường sửa là lệnh ĐỌC đứng trước nó.
+> - `selectUserByEmailSQL`, `selectUserByPhoneSQL` — đường đăng nhập một bước cũ, không còn
+>   ai gọi tới sau mục 4.
+>
+> **Hệ quả đổi hành vi, nói ra chứ không giấu:** người bị **gỡ** khỏi một phân vùng nay biến
+> khỏi `GET /users` của phân vùng đó. Trước đây họ ở lại, vì `users.company_id` không đổi khi
+> hàng gán bị gỡ — nghĩa là danh sách người dùng vẫn liệt kê những người không còn làm việc ở
+> đó, và không gì nói ra điều ấy. Hành vi mới đúng với cái tên của thao tác, và nó **giữ
+> nguyên**.
+>
+> **Một hệ quả thứ hai đã bị CHẶN thay vì được nhận.** Bản vá phạm vi đọc, tự nó, cũng mở
+> `DELETE /users/:id` ra tới một người kiêm nhiệm — và lần xoá ấy set `users.deleted_at`, tức
+> chặn họ đăng nhập ở **mọi** phân vùng. Đó là một tác động TOÀN HỆ, và nó đi ngược đúng ranh
+> giới mà cả đợt này dựng lên: quản trị của một phân vùng chỉ tác động tới phân vùng của
+> mình. Quản trị Trụ sở không được phép khoá tài khoản của một người mà Hà Nội đang dùng.
+>
+> **Luật, kể từ 2026-08-28:** `DELETE /users/:id` **từ chối** khi người đó còn hàng gán còn
+> sống ở một phân vùng khác phân vùng của actor — `422 ERR_AUTH_USER_IN_OTHER_COMPANY`. Người
+> chỉ thuộc đúng một phân vùng thì đường xoá **không đổi một nhịp nào**.
+>
+> - Thông điệp chỉ ra **đường đi tiếp** chứ không dừng ở lời từ chối: đường đúng cho việc
+>   người đó thôi làm ở đây đã có tên riêng và vừa được dựng xong trong chính đợt này — gỡ
+>   khỏi đơn vị.
+> - Thông điệp **không nói tên đơn vị kia**, cùng nguyên tắc đã đặt cho khối `nguoi_da_co` ở
+>   mục 3: quản trị của một đơn vị được biết đúng MỘT điều — có nơi khác — và điều đó đủ để
+>   họ chọn đúng thao tác. Mã, tên và id của phân vùng kia đều KHÔNG được trả.
+> - Thứ tự giữa hai câu trả lời là bắt buộc: một người **không** thuộc phân vùng của actor
+>   vẫn nhận `404`, không phải `422`. Trả `422` ở đó là xác nhận với người ngoài rằng id ấy
+>   có thật ở đâu đó trong hệ (C-API-02).
+>
+> Phép đếm phục vụ luật này — `UserCompanyRepository.DemPhanVungKhac` — **neo ở hàng gán của
+> phân vùng đang mở** rồi mới hỏi sang, nên `company_id = $1` vẫn là mệnh đề dẫn và nó có
+> nghĩa thật: hàng được phép hỏi là hàng của chính phân vùng người gọi. Cách viết ngược lại,
+> `WHERE user_id = $2 AND company_id <> $1`, là một câu đọc TOÀN HỆ đội lốt một câu có
+> `company_id`, và nó sẽ phải xin một hàng miễn trừ thứ năm ở mục 3 — thứ mục ấy đã đóng.
+> Câu này không xin gì, và nó trả về đúng một con số.
+>
+> **Cái giá về index.** `idx_users_company_id_created_at` không còn dẫn dắt câu list: bộ lọc
+> phân vùng nay nằm ở bảng khác. Không thêm index trong đợt này — số hàng sau bộ lọc bị chặn
+> trên bởi số người của MỘT phân vùng. Ngày màn danh sách chậm thật thì đó là một migration
+> riêng, có số đo đi kèm.
+>
+> **Về câu "lần thứ hai thì bỏ cột" ở đoạn Nợ để lại ngay trên.** Điều khoản ấy **chưa** kích
+> hoạt, và phân biệt này đáng viết ra. Nó nói về một lần **dùng nhầm mới** — ai đó sau ngày
+> 2026-08-25 lại lấy cột này làm phạm vi. Thứ tìm thấy hôm nay ngược lại: không ai dùng nhầm
+> thêm, chỉ là những chỗ dùng CŨ chưa bao giờ được rà hết. Bản vá vì vậy là gỡ nốt phần bỏ
+> sót, không phải chứng cứ cho việc bỏ cột.
+>
+> Nhưng nó đổi một thứ: sau hôm nay, **không câu truy vấn nào trong repo còn lọc theo
+> `users.company_id`**. Cột chỉ còn được GHI lúc tạo và được ĐỌC RA như một trường dữ liệu.
+> Từ đây, mọi mệnh đề `WHERE users.company_id = ...` mới đều là lần dùng nhầm thứ nhất của
+> một luật đã rõ — và lần ấy mới là lần kích hoạt điều khoản bỏ cột.
 
 ### 3. Ba câu truy vấn được miễn R-06, và danh sách miễn trừ ĐÓNG
 
