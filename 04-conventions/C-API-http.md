@@ -132,7 +132,11 @@ không ở một ô nào cụ thể — và ca đó **ở lại `400`**, không 
 đúng ca ngoại lệ này, và không được phép có ngoại lệ ngược lại.
 
 Một hệ quả kèm theo, phải biết để không tưởng nhầm là lỗi: **`planned_date`,
-`commissioned_date` và `occurred_at` không còn là `time.Time` trong DTO, mà là `string`.**
+`commissioned_date` và `occurred_at` không còn là `time.Time` trong DTO **request**, mà là
+`string`.** Mệnh đề này chỉ nói về vế bind, và nó dừng ở đó: lập luận bên dưới hoàn toàn dựa
+vào `UnmarshalJSON`, mà một DTO response thì không bao giờ đi qua bước đó. DTO response giữ
+`time.Time` — `MachineDTO.CommissionedDate` là `*time.Time`, `BreakdownDTO.OccurredAt` là
+`time.Time`, và cả hai đúng.
 `*time.ParseError` sinh ra từ `UnmarshalJSON` của `time.Time` không mang tên field của
 struct cha — nó chỉ biết layout và value, không biết mình đang nằm ở đâu — nên không có
 cách nào lấy tên ô ra khỏi nó. Ba trường ngày đi theo đúng khuôn đã có sẵn trong repo từ
