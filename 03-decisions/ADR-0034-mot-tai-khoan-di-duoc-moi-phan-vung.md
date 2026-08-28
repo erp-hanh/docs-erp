@@ -152,15 +152,38 @@ COLUMN company_id` **không** làm bộ kiểm đỏ. Bộ kiểm im lặng đú
 > - `selectUserByEmailSQL`, `selectUserByPhoneSQL` — đường đăng nhập một bước cũ, không còn
 >   ai gọi tới sau mục 4.
 >
-> **Hai hệ quả đổi hành vi, nói ra chứ không giấu:**
+> **Hệ quả đổi hành vi, nói ra chứ không giấu:** người bị **gỡ** khỏi một phân vùng nay biến
+> khỏi `GET /users` của phân vùng đó. Trước đây họ ở lại, vì `users.company_id` không đổi khi
+> hàng gán bị gỡ — nghĩa là danh sách người dùng vẫn liệt kê những người không còn làm việc ở
+> đó, và không gì nói ra điều ấy. Hành vi mới đúng với cái tên của thao tác, và nó **giữ
+> nguyên**.
 >
-> 1. Người bị **gỡ** khỏi một phân vùng nay biến khỏi `GET /users` của phân vùng đó. Trước
->    đây họ ở lại, vì `users.company_id` không đổi khi hàng gán bị gỡ — nghĩa là danh sách
->    người dùng vẫn liệt kê những người không còn làm việc ở đó, và không gì nói ra điều ấy.
-> 2. `DELETE /users/:id` nay xoá được tài khoản của một người kiêm nhiệm, và lần xoá ấy chặn
->    họ đăng nhập ở **mọi** phân vùng. Đó là hành vi đúng của thao tác này — đường nhẹ hơn đã
->    có tên riêng là gỡ khỏi đơn vị — nhưng nó là một thẩm quyền **rộng hơn** thứ có trước
->    đợt này, và nó phải được đọc ra chứ không lẫn vào một lần sửa SQL.
+> **Một hệ quả thứ hai đã bị CHẶN thay vì được nhận.** Bản vá phạm vi đọc, tự nó, cũng mở
+> `DELETE /users/:id` ra tới một người kiêm nhiệm — và lần xoá ấy set `users.deleted_at`, tức
+> chặn họ đăng nhập ở **mọi** phân vùng. Đó là một tác động TOÀN HỆ, và nó đi ngược đúng ranh
+> giới mà cả đợt này dựng lên: quản trị của một phân vùng chỉ tác động tới phân vùng của
+> mình. Quản trị Trụ sở không được phép khoá tài khoản của một người mà Hà Nội đang dùng.
+>
+> **Luật, kể từ 2026-08-28:** `DELETE /users/:id` **từ chối** khi người đó còn hàng gán còn
+> sống ở một phân vùng khác phân vùng của actor — `422 ERR_AUTH_USER_IN_OTHER_COMPANY`. Người
+> chỉ thuộc đúng một phân vùng thì đường xoá **không đổi một nhịp nào**.
+>
+> - Thông điệp chỉ ra **đường đi tiếp** chứ không dừng ở lời từ chối: đường đúng cho việc
+>   người đó thôi làm ở đây đã có tên riêng và vừa được dựng xong trong chính đợt này — gỡ
+>   khỏi đơn vị.
+> - Thông điệp **không nói tên đơn vị kia**, cùng nguyên tắc đã đặt cho khối `nguoi_da_co` ở
+>   mục 3: quản trị của một đơn vị được biết đúng MỘT điều — có nơi khác — và điều đó đủ để
+>   họ chọn đúng thao tác. Mã, tên và id của phân vùng kia đều KHÔNG được trả.
+> - Thứ tự giữa hai câu trả lời là bắt buộc: một người **không** thuộc phân vùng của actor
+>   vẫn nhận `404`, không phải `422`. Trả `422` ở đó là xác nhận với người ngoài rằng id ấy
+>   có thật ở đâu đó trong hệ (C-API-02).
+>
+> Phép đếm phục vụ luật này — `UserCompanyRepository.DemPhanVungKhac` — **neo ở hàng gán của
+> phân vùng đang mở** rồi mới hỏi sang, nên `company_id = $1` vẫn là mệnh đề dẫn và nó có
+> nghĩa thật: hàng được phép hỏi là hàng của chính phân vùng người gọi. Cách viết ngược lại,
+> `WHERE user_id = $2 AND company_id <> $1`, là một câu đọc TOÀN HỆ đội lốt một câu có
+> `company_id`, và nó sẽ phải xin một hàng miễn trừ thứ năm ở mục 3 — thứ mục ấy đã đóng.
+> Câu này không xin gì, và nó trả về đúng một con số.
 >
 > **Cái giá về index.** `idx_users_company_id_created_at` không còn dẫn dắt câu list: bộ lọc
 > phân vùng nay nằm ở bảng khác. Không thêm index trong đợt này — số hàng sau bộ lọc bị chặn
