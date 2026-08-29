@@ -41,7 +41,11 @@ Một mã hàng trong danh mục của một công ty. Tên gọi này mang cả
 nào cũng đã có nghĩa hẹp hơn: "vật tư" đọc ra nguyên liệu đầu vào, "hàng hoá" là tên của
 một **tính chất** cụ thể bên trong chính danh mục này. Cụm bốn chữ là chữ dân kế toán kho
 Việt Nam đang dùng, và MISA đặt tên danh mục tương ứng đúng như vậy.
-_Avoid_: vật tư, hàng hoá, sản phẩm, mặt hàng, SKU
+Danh sách tránh dưới đây cấm chúng làm **TÊN** của danh mục này. Riêng **mặt hàng** vẫn
+dùng được như một **đại từ trong câu văn** khi cụm bốn chữ làm câu nặng — "chưa có mặt hàng
+nào", "cặp kho / mặt hàng". Chính mục từ **Chuyển động kho** dưới đây dùng nó theo nghĩa đó.
+Phép thử: đang đặt tên cho cái ô lớn (→ cấm) hay đang trỏ vào một dòng trong đó (→ được).
+_Avoid_: vật tư, hàng hoá, sản phẩm, SKU; và **mặt hàng** khi dùng làm tên danh mục
 
 **Tính chất**:
 Vai của một vật tư hàng hoá **trong chính công ty này**: nguyên vật liệu, thành phẩm, hay
