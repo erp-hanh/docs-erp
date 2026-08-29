@@ -78,7 +78,7 @@ Chi tiết và ví dụ code: [rules/R-05-events-for-decoupling.md](rules/R-05-e
 **Cách sửa:** Thêm cột `company_id UUID NOT NULL REFERENCES companies(id)` vào migration; bổ sung điều kiện `company_id = $n` vào `WHERE` của câu SQL đang thiếu trong repository; xóa field `company_id` khỏi DTO request, để handler lấy actor từ `ctx` (`auth.FromContext(ctx)`) và truyền vào service làm tham số thứ hai, rồi service dùng `actor.CompanyID` truyền xuống repository.
 **Ngoại lệ:** Bảng trong `system_tables`, bảng trong `tenant_root` và bảng trong `reference_tables` đều không có `company_id`. `system_tables` và `reference_tables` không thuộc tenant nào; `tenant_root` thì **là** tenant, nên nó không thể mang khóa trỏ tới chính khái niệm nó định nghĩa. `tenant_root` chỉ chứa `companies`; cả ba danh sách nằm ở `04-conventions/C-DB-database.md` mục `C-DB-04`.
 **Principles:** —
-**Decisions:** ADR-0003, ADR-0040, ADR-0041
+**Decisions:** ADR-0003, ADR-0040, ADR-0041, ADR-0044
 
 > **Năm nhóm bảng — dùng chung cho R-02, R-06, R-08, R-09, R-17, R-18:**
 >

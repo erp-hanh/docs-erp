@@ -129,6 +129,18 @@ _Avoid_: admin, trưởng phân hệ
 Người ghi chuyển động hằng ngày. Người dùng chính của `inventory`.
 _Avoid_: nhân viên kho, người giữ kho
 
+### Phân vùng
+
+**Ngừng sử dụng**:
+Tạm dừng một phân vùng: không ai vào được, không nhận nghiệp vụ mới, nhưng dữ liệu và người
+giữ nguyên và **bật lại được**. Khác hẳn Xoá phân vùng.
+_Avoid_: vô hiệu hoá, tạm khoá, đóng băng, ngừng theo dõi
+
+**Xoá phân vùng**:
+Bỏ hẳn một phân vùng, **không đảo lại được**. Chỉ làm được khi phân vùng chưa có ai ngoài
+chính người quản trị của nó.
+_Avoid_: vô hiệu hoá, huỷ phân vùng
+
 ### Phân quyền
 
 **Phân quyền chức năng**:
