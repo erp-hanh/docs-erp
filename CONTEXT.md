@@ -63,9 +63,14 @@ chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.
 _Avoid_: giao dịch kho, bút toán kho
 
 **Phiếu**:
-Một chứng từ nhập kho hoặc xuất kho: có số, có ngày, có **đối tác**, và mang **nhiều dòng
-hàng**. Mỗi dòng hàng sinh ra đúng một **chuyển động kho**. Phiếu là thứ người ta cầm trên
-tay và ký; dòng sổ là thứ máy tính tồn từ đó.
+Một chứng từ nhập kho, xuất kho hoặc **chuyển kho**: có số, có ngày, có **đối tác**, và mang
+**nhiều dòng hàng**. Phiếu là thứ người ta cầm trên tay và ký; dòng sổ là thứ máy tính tồn
+từ đó.
+
+Một dòng hàng của phiếu **nhập** hoặc **xuất** sinh ra đúng **một** chuyển động kho. Một dòng
+hàng của phiếu **chuyển** sinh ra **hai** - một dòng xuất ở kho nguồn và một dòng nhập ở kho
+đích, trong cùng một giao dịch
+([ADR-0048](03-decisions/ADR-0048-phieu-chuyen-kho-mot-dong-hai-chuyen-dong.md)).
 
 Phiếu **thuộc `inventory`** kể từ [ADR-0043](03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md).
 Trước đó nó bị đặt ở `purchasing` và `sales`, và mục từ này ghi ngược lại điều đang thấy.
@@ -77,6 +82,8 @@ _Avoid_: chứng từ kho, đơn nhập, đơn xuất, hoá đơn
 **Đối tác**:
 Bên kia của một phiếu: **nhà cung cấp** ở phiếu nhập, **khách hàng** ở phiếu xuất. Cùng một
 danh mục, khác vai theo loại phiếu — y như cách MISA dùng một trường "Đối tượng" cho cả hai.
+Phiếu **chuyển kho không có đối tác**: đối tác là bên ngoài công ty, chuyển kho là chuyện
+trong nhà.
 _Avoid_: đối tượng, bên bán, bên mua, NCC
 
 **Tồn**:
