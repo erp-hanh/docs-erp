@@ -42,6 +42,23 @@ gõ tiền tố vào từng route.
 | `/api/v1/<tai-nguyen>/:id` | DELETE | Xóa mềm (R-18) | `DELETE /api/v1/orders/:id` |
 | `/api/v1/<tai-nguyen>/:id/<tai-nguyen-con>` | GET, POST | Tài nguyên con | `GET /api/v1/orders/:id/items` |
 | `/api/v1/<tai-nguyen>/:id/actions/<verb>` | POST | Hành động không map được vào CRUD | `POST /api/v1/orders/:id/actions/approve` |
+| `/api/v1/<tai-nguyen-don>` | GET | **Tài nguyên đơn**: một đối tượng duy nhất trong phạm vi người gọi, không danh sách, không `:id` | `GET /api/v1/inventory-summary` |
+
+**Về hình dạng tài nguyên đơn**, thêm ngày 2026-08-29 cùng `GET /api/v1/inventory-summary`.
+Nó khác bảy hình dạng trên ở chỗ **không có tập bản ghi nào để phân trang**: cả tài nguyên
+là một object, và envelope trả về **không có `meta`** (R-11 vẫn giữ nguyên hình dạng
+`{data, request_id}`).
+
+Hai ràng buộc riêng của hình dạng này, và cả hai đều rút ra từ ca đầu tiên:
+
+- **Tên đường phải là một danh từ ghép đứng một mình** (`inventory-summary`), không phải
+  `<tai-nguyen>/<gi-do>`. Viết `/inventory/summary` thì đoạn `summary` đứng đúng vào chỗ
+  của `:id` trong hình dạng thứ ba, và một ngày nào đó có `GET /inventory/:id` là hai
+  đường tranh nhau một URL.
+- **Trả về từng phần theo quyền, không phải tất-cả-hoặc-không.** Một tài nguyên đơn hay
+  gom dữ liệu do nhiều permission gác. Nhóm nào người gọi không có quyền thì trả `null`
+  cho nhóm đó; vắng **mọi** quyền mới trả `403`. Trả `0` là **nói dối** — "0 dòng tồn âm"
+  đọc ra là kho lành mạnh, trong khi sự thật là người đọc không được phép biết.
 
 Quy ước viết:
 
@@ -614,6 +631,10 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_INVENTORY_UNIT_INVALID` | `422` | Đơn vị tính không hợp lệ | `unit_id` không phải một đơn vị tính còn sống |
 | `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | Mã đơn vị tính đã tồn tại | Tạo đơn vị tính với mã đã có — vi phạm `uq_units_code`. Mã **riêng** chứ không dùng `ERR_INVENTORY_CODE_DUPLICATED`: mã kia mang mệnh đề "trong cùng công ty này", mà `units` không có `company_id` nên một mã trùng là trùng với **toàn hệ** ([ADR-0022](../03-decisions/ADR-0022-mo-duong-ghi-cho-bang-units.md)) |
 | `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` | `422` | Vật tư hoặc kho không hợp lệ | `stock_item_id` hoặc `warehouse_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` — cùng lý do với `ERR_MACHINE_ASSIGNEE_INVALID` |
+| `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` | `409` | Mặt hàng này đã khai đơn vị đó rồi | Thêm một dòng đơn vị chuyển đổi trùng cặp (mặt hàng, đơn vị) — vi phạm `uq_unit_conversions_company_id_stock_item_id_unit_id`. Mã **riêng** chứ không dùng `ERR_INVENTORY_CODE_DUPLICATED`: mã kia nói về một **mã người dùng gõ** và cách sửa là gõ mã khác; ở đây không có mã nào, thứ trùng là một dòng đã có trong danh sách và cách sửa là sửa chính dòng đó |
+| `ERR_INVENTORY_UNIT_CONVERSION_INVALID` | `422` | Đơn vị này chưa được khai cho mặt hàng đó | `unit_id` gửi kèm một chuyển động không nằm trong danh sách đơn vị chuyển đổi của mặt hàng, và cũng không phải đơn vị tính chính của nó. Mã **riêng** chứ không dùng `ERR_INVENTORY_UNIT_INVALID`: đơn vị ở đây **có thật và còn sống**, nên cách sửa là mở màn vật tư khai thêm một dòng chuyển đổi chứ không chọn đơn vị khác. Ca này bắt buộc là lỗi chứ không được lặng lẽ hiểu thành đơn vị chính — gõ `5` theo `bó` mà hệ ghi 5 kg là sai sổ 112 kg, và không dòng nào trong sổ nói ra điều đó |
+| `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` | `409` | Dòng sổ này thuộc một phiếu, không xoá lẻ được | `DELETE /stock-movements/:id` trên một dòng có `voucher_id`. Cách sửa là `DELETE /stock-vouchers/:id` — xoá phiếu là xoá cả phiếu ([ADR-0043](../03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md)). `409` chứ không `403`: người gọi **có** quyền xoá dòng sổ và không làm gì sai, trạng thái của bản ghi mới là thứ từ chối thao tác |
+| `ERR_INVENTORY_PARTNER_INVALID` | `422` | Đối tác không hợp lệ | `partner_id` gửi kèm một phiếu không tồn tại, đã bị xoá, hoặc thuộc công ty khác. Mã **riêng** chứ không dùng `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID`: mã kia nói về một ô trên **lưới dòng hàng**, còn ô đối tác nằm ở **phần đầu phiếu** và người dùng sửa nó ở một chỗ khác trên màn hình — cùng tiền lệ `ERR_MACHINE_ASSIGNEE_INVALID`. `422` kèm `error.fields` chứ không `404`: thứ không tồn tại là một giá trị trong body, không phải tài nguyên trên URL |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -717,6 +738,15 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_stock_items_tinh_chat` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `tinh_chat`\* |
 | `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
+| `uq_unit_conversions_company_id_stock_item_id_unit_id` | `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` | `409` | — |
+| `ck_unit_conversions_phep` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `phep`\* |
+| `ck_unit_conversions_ty_le_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `ty_le`\* |
+| `uq_partners_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `uq_stock_vouchers_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `ck_partners_it_nhat_mot_vai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `la_nha_cung_cap`, `la_khach_hang`\*\* |
+| `ck_stock_vouchers_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
+| `ck_stock_vouchers_so_chung_tu_goc` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_chung_tu_goc`\* |
+| `ck_stock_movements_dieu_chinh_khong_phieu` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
 
 \* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
 hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
@@ -726,6 +756,15 @@ field ở các dòng này là **ước lệ**: gán để `422` từ nhánh phò
 nhất quán với mọi `422` khác, không phải tên đã được xác nhận khớp chính xác input nào gây
 ra lỗi. Comment tại chỗ trong `dichViPhamCheck` phải nói rõ điều này, để người sau không
 tưởng nó chính xác.
+
+\*\* Dòng này trả **hai** FieldError chứ không một, và đó không phải thừa: ràng buộc là
+"phải có ít nhất một vai", nên không ô nào trong hai ô sai hơn ô kia. Tô đỏ một ô là chỉ vào
+nhầm chỗ - người dùng đánh dấu đúng ô còn lại vẫn qua.
+
+\*\*\* Dòng này KHÔNG mang FieldError nào, và nó là ngoại lệ duy nhất của bảng. Ba dòng CHECK
+kia đỏ khi người dùng gõ một giá trị sai; dòng này chỉ đỏ khi một câu INSERT gắn `voucher_id`
+vào một dòng `dieu_chinh` - tức một **lỗi lập trình**, không một ô nào của form ứng với nó.
+Bịa ra một tên ô ở đây là bảo màn hình tô đỏ một chỗ người dùng không sửa được.
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
