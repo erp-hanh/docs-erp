@@ -42,6 +42,23 @@ gõ tiền tố vào từng route.
 | `/api/v1/<tai-nguyen>/:id` | DELETE | Xóa mềm (R-18) | `DELETE /api/v1/orders/:id` |
 | `/api/v1/<tai-nguyen>/:id/<tai-nguyen-con>` | GET, POST | Tài nguyên con | `GET /api/v1/orders/:id/items` |
 | `/api/v1/<tai-nguyen>/:id/actions/<verb>` | POST | Hành động không map được vào CRUD | `POST /api/v1/orders/:id/actions/approve` |
+| `/api/v1/<tai-nguyen-don>` | GET | **Tài nguyên đơn**: một đối tượng duy nhất trong phạm vi người gọi, không danh sách, không `:id` | `GET /api/v1/inventory-summary` |
+
+**Về hình dạng tài nguyên đơn**, thêm ngày 2026-08-29 cùng `GET /api/v1/inventory-summary`.
+Nó khác bảy hình dạng trên ở chỗ **không có tập bản ghi nào để phân trang**: cả tài nguyên
+là một object, và envelope trả về **không có `meta`** (R-11 vẫn giữ nguyên hình dạng
+`{data, request_id}`).
+
+Hai ràng buộc riêng của hình dạng này, và cả hai đều rút ra từ ca đầu tiên:
+
+- **Tên đường phải là một danh từ ghép đứng một mình** (`inventory-summary`), không phải
+  `<tai-nguyen>/<gi-do>`. Viết `/inventory/summary` thì đoạn `summary` đứng đúng vào chỗ
+  của `:id` trong hình dạng thứ ba, và một ngày nào đó có `GET /inventory/:id` là hai
+  đường tranh nhau một URL.
+- **Trả về từng phần theo quyền, không phải tất-cả-hoặc-không.** Một tài nguyên đơn hay
+  gom dữ liệu do nhiều permission gác. Nhóm nào người gọi không có quyền thì trả `null`
+  cho nhóm đó; vắng **mọi** quyền mới trả `403`. Trả `0` là **nói dối** — "0 dòng tồn âm"
+  đọc ra là kho lành mạnh, trong khi sự thật là người đọc không được phép biết.
 
 Quy ước viết:
 
