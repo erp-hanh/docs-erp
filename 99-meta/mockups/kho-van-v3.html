@@ -2,7 +2,21 @@
 <!--
   HỒ SƠ THIẾT KẾ - không phải code chạy thật.
   Ngày: 2026-08-28 (bản v3.6, sau vòng duyệt thứ năm)
-  Trạng thái: CHỜ DUYỆT. Chưa có dòng nào của bản này lên code.
+  Trạng thái: ĐÃ LÊN CODE MỘT PHẦN (29/08/2026). Từ giây phút này bản CHẠY ĐƯỢC là nguồn
+  sự thật cho những phần đã lên; file này đọc kèm code, đừng coi là bản gốc.
+
+  ĐÃ LÊN CODE, và ba chỗ bản code CỐ Ý khác bản vẽ:
+   - Ba màn ghi tách riêng (/nhap-kho, /xuat-kho, /dieu-chinh) - đúng bản vẽ, nhưng KHÔNG
+     có phiếu nhiều dòng: mỗi lần ghi đúng một dòng chuyển động. Phiếu chờ backend.
+   - Bố cục form: nhãn trên ô, gợi ý dưới ô, chân form dính, cặp Tìm+Chọn gộp một trường,
+     thời điểm điền sẵn. Nhưng lưới trường là MỘT CỘT, không phải hai như bản vẽ - khuôn B
+     của skill frontend-design-erp cấm form hai cột, và luật đó đúng hơn bản vẽ: hai cột
+     trong 640px cho mỗi ô còn ~310px, và bốn ô của form ghi không phải cặp tự nhiên nào.
+   - Mã và tên tách hai cột ở màn Tồn kho và Sổ chuyển động - đúng bản vẽ.
+
+  CHƯA LÊN CODE: phiếu nhiều dòng, đối tác, đơn giá/thành tiền/giá trị tồn, đơn vị chuyển
+  đổi, chuyển kho, lệnh sản xuất, tính giá bán, dải chỉ số. Riêng TÍNH CHẤT đã có ở
+  backend (cột + bộ lọc + đường cấp mã kế tiếp) nhưng frontend chưa dùng.
 
   Đề xuất bố cục v3 cho toàn bộ module Kho vận. Nối tiếp bo-cuc-v2.css chứ không thay:
   mọi khối của v2 dùng lại nguyên vẹn, phần thêm nằm ở kho-van-v3.css.
