@@ -714,6 +714,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `uq_stock_items_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
 | `uq_units_code` | `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | — |
 | `uq_roles_company_id_code` | `ERR_AUTH_ROLE_CODE_DUPLICATED` | `409` | — |
+| `ck_stock_items_tinh_chat` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `tinh_chat`\* |
 | `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
 
