@@ -19,11 +19,11 @@ ssh deploy@103.179.172.110 'bash -lc "cd /tmp/<worktree> && ./cmd/dev test ./mod
 
 ---
 
-### Task 1: Migration `000037` - cột `is_active`
+### Task 1: Migration `000038` - cột `is_active`
 
 **Files:**
-- Tạo: `backend-erp/migrations/000037_companies_is_active.up.sql`
-- Tạo: `backend-erp/migrations/000037_companies_is_active.down.sql`
+- Tạo: `backend-erp/migrations/000038_companies_is_active.up.sql`
+- Tạo: `backend-erp/migrations/000038_companies_is_active.down.sql`
 - Test: `backend-erp/modules/auth/internal/repository/company_trang_thai_db_test.go`
 
 - [ ] **Bước 1: Viết bài test đỏ**
@@ -36,7 +36,7 @@ import (
 	"testing"
 )
 
-// TestRangBuoc000037_IsActive_NotNullVaMacDinhTrue khoá hình dạng cột mà ADR-0044 mục 1
+// TestRangBuoc000038_IsActive_NotNullVaMacDinhTrue khoá hình dạng cột mà ADR-0044 mục 1
 // dựng. Ba vế, và cả ba đều là thứ hỏng im lặng nếu sai:
 //
 //   - NOT NULL: C-DB cấm boolean cho phép NULL vì `WHERE is_active = false` khi đó BỎ SÓT
@@ -44,7 +44,7 @@ import (
 //   - DEFAULT true: một phân vùng vừa tạo phải dùng được ngay. DEFAULT false nghĩa là
 //     `POST /companies` sinh ra một phân vùng không ai vào được.
 //   - Kiểu boolean: đọc từ information_schema chứ không suy từ việc câu INSERT chạy được.
-func TestRangBuoc000037_IsActive_NotNullVaMacDinhTrue(t *testing.T) {
+func TestRangBuoc000038_IsActive_NotNullVaMacDinhTrue(t *testing.T) {
 	db := moDB(t)
 	ctx := context.Background()
 
@@ -72,12 +72,12 @@ WHERE table_name = 'companies' AND column_name = 'is_active'`).Scan(&kieu, &null
 
 - [ ] **Bước 2: Chạy test, xác nhận nó đỏ**
 
-Chạy: `./cmd/dev test ./modules/auth/internal/repository/ -run TestRangBuoc000037 -v`
+Chạy: `./cmd/dev test ./modules/auth/internal/repository/ -run TestRangBuoc000038 -v`
 Mong đợi: FAIL - `doc information_schema: sql: no rows in result set`
 
 - [ ] **Bước 3: Viết migration**
 
-`000037_companies_is_active.up.sql`:
+`000038_companies_is_active.up.sql`:
 
 ```sql
 -- ADR-0044 muc 1: ngung su dung tach khoi xoa. Truoc migration nay, deleted_at mang CA
@@ -94,7 +94,7 @@ Mong đợi: FAIL - `doc information_schema: sql: no rows in result set`
 ALTER TABLE companies ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT true;
 ```
 
-`000037_companies_is_active.down.sql`:
+`000038_companies_is_active.down.sql`:
 
 ```sql
 ALTER TABLE companies DROP COLUMN is_active;
@@ -102,14 +102,14 @@ ALTER TABLE companies DROP COLUMN is_active;
 
 - [ ] **Bước 4: Chạy migration rồi chạy lại test**
 
-Chạy: `./cmd/dev migrate up` rồi `./cmd/dev test ./modules/auth/internal/repository/ -run TestRangBuoc000037 -v`
+Chạy: `./cmd/dev migrate up` rồi `./cmd/dev test ./modules/auth/internal/repository/ -run TestRangBuoc000038 -v`
 Mong đợi: PASS
 
 - [ ] **Bước 5: Commit**
 
 ```bash
-git add migrations/000037_companies_is_active.up.sql migrations/000037_companies_is_active.down.sql modules/auth/internal/repository/company_trang_thai_db_test.go
-git commit -m "feat(auth): migration 000037 them cot companies.is_active"
+git add migrations/000038_companies_is_active.up.sql migrations/000038_companies_is_active.down.sql modules/auth/internal/repository/company_trang_thai_db_test.go
+git commit -m "feat(auth): migration 000038 them cot companies.is_active"
 ```
 
 ---
