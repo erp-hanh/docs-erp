@@ -131,14 +131,58 @@ bằng chứng cụ thể cho việc một bộ test xanh không thay được m
 Còn lại trên dev: phân vùng `QA-KIEM-70` do lần kiểm chứng này tạo ra. Xoá lúc nào cũng được,
 nhưng phải gỡ người ra khỏi nó trước.
 
-## Hai việc còn nợ
+## Soi code sau khi đã deploy — bốn lỗi nữa, đã sửa ở `v0.1.0-rc.72`
 
-1. **Chưa có checker cho ba ngoại lệ R-06.** ADR-0040 và ADR-0041 đều tự ghi nợ này. Nay có
+Hai người soi (backend và frontend riêng), cả hai **tự chạy phép thử đột biến** thay vì đọc
+lướt. Frontend: **không có mục Critical nào** — ba lời khẳng định lớn của đợt (biên N+1 có
+thật, mật khẩu không rò, 422 tô đúng ô) đều đỏ đúng chỗ khi bị phá.
+
+Backend thì bốn lỗi, tất cả đã xác nhận là có thật rồi mới sửa:
+
+1. **`DeleteUser` gỡ mất người quản trị, không cửa nào chặn.** ADR-0039 mục 3 chốt vế "ít
+   nhất một" giữ ở các cửa tầng service; `GoKhoiPhanVung` và `ThayVaiTro` đều có cửa,
+   `DeleteUser` thì không. Nó xoá mềm hàng `users` mà không đụng hàng gán, nên cờ nằm lại
+   trên một tài khoản đã chết và phân vùng mất người chịu trách nhiệm **trong im lặng**.
+2. **Backfill `000035` thiếu lọc `users.deleted_at`** — và trạng thái đó chính là thứ lỗi 1
+   để lại. Chữa bằng `000036` chứ không sửa `000035` (R-07: migration đã chạy là bất biến).
+3. **`23505` trên `uq_user_companies_admin` ra 500.** Hai lần đổi người quản trị chạy song
+   song là va chạm bình thường. Nay dịch sang `ERR_COMMON_VERSION_CONFLICT` 409.
+4. **Sáu thông điệp còn viết không dấu**, đều ra tới màn hình.
+
+Trạng thái dev sau `000036`, đã đo: `schema_migrations = 36`, **0** cờ nằm trên tài khoản đã
+xoá, 3 người quản trị hợp lệ, 3 phân vùng chưa có ai (đúng những phân vùng backfill cố ý
+không đoán).
+
+## Ba việc còn nợ, và hai trong đó cần một quyết định
+
+1. **Phân vùng tạo qua giao diện không vô hiệu hoá được nữa.** `DeleteCompany` từ chối khi
+   còn người dùng; từ đợt này mọi phân vùng mới ra đời đã có sẵn một người — chính người
+   quản trị của nó. Mà `quan_tri_he_thong` **cố ý không** được cấp `auth.user_delete`
+   (ADR-0031 mục 2). Nên tạo nhầm một phân vùng thì không có đường dọn.
+
+   Ba lối ra, mỗi lối là một quyết định khác: cho phép xoá khi người duy nhất còn lại là
+   chính người quản trị; cấp `auth.user_delete` cho quản trị hệ thống; hoặc làm **"Ngừng sử
+   dụng" tách khỏi xoá** — đúng thứ MISA có và ADR-0019 đã ghi nợ. Lối thứ ba được đề xuất:
+   nó gỡ luôn món nợ cũ thay vì nới một hàng rào.
+
+2. **ADR-0039 mục 4 đi vòng được qua đường sửa vai trò.** Cửa "người quản trị phải giữ
+   `auth.role_assign`" canh ở lúc *đặt người* và lúc *đổi vai trò của người*, nhưng không
+   canh ở lúc *sửa tập quyền của vai trò*. Admin phân vùng tạo một vai trò riêng có quyền bổ
+   nhiệm, gán cho người quản trị, rồi sửa vai trò đó bỏ quyền đi — cờ vẫn nguyên, người quản
+   trị không bổ nhiệm được ai. Cửa đúng nằm ở đường sửa vai trò, nhưng nó chạm ADR-0038 nên
+   cần một ADR.
+
+3. **Chưa có checker cho ba ngoại lệ R-06.** ADR-0040 và ADR-0041 đều tự ghi nợ này. Nay có
    một câu ghi hợp lệ nên checker tương lai không thể là "cấm mọi `UPDATE` nhận `company_id`
    từ path" mà phải là danh sách trắng theo tên hàm, giống map `hamMienCompanyID` của
    ADR-0034.
-3. **Phân vùng cũ có thể đang không có người quản trị.** Backfill cố ý không đoán. Chạy
-   migration trên dev rồi đọc dòng `NOTICE` để biết có bao nhiêu đơn vị như vậy.
+
+Ngoài ra, bản soi frontend còn ghi nhận ba mục Important **chưa sửa**, không chặn đường nào:
+phân vùng trên 100 thành viên thì ô chọn người quản trị hiện trống trong khi nút Lưu nói
+"đã là người quản trị"; nhánh SỬA của `CompanyFormPage` còn đứng ngoài hệ giao diện (chữ
+"Đang tải..." thay vì khung xương, lỗi bằng `<p>` trần thay vì `BangThongBao`); và mặt Quản
+trị vẫn đọc `q` từ URL mà không có thanh lọc, nên một địa chỉ mang `?q=` sẽ lọc bảng im lặng
+rồi báo màn rỗng sai.
 
 ## Va phải khi merge: hai ADR trùng số
 
