@@ -1,4 +1,4 @@
-# Bàn giao — Kho vận v3: phiếu, chuyển kho, giá vốn, sản xuất (rc.82 → rc.90)
+# Bàn giao — Kho vận v3: phiếu, chuyển kho, giá vốn, sản xuất (rc.82 → rc.92)
 
 Ngày: 2026-08-30. Bản vẽ: `99-meta/mockups/kho-van-v3.html`.
 ADR mới trong đợt: **ADR-0048** (phiếu chuyển kho).
@@ -16,6 +16,8 @@ ADR mới trong đợt: **ADR-0048** (phiếu chuyển kho).
 | 88 | **Module `production`** — định mức NVL và lệnh sản xuất (ADR-0050) | Định mức 12 kg/cái x 10 cái = **120 kg** tự điền; hai thành phẩm ra **hai bảng riêng** (120 và 225, không cộng thành 345); sửa định mức gốc 7,5 → 99 mà lệnh cũ vẫn 225 |
 | 89 | Sinh phiếu từ lệnh và tính giá thành | NVL 2.400.000 + chi phí 1.100.000 = **3.500.000** vào kho thành phẩm; kho A còn 80 kg = 1.600.000; giá vốn thành phẩm **350.000/cái** |
 | 90 | Thẻ Giá thành và hai đường sinh phiếu trên màn lệnh | Xuất thêm 10 kg **sau khi** đã nhập kho → `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO`, tiền nằm ở "Chưa ai gánh 200.000", giá thành đã chốt **không đổi**; sửa lệnh đã sinh phiếu → `409` |
+| 91 | Vá lỗi phiếu chuyển rút quá tồn của một kho | Cùng tờ phiếu nay trả `409` đúng ô `dong[0].quantity` |
+| 92 | **Đợt vá sau lượt soi code** — bảy lỗi, mười lăm bài test giả viết lại, bật CSS trong bộ test | `khai-chi-phi` ghi được trên lệnh đã sinh phiếu kèm cảnh báo mới; định mức tự trỏ → `422` đúng ô `thanh_pham[0].dinh_muc[0].nvl_item_id` |
 
 Migration trên dev đã ở **44**. `stock_movements` có `don_gia`/`thanh_tien`; module `production`
 có `bom_lines`, `production_orders` (hai tầng dòng) và `production_order_vouchers`.
@@ -59,7 +61,7 @@ khác dù `/api/v1/inventory-summary` đã chạy trên dev từ lâu. Đã cher
 |---|---|---|
 | ADR | **0051** | Phiên khác giữ **0044-0047** trên nhánh chưa merge của họ. Đợt này đã dùng 0048, 0049, 0050. Đếm bằng `ls 03-decisions/` trên `main` sẽ ra số đã có người giữ |
 | Migration | **000045** | **Đừng** đọc bằng `ls migrations/` trong cây dùng chung `d:/My project web/erp/backend-erp` - cây đó đứng trên nhánh của phiên khác và từng làm dev hỏng vì chuyện này. Đọc bằng `git show origin/main` hoặc trong một worktree riêng |
-| rc | **91** | Tag trên **cả ba** repo: `backend-erp`, `frontend-erp`, `infra-erp` |
+| rc | **93** | Tag trên **cả ba** repo: `backend-erp`, `frontend-erp`, `infra-erp` |
 
 ## Giá vốn — đã xong, và câu chặn đã được trả lời
 
@@ -119,6 +121,52 @@ trăm. Bất biến đã kiểm trên máy thật: *tiền rời kho NVL + tiề
 2. **Hai transaction khi sinh phiếu.** `inventory` commit tờ phiếu trước, `production` ghi mối
    nối sau. Sập nguồn đúng giữa hai bước để lại phiếu mồ côi; vá bằng `Idempotency-Key` bắt buộc
    và `ON CONFLICT DO NOTHING`, nên bấm lại nút là tự lành.
+
+## Lượt soi code sau rc.90, và đợt vá của nó
+
+Ba người soi độc lập (giá vốn + chuyển kho · module sản xuất · frontend). **Bảy lỗi, cả bảy
+tái hiện được bằng một bài test đỏ TRƯỚC khi sửa** — điều kiện đặt ra cho cả đợt, và không bản
+vá nào được nhận nếu thiếu bằng chứng đỏ-rồi-xanh.
+
+| Lỗi | Bằng chứng đỏ |
+|---|---|
+| Phiếu chuyển **rút quá tồn** của một kho | Kho B còn 5 kg mà giá trị **âm 400.000**, đơn giá bình quân âm. Bài test cũ canh bất biến ở mức *tổng công ty* — mức đó vẫn đúng, nên nó không thấy |
+| **Giá thành chốt bằng 0 vĩnh viễn** | `da chot gia thanh voi thanh tien 0 cho 10 cai` — 2.400.000 tiền nguyên liệu bốc hơi khi người nhập kho không được cấp kho đã xuất |
+| Định mức **tự trỏ chính nó** trên tờ lệnh | Lệnh vào sổ bình thường |
+| Hai ô chi phí **khoá vĩnh viễn** sau lần xuất đầu | `khong con duong nao khai hai o chi phi sau khi da xuat NVL` |
+| Ghi phiếu **không làm cũ cache kho** | Dòng cache cùng module xanh, dòng liên module đỏ |
+| Form **mất chữ đang gõ** | `expected '' to be '5000000'` |
+| Nút phình 300×150 | Quét cả `src/` ra **đúng một** thủ phạm |
+
+Cộng **mười lăm bài test giả** viết lại, mỗi bài chứng minh bằng một đột biến vào code sản phẩm.
+Nặng nhất: bỏ tham số kho khỏi câu hỏi tồn — tức đọc dòng đầu bảng tồn của **cả công ty** — làm
+**bảy** bài mới đỏ trong khi ba bài cũ trọng yếu vẫn xanh.
+
+### Bộ test nay bật CSS
+
+`vite.config.ts` đặt `test.css`. Lớp lỗi "chữ bị CSS giấu" đi từ **ngoài tầm** vào **trong tầm**:
+đo trực tiếp trong jsdom, tắt cờ thì `document.styleSheets.length = 0`, bật thì đọc được
+`position: absolute` và `clip`. Đã diễn lại đúng sự cố 2026-08-24 — 1985 bài còn lại xanh hết,
+chỉ bài mới bắt được. Chi phí đo được nằm **trọn trong nhiễu** chạy-tới-chạy.
+
+**Giới hạn phải biết:** jsdom **không** resolve `var(--…)`, nên màu và cỡ chữ vẫn ngoài tầm. Thứ
+đọc được là `display` / `visibility` / `position` / `clip` / `width` / `height` với giá trị viết
+thẳng — đúng bộ thuộc tính dùng để giấu một dòng chữ.
+
+### Một luật bị vi phạm sáu lần, và phép kiểm chặn lần thứ bảy
+
+Xem `2026-08-31-migration-ghi-de-tap-quyen-cua-tenant.md`. **Chưa gỡ** — nó không mất tiền, trong
+khi ba đợt vá kia đều ăn vào sổ. Nhưng `arch/migration_khong_ghi_role_permissions_test.go` nay
+chặn file thứ bảy, với **hai** danh sách tách bạch: *được phép vĩnh viễn* và *đang nợ*. Danh sách
+nợ **tự thu nhỏ** — sửa xong một file mà quên xoá tên khỏi danh sách thì bài đỏ.
+
+## Còn lại, theo thứ tự nên làm
+
+**0. Nút "Khai chi phí" trên màn lệnh sản xuất.** Đường API `POST /production-orders/:id/actions/khai-chi-phi`
+đã chạy và đã kiểm trên dev, nhưng **chưa nút nào gọi nó**. Frontend đã dựng sẵn hai chỗ để nối:
+biểu thức `khoaOChiPhi` và câu `lyDoKhoaChiPhi` trong `LenhSanXuatFormPage.tsx`. Cho tới lúc đó,
+`CANH_BAO_CHUA_KHAI_CHI_PHI` vẫn là nhiễu trên màn hình. **Việc nhỏ nhất trong danh sách và nên
+làm trước.**
 
 ## Còn lại, theo thứ tự nên làm
 
