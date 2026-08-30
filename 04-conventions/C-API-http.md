@@ -812,6 +812,7 @@ trong envelope. Nó nằm ở khoá `canh_bao` trong `data`, luôn là một **m
 |---|---|
 | `CANH_BAO_GHI_LUI_NGAY` | Dòng này được ghi với thời điểm **trước** dòng mới nhất của cùng cặp (kho, mặt hàng), nên giá vốn của các dòng sau nó đang mang con số cũ. Chữa bằng đường tính lại giá xuất kho — đường đó **chưa có** (ADR-0049 mục 7) |
 | `CANH_BAO_TON_CHUA_CO_GIA` | Tồn của cặp này gồm những dòng ghi trước khi hệ có giá vốn, nên giá trị tồn không phản ánh đủ số lượng đang có |
+| `CANH_BAO_GHI_NGAY_TUONG_LAI` | Chứng từ mang ngày **sau cuối ngày hôm nay** (giờ nghiệp vụ UTC+7). Nó **đã vào sổ** và **đã tính vào giá vốn**, nhưng màn Tồn kho đọc số dư "tính đến bây giờ" nên **không đổi một số nào** — đo được trên máy dev ở rc.86. Không có cảnh báo này thì một tờ phiếu gõ nhầm năm trông y hệt một lần ghi thất bại, và người dùng gõ lại nó lần thứ hai |
 
 Ba luật:
 
