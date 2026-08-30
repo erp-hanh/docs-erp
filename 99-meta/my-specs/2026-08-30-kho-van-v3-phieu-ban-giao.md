@@ -53,7 +53,13 @@ kia merge thì bản ghim lệch lại một lần nữa; đó là cách cơ ch�
 **Dòng đăng ký hình dạng "tài nguyên đơn" trong C-API-01** cũng nằm trên nhánh của phiên
 khác dù `/api/v1/inventory-summary` đã chạy trên dev từ lâu. Đã cherry-pick về `main`.
 
-**Số ADR:** phiên khác đang giữ 0044-0047 trên nhánh của họ. Số tiếp theo là **0049**.
+**Ba con số phiên sau phải lấy đúng, và cả ba đều có bẫy:**
+
+| | Số tiếp theo | Bẫy |
+|---|---|---|
+| ADR | **0051** | Phiên khác giữ **0044-0047** trên nhánh chưa merge của họ. Đợt này đã dùng 0048, 0049, 0050. Đếm bằng `ls 03-decisions/` trên `main` sẽ ra số đã có người giữ |
+| Migration | **000045** | **Đừng** đọc bằng `ls migrations/` trong cây dùng chung `d:/My project web/erp/backend-erp` - cây đó đứng trên nhánh của phiên khác và từng làm dev hỏng vì chuyện này. Đọc bằng `git show origin/main` hoặc trong một worktree riêng |
+| rc | **91** | Tag trên **cả ba** repo: `backend-erp`, `frontend-erp`, `infra-erp` |
 
 ## Giá vốn — đã xong, và câu chặn đã được trả lời
 
