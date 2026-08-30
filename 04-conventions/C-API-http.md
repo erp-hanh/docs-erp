@@ -43,6 +43,7 @@ gõ tiền tố vào từng route.
 | `/api/v1/<tai-nguyen>/:id/<tai-nguyen-con>` | GET, POST | Tài nguyên con | `GET /api/v1/orders/:id/items` |
 | `/api/v1/<tai-nguyen>/:id/actions/<verb>` | POST | Hành động không map được vào CRUD | `POST /api/v1/orders/:id/actions/approve` |
 | `/api/v1/<tai-nguyen-don>` | GET | **Tài nguyên đơn**: một đối tượng duy nhất trong phạm vi người gọi, không danh sách, không `:id` | `GET /api/v1/inventory-summary` |
+| `/api/v1/<tai-nguyen>/:id/<mot-con-so>` | GET | **Một con số của một bản ghi**: không danh sách, không object nhiều tầng | `GET /api/v1/stock-items/:id/gia-nhap-gan-nhat` |
 
 **Về hình dạng tài nguyên đơn**, thêm ngày 2026-08-29 cùng `GET /api/v1/inventory-summary`.
 Nó khác bảy hình dạng trên ở chỗ **không có tập bản ghi nào để phân trang**: cả tài nguyên
@@ -59,6 +60,26 @@ Hai ràng buộc riêng của hình dạng này, và cả hai đều rút ra t�
   gom dữ liệu do nhiều permission gác. Nhóm nào người gọi không có quyền thì trả `null`
   cho nhóm đó; vắng **mọi** quyền mới trả `403`. Trả `0` là **nói dối** — "0 dòng tồn âm"
   đọc ra là kho lành mạnh, trong khi sự thật là người đọc không được phép biết.
+
+**Về hình dạng "một con số của một bản ghi"**, thêm ngày 2026-08-30 cùng
+`GET /api/v1/stock-items/:id/gia-nhap-gan-nhat` ([ADR-0049](../03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)
+mục 6).
+
+Nó đọc giống hình dạng **tài nguyên con** (`/orders/:id/items`) nhưng khác một chỗ quyết
+định: đoạn cuối **không phải một tài nguyên** - không có bảng nào tên `gia_nhap_gan_nhat`,
+không `POST` được, không phân trang. Nó là một con số suy ra từ chính bản ghi trên đường.
+
+Ba ràng buộc:
+
+- **Chỉ dùng khi con số đó KHÔNG thuộc về DTO của bản ghi.** Hai lý do hợp lệ, và phải có
+  ít nhất một: nó đứng sau một **permission khác** với đường chi tiết, hoặc nó **đắt** và
+  không phải màn nào cũng cần. `gia-nhap-gan-nhat` có cả hai - nó đứng sau
+  `inventory.balance_read` chứ không `inventory.item_read`. Thiếu cả hai lý do thì nhét
+  thêm một field vào DTO là đường đúng.
+- **Đoạn cuối là danh từ, không động từ.** `gia-nhap-gan-nhat` được; `tinh-gia` thì không -
+  cái đó là `/actions/<verb>` và phải đăng ký ở C-API-07 bảng 1.
+- **Thân trả về vẫn là một object**, không một giá trị trần: `{stock_item_id, gia_nhap_gan_nhat}`.
+  Một số hay một chuỗi đứng trần trong `data` không nới ra được khi cần thêm ngữ cảnh.
 
 Quy ước viết:
 
@@ -747,6 +768,7 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_stock_vouchers_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_vouchers_so_chung_tu_goc` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_chung_tu_goc`\* |
 | `ck_stock_movements_dieu_chinh_khong_phieu` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
+| `ck_stock_movements_gia` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
 
 \* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
 hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
@@ -761,14 +783,56 @@ tưởng nó chính xác.
 "phải có ít nhất một vai", nên không ô nào trong hai ô sai hơn ô kia. Tô đỏ một ô là chỉ vào
 nhầm chỗ - người dùng đánh dấu đúng ô còn lại vẫn qua.
 
-\*\*\* Dòng này KHÔNG mang FieldError nào, và nó là ngoại lệ duy nhất của bảng. Ba dòng CHECK
+\*\*\* Hai dòng này KHÔNG mang FieldError nào, và chúng là ngoại lệ duy nhất của bảng. Ba dòng CHECK
 kia đỏ khi người dùng gõ một giá trị sai; dòng này chỉ đỏ khi một câu INSERT gắn `voucher_id`
 vào một dòng `dieu_chinh` - tức một **lỗi lập trình**, không một ô nào của form ứng với nó.
 Bịa ra một tên ô ở đây là bảo màn hình tô đỏ một chỗ người dùng không sửa được.
+`ck_stock_movements_gia` cùng loại: nó canh cho `don_gia` và `thanh_tien` cùng `NULL` hoặc
+cùng có giá trị, và cho dấu của tiền khớp dấu của số lượng - cả hai đều là bất biến do tầng
+service dựng ra, không phải thứ người dùng gõ.
 
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
 ánh xạ này dài ra theo từng PR thêm unique index hoặc CHECK có ý nghĩa nghiệp vụ.
+
+#### Cảnh báo — thao tác ĐÃ THÀNH CÔNG nhưng có điều cần nói
+
+Thêm ngày 2026-08-30 cùng giá vốn ([ADR-0049](../03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)
+mục 7).
+
+Cảnh báo **không phải lỗi**: status là `201`, bản ghi đã vào sổ, và không có `error` nào
+trong envelope. Nó nằm ở khoá `canh_bao` trong `data`, luôn là một **mảng** — rỗng thì
+`[]`, không phải `null`:
+
+```json
+"canh_bao": [{ "ma": "CANH_BAO_GHI_LUI_NGAY", "thong_diep": "...", "o": "occurred_at" }]
+```
+
+| Mã | Nghĩa |
+|---|---|
+| `CANH_BAO_GHI_LUI_NGAY` | Dòng này được ghi với thời điểm **trước** dòng mới nhất của cùng cặp (kho, mặt hàng), nên giá vốn của các dòng sau nó đang mang con số cũ. Chữa bằng đường tính lại giá xuất kho — đường đó **chưa có** (ADR-0049 mục 7) |
+| `CANH_BAO_TON_CHUA_CO_GIA` | Tồn của cặp này gồm những dòng ghi trước khi hệ có giá vốn, nên giá trị tồn không phản ánh đủ số lượng đang có |
+
+Ba luật:
+
+- **Mã cảnh báo là hợp đồng, y như mã lỗi** (P-ERR): client rẽ nhánh theo `ma`, không theo
+  `thong_diep`. Đổi hoặc xoá một mã là breaking change; thêm mã mới thì không.
+- **Cảnh báo KHÔNG được thay một lỗi.** Nếu thao tác phải bị từ chối thì trả `4xx`. Một
+  `201` kèm cảnh báo nghĩa là dữ liệu **đã** vào sổ và người dùng phải biết nó không hoàn
+  hảo — chứ không phải "gần như thất bại".
+- **Màn hình bắt buộc hiện ra.** Nuốt một cảnh báo là để người dùng tin con số họ vừa ghi
+  là đúng trong khi hệ đã biết nó không đúng.
+
+**`canh_bao` là ngoại lệ DUY NHẤT** cho hợp đồng "mọi khoá trong thân `201` của POST cũng
+có mặt trong thân của đường GET tương ứng": đường GET đọc một bản ghi đã nằm trong sổ và
+không có gì để cảnh báo về **hành động vừa rồi**. Hai bài test hợp đồng bên `backend-erp`
+ghi đích danh ngoại lệ này.
+
+Hệ quả đi kèm, ghi ra để người sau không đi tìm: **`don_gia` và `thanh_tien` KHÔNG có trong
+thân `201`** của ba đường ghi kho. [ADR-0018](../03-decisions/ADR-0018-luu-response-cho-idempotency-key.md)
+đòi thân `201` dựng xong **trước** câu claim khoá idempotency, còn ADR-0049 mục 1 đòi phép
+chia bình quân chạy **trong** transaction. Hai ràng buộc đó loại nhau, và hai con số ấy chỉ
+đi ra ở đường đọc.
 
 ---
 

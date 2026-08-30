@@ -89,6 +89,18 @@ Lưu **cả hai** `don_gia` và `thanh_tien` chứ không suy một cái từ c�
 đi vào mọi phép cộng, và để nó là kết quả của một phép nhân làm tròn ở mỗi lần đọc là để tổng của
 n dòng lệch khỏi tổng đã ghi.
 
+**Với một dòng xuất, `thanh_tien` KHÔNG bằng `so_luong x don_gia` đã làm tròn** — và đó là điều
+bắt buộc chứ không phải một sai sót được dung thứ. Tồn 3 đơn vị trị giá 10.000 cho đơn giá bình
+quân 3.333,3333; xuất hết 3 mà nhân lại đơn giá đã làm tròn thì được 9.999,9999, và sổ giữ lại
+0,0001 đồng trên một cặp có số lượng bằng 0, vĩnh viễn. `thanh_tien` phải tính bằng **một phép
+chia duy nhất** từ giá trị gốc, `don_gia` làm tròn **riêng**. Luật đầy đủ ở
+[C-DB-database.md](../04-conventions/C-DB-database.md), mục về làm tròn khi ghi.
+
+**Hai con số này không có trong thân `201` của đường ghi**, chỉ có ở đường đọc.
+[ADR-0018](ADR-0018-luu-response-cho-idempotency-key.md) đòi thân `201` dựng xong **trước** câu
+claim khoá idempotency, còn mục 1 ở trên đòi phép chia chạy **trong** transaction. Hai ràng buộc
+đó loại nhau, và cái phải nhường là chỗ hai con số đi ra.
+
 **4. Chuyển kho không sinh lãi hay lỗ.** Dòng xuất ở kho nguồn mang giá bình quân của kho nguồn;
 dòng nhập ở kho đích mang **đúng con số đó**. Tổng giá trị tồn của công ty không đổi qua một lần
 chuyển kho — đó là định nghĩa của việc chuyển kho.
@@ -105,7 +117,12 @@ chuyển kho — đó là định nghĩa của việc chuyển kho.
 
 Nó là đơn giá của dòng `nhap` mới nhất của mặt hàng, tính trên **toàn công ty** chứ không theo
 kho — vì nó trả lời câu "hôm nay mua vào bao nhiêu", và câu đó không phụ thuộc hàng nằm ở kho
-nào. Nó hiện ở màn chi tiết vật tư hàng hoá và là số điền sẵn của bảng tính giá bán.
+nào.
+
+**"Toàn công ty" nghĩa là không lọc theo kho ĐANG HỎI, không phải đọc ra ngoài phạm vi của người
+gọi.** Mệnh đề phạm vi kho vẫn ở nguyên trong câu truy vấn: một thủ kho chỉ được cấp kho A không
+được đọc một con số tiền của kho B. Với người có đủ phạm vi — trường hợp thường — hai cách cho ra
+cùng một kết quả. Nó hiện ở màn chi tiết vật tư hàng hoá và là số điền sẵn của bảng tính giá bán.
 
 Nó **không** được lưu thành một cột: đọc dòng nhập mới nhất là một truy vấn có index sẵn, còn một
 cột lưu sẵn là một con số phải nhớ cập nhật ở ba đường ghi và sẽ lệch ở đường thứ tư.
@@ -132,6 +149,11 @@ bốn cách MISA làm, và bám giá thị trường vì nó cập nhật ngay m
    nó cũng là lý do câu **lô và hạn sử dụng** vẫn còn để mở.
 2. **Cùng một mặt hàng có hai giá vốn ở hai kho.** Người đọc báo cáo phải biết điều này.
 3. **Phiếu lùi ngày cho ra giá sai** cho tới khi có đường tính lại (mục 7).
+4. **Giá trị tồn có thể ÂM**, và mục 1 không lường ca này. Xoá một dòng `nhap` chỉ bị kiểm số
+   lượng không âm chứ không kiểm giá trị, nên `SUM(thanh_tien)` của một cặp có thể xuống dưới 0.
+   Đường ghi chặn dưới ở 0 trước khi chia — nếu không, một đơn giá âm làm hỏng một lệnh xuất
+   hoàn toàn bình thường. Con số âm vẫn nằm nguyên trong sổ và lộ ra ở chỉ số tồn âm của màn
+   tổng quan; chữa nó là việc của đợt "tính lại giá xuất kho".
 
 **Còn để mở:**
 

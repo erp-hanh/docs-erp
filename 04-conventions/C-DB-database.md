@@ -145,6 +145,25 @@ kế toán trưởng. `NUMERIC` là số thập phân chính xác, cộng bao nh
 sai số. Bốn chữ số thập phân là để chứa đơn giá và tỷ giá; làm tròn về đơn vị tiền tệ chỉ
 xảy ra **một lần**, lúc xuất chứng từ, và luôn ở backend (R-19).
 
+**Làm tròn khi GHI: về đúng scale của cột (4 chữ số), và mỗi con số tiền làm tròn ĐỘC LẬP.**
+Câu trên nói về lúc *xuất chứng từ*; đây là luật cho lúc *ghi vào sổ*, và nó cần thiết vì
+một cột `NUMERIC(18,4)` sẽ tự làm tròn khi nhận một giá trị nhiều chữ số hơn — im lặng, ở
+chỗ không ai kiểm lại.
+
+Hệ quả bắt buộc phải chấp nhận: với một dòng có đơn giá suy ra từ một phép chia,
+**`thanh_tien` KHÔNG bằng `so_luong × don_gia` đã làm tròn**. Ví dụ có thật của giá vốn bình
+quân ([ADR-0049](../03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)): tồn
+3 đơn vị trị giá 10.000, đơn giá bình quân là 3.333,3333. Xuất hết 3 đơn vị:
+
+| Cách tính | `thanh_tien` | Còn lại trên sổ |
+|---|---|---|
+| Nhân lại đơn giá đã làm tròn | 9.999,9999 | **0,0001 đồng trên một cặp có số lượng bằng 0, vĩnh viễn** |
+| Chia một lần từ giá trị gốc | 10.000,0000 | 0 |
+
+Đường thứ hai là đường đúng: `thanh_tien` tính **một phép chia duy nhất** từ giá trị gốc,
+`don_gia` làm tròn **riêng**. Vì vậy hai cột phải **cùng được lưu**, và không được suy một
+cột từ cột kia — một lần "dọn dẹp" như thế là một lần tiền mất im lặng.
+
 **Thời điểm là `TIMESTAMPTZ`, không bao giờ là `TIMESTAMP`.** `TIMESTAMP WITHOUT TIME
 ZONE` lưu một chuỗi ký tự mô tả giờ mà không lưu nó thuộc múi giờ nào; hai hàng ghi từ hai
 nơi khác nhau trở nên không so sánh được, và không có cách nào phục hồi thông tin đã mất.
