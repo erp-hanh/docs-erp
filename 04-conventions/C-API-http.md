@@ -663,6 +663,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_PRODUCTION_BOM_LINE_DUPLICATED` | `409` | Nguyên vật liệu này đã có trong định mức | Vi phạm `uq_bom_lines_company_id_stock_item_id_nvl_item_id`. **Không** dùng `ERR_INVENTORY_CODE_DUPLICATED`: ở đây không có mã nào người dùng gõ - thứ trùng là một dòng đã có, và cách sửa là sửa chính dòng đó. Cùng lý lẽ `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` |
 | `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | Số lệnh sản xuất đã tồn tại | Vi phạm `uq_production_orders_company_id_code`. Mã **riêng** khỏi `ERR_INVENTORY_CODE_DUPLICATED` vì hai module không dùng chung không gian số chứng từ |
 | `ERR_PRODUCTION_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, trạng thái đích) không có trong bảng chuyển trạng thái của lệnh sản xuất. Cùng khuôn `ERR_MACHINE_STATUS_NOT_ALLOWED` |
+| `ERR_PRODUCTION_ORDER_HAS_VOUCHER` | `409` | Lệnh này đã sinh ra phiếu, không sửa và không xoá được nữa | Sửa hoặc xoá một lệnh sản xuất đã sinh phiếu. Đường sửa **thay toàn bộ cây hai tầng** và cấp id mới cho mọi dòng thành phẩm, trong khi `production_order_vouchers` neo từng **dòng sổ** vào một `production_order_item_id` - nên một lần sửa cắt đứt mối nối giữa chi phí đã bỏ ra và thành phẩm đã gánh nó, và bảng giá thành mất sạch chi phí NVL mà không lỗi nào báo. `409` chứ không `403`: người gọi có quyền, trạng thái của bản ghi mới là thứ từ chối - cùng hình dạng `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -783,6 +784,8 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_production_orders_trang_thai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `trang_thai`\* |
 | `ck_production_order_items_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
 | `ck_production_order_materials_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
+| `ck_production_orders_chi_phi_khong_am` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `chi_phi_nhan_cong`\* |
+| `ck_production_order_vouchers_loai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
 
 \* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
 hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
@@ -827,6 +830,10 @@ trong envelope. Nó nằm ở khoá `canh_bao` trong `data`, luôn là một **m
 | `CANH_BAO_GHI_LUI_NGAY` | Dòng này được ghi với thời điểm **trước** dòng mới nhất của cùng cặp (kho, mặt hàng), nên giá vốn của các dòng sau nó đang mang con số cũ. Chữa bằng đường tính lại giá xuất kho — đường đó **chưa có** (ADR-0049 mục 7) |
 | `CANH_BAO_TON_CHUA_CO_GIA` | Tồn của cặp này gồm những dòng ghi trước khi hệ có giá vốn, nên giá trị tồn không phản ánh đủ số lượng đang có |
 | `CANH_BAO_GHI_NGAY_TUONG_LAI` | Chứng từ mang ngày **sau cuối ngày hôm nay** (giờ nghiệp vụ UTC+7). Nó **đã vào sổ** và **đã tính vào giá vốn**, nhưng màn Tồn kho đọc số dư "tính đến bây giờ" nên **không đổi một số nào** — đo được trên máy dev ở rc.86. Không có cảnh báo này thì một tờ phiếu gõ nhầm năm trông y hệt một lần ghi thất bại, và người dùng gõ lại nó lần thứ hai |
+| `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO` | Lệnh sản xuất đã có phiếu nhập kho thành phẩm. Giá thành của những lần nhập đó **đã chốt và không được tính lại** (tiền lệ ADR-0049 mục 7: dòng đó đã đi vào giá vốn bình quân của kho thành phẩm). Chi phí của lần xuất này chỉ đi vào lần nhập kho **tiếp theo** |
+| `CANH_BAO_GIA_THANH_BANG_KHONG` | Dòng nhập kho vào sổ với đơn giá `0` vì toàn bộ chi phí của thành phẩm đó **đã được các lần nhập trước hấp thụ hết**. Muốn hai lô chia nhau chi phí thì xuất nguyên vật liệu theo từng lô |
+| `CANH_BAO_PHAN_BO_CHIA_DEU` | Chi phí NVL của **mọi** thành phẩm bằng 0, nên chi phí nhân công và chi phí chung được chia **ĐỀU** cho từng dòng thành phẩm chứ không theo tỷ lệ. Tiêu thức của ADR-0050 mục 7 có mẫu số bằng 0 ở ca này |
+| `CANH_BAO_CHUA_KHAI_CHI_PHI` | Lệnh chưa khai chi phí nhân công hoặc chi phí chung, nên giá thành đang **thấp hơn thực tế**. ADR-0050 mục Consequences 1 đòi đích danh cảnh báo này |
 
 Ba luật:
 
