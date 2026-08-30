@@ -1,4 +1,4 @@
-# Bàn giao — Kho vận v3: phiếu, chuyển kho, giá vốn (rc.82 → rc.87)
+# Bàn giao — Kho vận v3: phiếu, chuyển kho, giá vốn, sản xuất (rc.82 → rc.90)
 
 Ngày: 2026-08-30. Bản vẽ: `99-meta/mockups/kho-van-v3.html`.
 ADR mới trong đợt: **ADR-0048** (phiếu chuyển kho).
@@ -13,9 +13,12 @@ ADR mới trong đợt: **ADR-0048** (phiếu chuyển kho).
 | 85 | Cột Loại cho bảng dòng của phiếu chuyển | Bảng chi tiết `PC-2026-0001` hiện `Nhập kho` / `Xuất kho` |
 | 86 | **Giá vốn** — bình quân tức thời theo từng kho (ADR-0049) | Nhập 100x18.000 + 100x22.000, xuất 150 → đơn giá **20.000**, thành tiền **3.000.000**, tồn 50 = **1.000.000**; cộng lại đúng 4.000.000 đã chi |
 | 87 | Cảnh báo ghi ngày tương lai | Ghi một phiếu năm 2027 → `201` kèm `CANH_BAO_GHI_NGAY_TUONG_LAI` |
+| 88 | **Module `production`** — định mức NVL và lệnh sản xuất (ADR-0050) | Định mức 12 kg/cái x 10 cái = **120 kg** tự điền; hai thành phẩm ra **hai bảng riêng** (120 và 225, không cộng thành 345); sửa định mức gốc 7,5 → 99 mà lệnh cũ vẫn 225 |
+| 89 | Sinh phiếu từ lệnh và tính giá thành | NVL 2.400.000 + chi phí 1.100.000 = **3.500.000** vào kho thành phẩm; kho A còn 80 kg = 1.600.000; giá vốn thành phẩm **350.000/cái** |
+| 90 | Thẻ Giá thành và hai đường sinh phiếu trên màn lệnh | Xuất thêm 10 kg **sau khi** đã nhập kho → `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO`, tiền nằm ở "Chưa ai gánh 200.000", giá thành đã chốt **không đổi**; sửa lệnh đã sinh phiếu → `409` |
 
-Migration trên dev đã ở **42**. `ck_stock_vouchers_kind` nhận đủ ba giá trị; `stock_movements`
-có `don_gia` và `thanh_tien`.
+Migration trên dev đã ở **44**. `stock_movements` có `don_gia`/`thanh_tien`; module `production`
+có `bom_lines`, `production_orders` (hai tầng dòng) và `production_order_vouchers`.
 
 ## Ba lỗi thật bắt được trong đợt, và cách chúng lộ ra
 
@@ -77,17 +80,48 @@ gõ lại nó lần thứ hai. Nay có `CANH_BAO_GHI_NGAY_TUONG_LAI`.
 Đây là loại lỗi khó nhất của đợt: **cả hai đường đều đúng theo cách hiểu của chính nó**, và chỗ
 lệch chỉ lộ ra khi so hai màn với nhau.
 
+## Sản xuất — đã xong cả năm mục của ADR-0050
+
+**Định mức khai ngay trên chính thành phẩm**, đúng MISA: mở danh mục vật tư, chọn Tính chất =
+Thành phẩm, và tab Định mức hiện ra. Số lượng là cho **MỘT** đơn vị thành phẩm.
+
+**Một lệnh có nhiều thành phẩm, mỗi thành phẩm mang bảng định mức RIÊNG.** Chủ xưởng bác bỏ
+phương án gộp ở vòng hỏi đầu và họ đúng: gộp thì xuất thừa 20 kg thép không câu nào nói cổng hay
+khung ăn thêm, và giá thành không tách được cho từng sản phẩm. Tài liệu công khai của MISA không
+vẽ rõ chỗ này — ADR-0050 mục 2 ghi rõ nó dựa trên suy luận chứ không trích dẫn được.
+
+**Giá thành theo phương pháp giản đơn của MISA:** chi phí NVL + chi phí nhân công + chi phí
+chung, phân bổ theo **tỷ lệ chi phí NVL**. Hai ô chi phí gõ bằng **số tiền thật**, không phải phần
+trăm. Bất biến đã kiểm trên máy thật: *tiền rời kho NVL + tiền chi phí = tiền vào kho thành phẩm*.
+
+### Ba ca biên, cả ba nói ra thay vì im lặng
+
+| Ca | Cách xử |
+|---|---|
+| Chưa xuất NVL mà đã nhập kho (mẫu số phân bổ bằng 0) | Chia **đều**, kèm `CANH_BAO_PHAN_BO_CHIA_DEU` |
+| Nhập kho nhiều lần | Lô đầu hấp thụ toàn bộ chi phí; lô sau đơn giá 0 kèm `CANH_BAO_GIA_THANH_BANG_KHONG`, cách chữa nằm trong chính câu chữ |
+| Xuất thêm **sau khi** đã nhập kho | Giá thành đã chốt **không tính lại** (tiền lệ ADR-0049 mục 7); tiền nằm ở "Chưa ai gánh" |
+
+**Lệnh đã sinh phiếu thì không sửa và không xoá được** (`ERR_PRODUCTION_ORDER_HAS_VOUCHER`).
+Đường sửa thay cả cây và cấp id mới cho mọi dòng thành phẩm, mà chi phí neo vào chính id cũ.
+
+### Hai giới hạn của đợt sản xuất
+
+1. **Không có đánh giá dở dang.** Giữa lúc xuất NVL và lúc nhập kho thành phẩm, giá trị nguyên
+   liệu đã rời kho mà chưa thành gì cả. Chấp nhận được với lệnh xong trong vài ngày; sai khi một
+   lệnh kéo qua kỳ báo cáo.
+2. **Hai transaction khi sinh phiếu.** `inventory` commit tờ phiếu trước, `production` ghi mối
+   nối sau. Sập nguồn đúng giữa hai bước để lại phiếu mồ côi; vá bằng `Idempotency-Key` bắt buộc
+   và `ON CONFLICT DO NOTHING`, nên bấm lại nút là tự lành.
+
 ## Còn lại, theo thứ tự nên làm
 
 **1. Tính lại giá xuất kho hàng loạt** — gỡ giới hạn phiếu lùi ngày của ADR-0049 mục 7.
 
-**2. Lệnh sản xuất** — module `production` theo ADR-0017, dù lối vào nằm trong menu Kho vận.
-Gắn với đơn hàng, làm theo lệnh.
+**2. Tính giá bán theo định mức** — module `sales`. Nay đã có đầu vào thật: định mức nguyên
+liệu và giá mua gần nhất.
 
-**3. Tính giá bán theo định mức** — module `sales`.
-
-**4. Tính giá thành thật** — **chưa có chủ module**. ADR-0017 không có `costing`; hai đường
-là nhét vào `production` hoặc `accounting`, và thêm module thứ mười ba thì phải sửa ADR-0017.
+**3. Đánh giá dở dang** và **lệnh sản xuất gắn với đơn hàng** — cả hai chờ `sales` có đơn hàng.
 
 **Chưa có màn nào:** kiểm kê kho, nhập tồn đầu kỳ, danh mục nhóm hàng.
 
@@ -100,6 +134,6 @@ cột hoặc gộp cặp Tồn/Còn lại, nhưng đó là một quyết định
 
 ## Việc tiếp theo, đúng một việc
 
-**Lệnh sản xuất** (module `production`). Đó là mắt xích còn thiếu giữa kho và bán hàng: có lệnh
-thì mới nói được một sản phẩm ăn hết bao nhiêu nguyên liệu, và có con số đó thì hai màn tính giá
-mới có đầu vào thật thay vì một bảng gõ tay.
+**Tính giá bán theo định mức** (module `sales`). Mắt xích cuối của chuỗi: nay đã có định mức
+nguyên liệu, giá vốn, giá thành và giá mua gần nhất — bảng tính giá bán cuối cùng có đầu vào thật
+thay vì những con số gõ tay.
