@@ -656,6 +656,13 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_INVENTORY_UNIT_CONVERSION_INVALID` | `422` | Đơn vị này chưa được khai cho mặt hàng đó | `unit_id` gửi kèm một chuyển động không nằm trong danh sách đơn vị chuyển đổi của mặt hàng, và cũng không phải đơn vị tính chính của nó. Mã **riêng** chứ không dùng `ERR_INVENTORY_UNIT_INVALID`: đơn vị ở đây **có thật và còn sống**, nên cách sửa là mở màn vật tư khai thêm một dòng chuyển đổi chứ không chọn đơn vị khác. Ca này bắt buộc là lỗi chứ không được lặng lẽ hiểu thành đơn vị chính — gõ `5` theo `bó` mà hệ ghi 5 kg là sai sổ 112 kg, và không dòng nào trong sổ nói ra điều đó |
 | `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` | `409` | Dòng sổ này thuộc một phiếu, không xoá lẻ được | `DELETE /stock-movements/:id` trên một dòng có `voucher_id`. Cách sửa là `DELETE /stock-vouchers/:id` — xoá phiếu là xoá cả phiếu ([ADR-0043](../03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md)). `409` chứ không `403`: người gọi **có** quyền xoá dòng sổ và không làm gì sai, trạng thái của bản ghi mới là thứ từ chối thao tác |
 | `ERR_INVENTORY_PARTNER_INVALID` | `422` | Đối tác không hợp lệ | `partner_id` gửi kèm một phiếu không tồn tại, đã bị xoá, hoặc thuộc công ty khác. Mã **riêng** chứ không dùng `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID`: mã kia nói về một ô trên **lưới dòng hàng**, còn ô đối tác nằm ở **phần đầu phiếu** và người dùng sửa nó ở một chỗ khác trên màn hình — cùng tiền lệ `ERR_MACHINE_ASSIGNEE_INVALID`. `422` kèm `error.fields` chứ không `404`: thứ không tồn tại là một giá trị trong body, không phải tài nguyên trên URL |
+| `ERR_PRODUCTION_ITEM_INVALID` | `422` | Vật tư hàng hoá không hợp lệ | `stock_item_id` hoặc `nvl_item_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` - cùng lý do với `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` |
+| `ERR_PRODUCTION_NOT_FINISHED_GOOD` | `422` | Chỉ thành phẩm mới khai được định mức | Mặt hàng có thật và còn sống, nhưng `tinh_chat` của nó không phải `thanh_pham`. Mã **riêng** chứ không gộp vào mã ngay trên: ở đó cách sửa là chọn mặt hàng khác, còn ở đây cách sửa là **mở màn vật tư đổi tính chất** - hai chỗ sửa khác nhau thì hai mã |
+| `ERR_PRODUCTION_UNIT_INVALID` | `422` | Đơn vị tính chưa khai cho mặt hàng này | Đơn vị gửi kèm một dòng định mức không nằm trong danh sách đơn vị chuyển đổi của mặt hàng, và cũng không phải đơn vị tính chính. Song song `ERR_INVENTORY_UNIT_CONVERSION_INVALID` của `inventory`, mã riêng vì hai module trả lời hai câu khác nhau |
+| `ERR_PRODUCTION_BOM_CYCLE` | `422` | Định mức tạo thành vòng lặp | Thành phẩm A có mặt trong định mức của chính nó, trực tiếp hay qua nhiều tầng. Phép nhân "định mức x số lượng" gặp vòng này sẽ chạy vô hạn, nên nó bị chặn ở **đường ghi** chứ không ở đường đọc ([ADR-0050](../03-decisions/ADR-0050-lenh-san-xuat-va-dinh-muc-nguyen-vat-lieu.md) mục 1) |
+| `ERR_PRODUCTION_BOM_LINE_DUPLICATED` | `409` | Nguyên vật liệu này đã có trong định mức | Vi phạm `uq_bom_lines_company_id_stock_item_id_nvl_item_id`. **Không** dùng `ERR_INVENTORY_CODE_DUPLICATED`: ở đây không có mã nào người dùng gõ - thứ trùng là một dòng đã có, và cách sửa là sửa chính dòng đó. Cùng lý lẽ `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` |
+| `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | Số lệnh sản xuất đã tồn tại | Vi phạm `uq_production_orders_company_id_code`. Mã **riêng** khỏi `ERR_INVENTORY_CODE_DUPLICATED` vì hai module không dùng chung không gian số chứng từ |
+| `ERR_PRODUCTION_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, trạng thái đích) không có trong bảng chuyển trạng thái của lệnh sản xuất. Cùng khuôn `ERR_MACHINE_STATUS_NOT_ALLOWED` |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -769,6 +776,13 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_stock_vouchers_so_chung_tu_goc` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_chung_tu_goc`\* |
 | `ck_stock_movements_dieu_chinh_khong_phieu` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
 | `ck_stock_movements_gia` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
+| `uq_bom_lines_company_id_stock_item_id_nvl_item_id` | `ERR_PRODUCTION_BOM_LINE_DUPLICATED` | `409` | — |
+| `uq_production_orders_company_id_code` | `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | — |
+| `ck_bom_lines_khong_tu_tro` | `ERR_PRODUCTION_BOM_CYCLE` | `422` | `nvl_item_id` |
+| `ck_bom_lines_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_luong`\* |
+| `ck_production_orders_trang_thai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `trang_thai`\* |
+| `ck_production_order_items_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
+| `ck_production_order_materials_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
 
 \* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
 hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
