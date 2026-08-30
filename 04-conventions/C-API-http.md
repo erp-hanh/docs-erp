@@ -664,6 +664,7 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | Số lệnh sản xuất đã tồn tại | Vi phạm `uq_production_orders_company_id_code`. Mã **riêng** khỏi `ERR_INVENTORY_CODE_DUPLICATED` vì hai module không dùng chung không gian số chứng từ |
 | `ERR_PRODUCTION_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, trạng thái đích) không có trong bảng chuyển trạng thái của lệnh sản xuất. Cùng khuôn `ERR_MACHINE_STATUS_NOT_ALLOWED` |
 | `ERR_PRODUCTION_ORDER_HAS_VOUCHER` | `409` | Lệnh này đã sinh ra phiếu, không sửa và không xoá được nữa | Sửa hoặc xoá một lệnh sản xuất đã sinh phiếu. Đường sửa **thay toàn bộ cây hai tầng** và cấp id mới cho mọi dòng thành phẩm, trong khi `production_order_vouchers` neo từng **dòng sổ** vào một `production_order_item_id` - nên một lần sửa cắt đứt mối nối giữa chi phí đã bỏ ra và thành phẩm đã gánh nó, và bảng giá thành mất sạch chi phí NVL mà không lỗi nào báo. `409` chứ không `403`: người gọi có quyền, trạng thái của bản ghi mới là thứ từ chối - cùng hình dạng `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` |
+| `ERR_PRODUCTION_COST_INCOMPLETE` | `422` | Không đọc đủ chi phí nguyên vật liệu của lệnh này | Nhập kho thành phẩm mà bảng giá thành **không đọc đủ dòng sổ**: một tờ phiếu của lệnh nằm ngoài phạm vi kho của người gọi, hoặc đã bị xoá. Từ chối chứ **không** cảnh báo, và đó là chỗ khác với bảy mã cảnh báo: giá thành chốt lúc nhập kho là con số **không tính lại được** (ADR-0049 mục 7), nên một cảnh báo chỉ kịp báo sau khi thiệt hại đã vào sổ. Đường **đọc** bảng giá thành và đường **xuất** nguyên vật liệu không bị chặn - chúng còn sửa được |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -834,6 +835,7 @@ trong envelope. Nó nằm ở khoá `canh_bao` trong `data`, luôn là một **m
 | `CANH_BAO_GIA_THANH_BANG_KHONG` | Dòng nhập kho vào sổ với đơn giá `0` vì toàn bộ chi phí của thành phẩm đó **đã được các lần nhập trước hấp thụ hết**. Muốn hai lô chia nhau chi phí thì xuất nguyên vật liệu theo từng lô |
 | `CANH_BAO_PHAN_BO_CHIA_DEU` | Chi phí NVL của **mọi** thành phẩm bằng 0, nên chi phí nhân công và chi phí chung được chia **ĐỀU** cho từng dòng thành phẩm chứ không theo tỷ lệ. Tiêu thức của ADR-0050 mục 7 có mẫu số bằng 0 ở ca này |
 | `CANH_BAO_CHUA_KHAI_CHI_PHI` | Lệnh chưa khai chi phí nhân công hoặc chi phí chung, nên giá thành đang **thấp hơn thực tế**. ADR-0050 mục Consequences 1 đòi đích danh cảnh báo này |
+| `CANH_BAO_KHAI_CHI_PHI_SAU_KHI_NHAP_KHO` | Khai hoặc sửa hai ô chi phí trên một lệnh **đã có** phiếu nhập kho thành phẩm. Giá thành của những lần nhập đó đã chốt và không tính lại; con số vừa gõ chỉ đi vào lần nhập kho sau. **Không** dùng lại `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO`: thông điệp của mã đó nói về "chi phí của **lần xuất này**", câu sai khi người dùng vừa gõ một ô tiền chứ không xuất gì - và client rẽ nhánh theo mã để chọn câu hiển thị |
 
 Ba luật:
 
