@@ -62,6 +62,36 @@ Dòng nhập và dòng xuất luôn thuộc về một **phiếu**; dòng **đi�
 chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.
 _Avoid_: giao dịch kho, bút toán kho
 
+**Định mức nguyên vật liệu**:
+Công thức của một **thành phẩm**: mỗi dòng ghi một nguyên vật liệu, đơn vị tính, và số lượng cần
+để làm ra **MỘT** đơn vị thành phẩm. Khai ngay trên chính thành phẩm trong danh mục vật tư hàng
+hoá, chỉ hiện khi tính chất là `thanh_pham`
+([ADR-0050](03-decisions/ADR-0050-lenh-san-xuat-va-dinh-muc-nguyen-vat-lieu.md)).
+
+Nó là **dự kiến**, không phải hạn mức: xuất thừa hay thiếu so với định mức vẫn ghi được, phần lệch
+được nói ra chứ không bị chặn.
+_Avoid_: BOM, công thức, cấu thành sản phẩm
+
+**Lệnh sản xuất**:
+Một đợt làm hàng: có số, có ngày, và **nhiều dòng thành phẩm**. **Mỗi dòng thành phẩm mang bảng
+định mức riêng của nó** - nguyên liệu của hai thành phẩm không trộn chung, vì trộn rồi thì không
+nói được sản phẩm nào ăn thịt.
+
+Lệnh thuộc module `production`, dù lối vào nằm trong menu Kho vận - đó là cách gom **phân hệ ở
+giao diện**, không phải ranh giới sở hữu dữ liệu (ADR-0017).
+
+Lệnh có **trạng thái tiến độ** (`moi`, `dang_lam`, `xong`, `huy`) chứ **không có bước duyệt**, và
+trạng thái đó không gác đường ghi.
+_Avoid_: đơn sản xuất, phiếu sản xuất, work order
+
+**Giá thành**:
+Số tiền một đơn vị thành phẩm gánh khi nhập kho: **chi phí nguyên vật liệu + chi phí nhân công +
+chi phí chung**, phân bổ cho từng thành phẩm theo **tỷ lệ chi phí nguyên vật liệu** của nó.
+
+Khác **giá vốn**: giá thành là con số được **chốt một lần** lúc nhập kho thành phẩm; giá vốn là
+con số **đổi theo từng lần nhập** của cả một cặp kho + mặt hàng.
+_Avoid_: giá sản xuất, chi phí sản xuất
+
 **Giá vốn**:
 Số tiền một đơn vị hàng đang gánh trên sổ. Tính theo **bình quân tức thời**, phạm vi **từng
 kho**: mỗi lần nhập làm giá bình quân của cặp (kho, mặt hàng) đổi ngay, và mọi lần xuất sau đó
