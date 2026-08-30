@@ -62,6 +62,24 @@ Dòng nhập và dòng xuất luôn thuộc về một **phiếu**; dòng **đi�
 chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.
 _Avoid_: giao dịch kho, bút toán kho
 
+**Giá vốn**:
+Số tiền một đơn vị hàng đang gánh trên sổ. Tính theo **bình quân tức thời**, phạm vi **từng
+kho**: mỗi lần nhập làm giá bình quân của cặp (kho, mặt hàng) đổi ngay, và mọi lần xuất sau đó
+lấy con số vừa đổi ([ADR-0049](03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)).
+
+Đơn giá của dòng **nhập** là số người dùng gõ - giá **chưa thuế**. Đơn giá của dòng **xuất** là
+số máy tính, và không ô nào cho gõ đè.
+
+**Cùng một mặt hàng có giá vốn khác nhau ở hai kho.** Đó là tính chất của phương pháp này, không
+phải lỗi dữ liệu.
+_Avoid_: giá nhập, giá mua, đơn giá tồn
+
+**Giá nhập gần nhất**:
+Đơn giá của lần nhập **mới nhất** của một mặt hàng, tính trên **toàn công ty**. Nó **không phải
+giá vốn** và không đi vào một phép tính tồn nào: nó trả lời câu "hôm nay mua vào bao nhiêu", và
+là số điền sẵn khi **báo giá bán**.
+_Avoid_: giá nhập cuối, giá thị trường
+
 **Phiếu**:
 Một chứng từ nhập kho, xuất kho hoặc **chuyển kho**: có số, có ngày, có **đối tác**, và mang
 **nhiều dòng hàng**. Phiếu là thứ người ta cầm trên tay và ký; dòng sổ là thứ máy tính tồn
