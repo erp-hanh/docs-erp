@@ -877,3 +877,34 @@ agent-browser --session soi screenshot --full ton-kho.png
   `id/ma/ten` ở Task 1, và Task 2 dựng đúng ba trường đó từ `code`/`name`. `ThanhLoc` nhận
   `dangLoc/onXoaLoc/soDong/onDoiSoDong` ở Task 3 và Task 4 truyền đúng bốn cái đó. `ONgay`
   nhận `value` ISO ở Task 5 và Task 6 truyền `params.tu_ngay` vốn cũng là ISO.
+
+---
+
+## Đã thi công xong ngày 2026-08-31
+
+Bảy task đều xong, chạy trên `v0.1.0-rc.95` của máy dev. Cổng kiểm cuối:
+`TEST=0` (141 file, 2020 bài), `LINT=0`, `TSC=0`, `ARCH=0`, `kiem-giao-dien: sach`.
+
+**Bảy chỗ plan nói thiếu, và cả bảy đều bắt buộc phải làm:**
+
+| # | Plan nói | Thực tế |
+|---|---|---|
+| 1 | Task 1 dựng xong ô tra cứu | Ô **chưa hề chốt chuỗi tìm** - vẽ ra nhưng không nối với danh mục. Phải thêm Enter + rời ô |
+| 2 | - | Phải thêm **nút bỏ chọn**: ô cũ bỏ chọn bằng dòng rỗng "-- Chọn kho --", ô mới không có dòng đó |
+| 3 | - | Phải thêm **`nhanRong`** làm placeholder: ô rỗng trông y hệt ô người dùng quên điền |
+| 4 | Sửa `ChonKho` và `ChonVatTu` | Còn **`ChonDoiTac`** cũng dùng chung - ba file, không hai |
+| 5 | - | **100 bài test** phải đổi cách chọn giá trị. Phần lớn đi qua một helper `chon()` nên sửa một chỗ |
+| 6 | Áp `ONgay` cho hai màn | Sổ chuyển động dùng `datetime-local` (ngày + GIỜ), không phải `date`. Đổi sang lọc theo ngày là **mất phần giờ** - mất có chủ ý, ghi trong code |
+| 7 | - | Câu ghi chú "Con số hiện theo thời điểm hiện tại" mang `flex-basis:100%` nên **vẫn** đẩy ô Số dòng xuống hàng riêng. Phải đưa nó ra ngoài thanh lọc |
+
+**Một lỗi thật lộ ra trong lúc đổi, và nó sẽ im lặng nếu không có test:** sau khi chọn, ô
+hiện nhãn của mục đã chọn, rồi cú rời ô gửi **chính nhãn đó** lên làm chuỗi tìm mới - phía
+gọi bỏ chọn theo luật của nó và lựa chọn vừa đặt biến mất. 29 bài của màn ghi phiếu đỏ vì
+đúng ca này. Chữa bằng cách tách chuỗi người dùng gõ khỏi nhãn đang hiện.
+
+**Hai lỗi chỉ thấy được khi soi trên dev** (mục 3 và 7 ở bảng trên) - cả hai đều xanh ở máy.
+Đó là lần thứ hai trong cùng một ngày việc soi bằng mắt bắt được thứ 2020 bài test không
+thấy.
+
+Đợt B (điều hướng) và đợt C (vá bố cục bảng) **chưa làm**, và bảng tràn ngang ở `1366` vẫn
+còn nguyên - nó thuộc đợt C.
