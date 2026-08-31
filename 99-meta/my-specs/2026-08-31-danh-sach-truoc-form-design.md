@@ -270,3 +270,41 @@ Không phép kiểm tự động nào bắt được: `tsc` và `eslint` đều 
 - **Form điều chỉnh tồn hẹp 640px, dán lệch trái.** Đó là khuôn form một cột của skill
   `frontend-design-erp`. Đổi sang căn giữa là một quyết định thiết kế cho CẢ hệ, không phải
   một sửa lẻ của màn này - cần quyết riêng.
+
+## 13. Đợt B đã làm
+
+Thi công 2026-08-31, chạy trên `v0.1.0-rc.103`. Đây là phần điều hướng của mục 3-7.
+
+| Đường | Trước | Nay |
+|---|---|---|
+| `/nhap-kho` | form trắng | danh sách phiếu nhập, nút **Lập phiếu nhập** |
+| `/nhap-kho/moi` | không có | form lập phiếu nhập |
+| `/xuat-kho`, `/chuyen-kho` | form trắng | như trên, đổi loại |
+| `/dieu-chinh` | form trắng | danh sách các lần điều chỉnh, nút **Ghi điều chỉnh** |
+| `/dieu-chinh/moi` | không có | form ghi điều chỉnh |
+| `/phieu` | màn sổ gộp | **chuyển hướng** sang `/nhap-kho` |
+| nhóm nav "Ghi sổ" | 5 mục ghi + 2 sổ | đổi tên **"Nghiệp vụ"**; mục Sổ phiếu rời menu |
+
+Bốn màn danh sách dùng lại `VoucherListPage` / `MovementListPage` với một prop `loaiCoDinh`.
+Không màn mới nào được viết, không endpoint nào được thêm.
+
+### Bốn thứ chỉ lộ ra khi soi bản chạy thật
+
+Cả bốn đều xanh ở máy, và cả bốn đều là hệ quả trực tiếp của chính đợt này:
+
+1. Dải chỉ số nói **"Phiếu khớp bộ lọc"** ngay lần đầu mở màn - loại cố định bị tính là
+   "đang lọc". Nó là bản chất của màn, không phải phép thu hẹp người dùng vừa đặt.
+2. Cột **Loại** chép lại một chữ đã nằm ở tiêu đề màn, hai mươi lần trên hai mươi hàng.
+3. Màn Điều chỉnh tồn khi chưa có dòng nào nói **"không có chuyển động nào khớp bộ lọc"**
+   kèm nút Bỏ bộ lọc - trách người dùng về một bộ lọc họ không hề đặt. Câu đúng là "Chưa có
+   lần điều chỉnh nào", và ở màn này rỗng là chuyện **bình thường**: nó nghĩa là sổ chưa
+   lệch lần nào.
+4. Tiêu đề màn là **"Điều chỉnh"** trong khi mục nav gọi **"Điều chỉnh tồn"**. Nhãn của một
+   ô trong bảng không dùng lại được làm tên một màn hình.
+
+### Còn lại của spec, chưa làm
+
+- Cột "Thao tác" của màn phiếu một loại bị cắt tiêu đề ở khung 1366 (`THAO ...`).
+- Ba màn danh mục `/vat-tu`, `/kho`, `/doi-tac` vẫn dùng thanh lọc chép tay - đợt A cố ý
+  không đụng tới chúng.
+- Bốn màn ngoài Kho vận (Thiết bị, Người dùng, Phân vùng, Lệnh sản xuất) vẫn là thanh lọc cũ.
