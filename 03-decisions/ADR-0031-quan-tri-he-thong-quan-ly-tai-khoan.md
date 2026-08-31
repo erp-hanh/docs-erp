@@ -40,6 +40,20 @@ Nên bốn mệnh đề hay được nói ra về vai trò này đều **sai**:
 | Nó không gán được phạm vi kho | Nó có `inventory.scope_assign` |
 | Nó chỉ có năm quyền `company_*` | Câu đó ở ADR-0019 mục 5, và đã lạc hậu |
 
+> **Đính chính 2026-08-30 — con số mười lăm đã lạc hậu, và nó sẽ còn lạc hậu tiếp.**
+> Tập quyền thật nay là **mười chín** mã. Nó lớn lên đúng một mã mỗi lần hệ có thêm một module,
+> và mã đó luôn là `<module>.role_assign`: `production.role_assign` vào cùng
+> [ADR-0050](ADR-0050-lenh-san-xuat-va-dinh-muc-nguyen-vat-lieu.md).
+>
+> Luật đọc ra từ ba lần đổi số: **mỗi module mới mang vào đúng một mã, và chỉ mã `role_assign`** -
+> không mã vận hành nào. Quản trị hệ thống **gán được** vai trò của mọi module nhưng **không làm
+> được** việc của module nào, và đó vẫn đúng bốn mệnh đề ở bảng trên.
+>
+> Vì sao bắt buộc phải nhớ: một vai trò của module A mang mã của module B thì người gán phải có
+> `B.role_assign` (ADR-0024 mục 3). Quên nó là **khoá cửa im lặng** - không ai gán được vai trò
+> đó nữa, và không thông điệp nào nói vì sao. Đã xảy ra thật khi `production` ra đời, và bắt
+> được bằng bộ test có database chứ không bằng `go build`.
+
 **Thứ nó thật sự thiếu, đúng ba mã:** `auth.user_create`, `auth.user_update`,
 `auth.user_delete`. So với `auth.admin` (`vaitro.go:250-261`) thì đó là toàn bộ khoảng cách
 trên bảng `users`.

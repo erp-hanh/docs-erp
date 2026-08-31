@@ -43,6 +43,7 @@ gõ tiền tố vào từng route.
 | `/api/v1/<tai-nguyen>/:id/<tai-nguyen-con>` | GET, POST | Tài nguyên con | `GET /api/v1/orders/:id/items` |
 | `/api/v1/<tai-nguyen>/:id/actions/<verb>` | POST | Hành động không map được vào CRUD | `POST /api/v1/orders/:id/actions/approve` |
 | `/api/v1/<tai-nguyen-don>` | GET | **Tài nguyên đơn**: một đối tượng duy nhất trong phạm vi người gọi, không danh sách, không `:id` | `GET /api/v1/inventory-summary` |
+| `/api/v1/<tai-nguyen>/:id/<mot-con-so>` | GET | **Một con số của một bản ghi**: không danh sách, không object nhiều tầng | `GET /api/v1/stock-items/:id/gia-nhap-gan-nhat` |
 
 **Về hình dạng tài nguyên đơn**, thêm ngày 2026-08-29 cùng `GET /api/v1/inventory-summary`.
 Nó khác bảy hình dạng trên ở chỗ **không có tập bản ghi nào để phân trang**: cả tài nguyên
@@ -59,6 +60,26 @@ Hai ràng buộc riêng của hình dạng này, và cả hai đều rút ra t�
   gom dữ liệu do nhiều permission gác. Nhóm nào người gọi không có quyền thì trả `null`
   cho nhóm đó; vắng **mọi** quyền mới trả `403`. Trả `0` là **nói dối** — "0 dòng tồn âm"
   đọc ra là kho lành mạnh, trong khi sự thật là người đọc không được phép biết.
+
+**Về hình dạng "một con số của một bản ghi"**, thêm ngày 2026-08-30 cùng
+`GET /api/v1/stock-items/:id/gia-nhap-gan-nhat` ([ADR-0049](../03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)
+mục 6).
+
+Nó đọc giống hình dạng **tài nguyên con** (`/orders/:id/items`) nhưng khác một chỗ quyết
+định: đoạn cuối **không phải một tài nguyên** - không có bảng nào tên `gia_nhap_gan_nhat`,
+không `POST` được, không phân trang. Nó là một con số suy ra từ chính bản ghi trên đường.
+
+Ba ràng buộc:
+
+- **Chỉ dùng khi con số đó KHÔNG thuộc về DTO của bản ghi.** Hai lý do hợp lệ, và phải có
+  ít nhất một: nó đứng sau một **permission khác** với đường chi tiết, hoặc nó **đắt** và
+  không phải màn nào cũng cần. `gia-nhap-gan-nhat` có cả hai - nó đứng sau
+  `inventory.balance_read` chứ không `inventory.item_read`. Thiếu cả hai lý do thì nhét
+  thêm một field vào DTO là đường đúng.
+- **Đoạn cuối là danh từ, không động từ.** `gia-nhap-gan-nhat` được; `tinh-gia` thì không -
+  cái đó là `/actions/<verb>` và phải đăng ký ở C-API-07 bảng 1.
+- **Thân trả về vẫn là một object**, không một giá trị trần: `{stock_item_id, gia_nhap_gan_nhat}`.
+  Một số hay một chuỗi đứng trần trong `data` không nới ra được khi cần thêm ngữ cảnh.
 
 Quy ước viết:
 
@@ -632,6 +653,19 @@ hoặc `AUTH` cho lỗi xác thực và phân quyền.
 | `ERR_INVENTORY_UNIT_INVALID` | `422` | Đơn vị tính không hợp lệ | `unit_id` không phải một đơn vị tính còn sống |
 | `ERR_INVENTORY_UNIT_CODE_DUPLICATED` | `409` | Mã đơn vị tính đã tồn tại | Tạo đơn vị tính với mã đã có — vi phạm `uq_units_code`. Mã **riêng** chứ không dùng `ERR_INVENTORY_CODE_DUPLICATED`: mã kia mang mệnh đề "trong cùng công ty này", mà `units` không có `company_id` nên một mã trùng là trùng với **toàn hệ** ([ADR-0022](../03-decisions/ADR-0022-mo-duong-ghi-cho-bang-units.md)) |
 | `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` | `422` | Vật tư hoặc kho không hợp lệ | `stock_item_id` hoặc `warehouse_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` — cùng lý do với `ERR_MACHINE_ASSIGNEE_INVALID` |
+| `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` | `409` | Mặt hàng này đã khai đơn vị đó rồi | Thêm một dòng đơn vị chuyển đổi trùng cặp (mặt hàng, đơn vị) — vi phạm `uq_unit_conversions_company_id_stock_item_id_unit_id`. Mã **riêng** chứ không dùng `ERR_INVENTORY_CODE_DUPLICATED`: mã kia nói về một **mã người dùng gõ** và cách sửa là gõ mã khác; ở đây không có mã nào, thứ trùng là một dòng đã có trong danh sách và cách sửa là sửa chính dòng đó |
+| `ERR_INVENTORY_UNIT_CONVERSION_INVALID` | `422` | Đơn vị này chưa được khai cho mặt hàng đó | `unit_id` gửi kèm một chuyển động không nằm trong danh sách đơn vị chuyển đổi của mặt hàng, và cũng không phải đơn vị tính chính của nó. Mã **riêng** chứ không dùng `ERR_INVENTORY_UNIT_INVALID`: đơn vị ở đây **có thật và còn sống**, nên cách sửa là mở màn vật tư khai thêm một dòng chuyển đổi chứ không chọn đơn vị khác. Ca này bắt buộc là lỗi chứ không được lặng lẽ hiểu thành đơn vị chính — gõ `5` theo `bó` mà hệ ghi 5 kg là sai sổ 112 kg, và không dòng nào trong sổ nói ra điều đó |
+| `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` | `409` | Dòng sổ này thuộc một phiếu, không xoá lẻ được | `DELETE /stock-movements/:id` trên một dòng có `voucher_id`. Cách sửa là `DELETE /stock-vouchers/:id` — xoá phiếu là xoá cả phiếu ([ADR-0043](../03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md)). `409` chứ không `403`: người gọi **có** quyền xoá dòng sổ và không làm gì sai, trạng thái của bản ghi mới là thứ từ chối thao tác |
+| `ERR_INVENTORY_PARTNER_INVALID` | `422` | Đối tác không hợp lệ | `partner_id` gửi kèm một phiếu không tồn tại, đã bị xoá, hoặc thuộc công ty khác. Mã **riêng** chứ không dùng `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID`: mã kia nói về một ô trên **lưới dòng hàng**, còn ô đối tác nằm ở **phần đầu phiếu** và người dùng sửa nó ở một chỗ khác trên màn hình — cùng tiền lệ `ERR_MACHINE_ASSIGNEE_INVALID`. `422` kèm `error.fields` chứ không `404`: thứ không tồn tại là một giá trị trong body, không phải tài nguyên trên URL |
+| `ERR_PRODUCTION_ITEM_INVALID` | `422` | Vật tư hàng hoá không hợp lệ | `stock_item_id` hoặc `nvl_item_id` không phải bản ghi còn sống **của công ty actor**. Bản ghi của công ty khác trả **cùng** mã này, không phải `404` - cùng lý do với `ERR_INVENTORY_ITEM_OR_WAREHOUSE_INVALID` |
+| `ERR_PRODUCTION_NOT_FINISHED_GOOD` | `422` | Chỉ thành phẩm mới khai được định mức | Mặt hàng có thật và còn sống, nhưng `tinh_chat` của nó không phải `thanh_pham`. Mã **riêng** chứ không gộp vào mã ngay trên: ở đó cách sửa là chọn mặt hàng khác, còn ở đây cách sửa là **mở màn vật tư đổi tính chất** - hai chỗ sửa khác nhau thì hai mã |
+| `ERR_PRODUCTION_UNIT_INVALID` | `422` | Đơn vị tính chưa khai cho mặt hàng này | Đơn vị gửi kèm một dòng định mức không nằm trong danh sách đơn vị chuyển đổi của mặt hàng, và cũng không phải đơn vị tính chính. Song song `ERR_INVENTORY_UNIT_CONVERSION_INVALID` của `inventory`, mã riêng vì hai module trả lời hai câu khác nhau |
+| `ERR_PRODUCTION_BOM_CYCLE` | `422` | Định mức tạo thành vòng lặp | Thành phẩm A có mặt trong định mức của chính nó, trực tiếp hay qua nhiều tầng. Phép nhân "định mức x số lượng" gặp vòng này sẽ chạy vô hạn, nên nó bị chặn ở **đường ghi** chứ không ở đường đọc ([ADR-0050](../03-decisions/ADR-0050-lenh-san-xuat-va-dinh-muc-nguyen-vat-lieu.md) mục 1) |
+| `ERR_PRODUCTION_BOM_LINE_DUPLICATED` | `409` | Nguyên vật liệu này đã có trong định mức | Vi phạm `uq_bom_lines_company_id_stock_item_id_nvl_item_id`. **Không** dùng `ERR_INVENTORY_CODE_DUPLICATED`: ở đây không có mã nào người dùng gõ - thứ trùng là một dòng đã có, và cách sửa là sửa chính dòng đó. Cùng lý lẽ `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` |
+| `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | Số lệnh sản xuất đã tồn tại | Vi phạm `uq_production_orders_company_id_code`. Mã **riêng** khỏi `ERR_INVENTORY_CODE_DUPLICATED` vì hai module không dùng chung không gian số chứng từ |
+| `ERR_PRODUCTION_STATUS_NOT_ALLOWED` | `409` | Trạng thái hiện tại không cho phép thao tác này | Cặp (trạng thái hiện tại, trạng thái đích) không có trong bảng chuyển trạng thái của lệnh sản xuất. Cùng khuôn `ERR_MACHINE_STATUS_NOT_ALLOWED` |
+| `ERR_PRODUCTION_ORDER_HAS_VOUCHER` | `409` | Lệnh này đã sinh ra phiếu, không sửa và không xoá được nữa | Sửa hoặc xoá một lệnh sản xuất đã sinh phiếu. Đường sửa **thay toàn bộ cây hai tầng** và cấp id mới cho mọi dòng thành phẩm, trong khi `production_order_vouchers` neo từng **dòng sổ** vào một `production_order_item_id` - nên một lần sửa cắt đứt mối nối giữa chi phí đã bỏ ra và thành phẩm đã gánh nó, và bảng giá thành mất sạch chi phí NVL mà không lỗi nào báo. `409` chứ không `403`: người gọi có quyền, trạng thái của bản ghi mới là thứ từ chối - cùng hình dạng `ERR_INVENTORY_MOVEMENT_IN_VOUCHER` |
+| `ERR_PRODUCTION_COST_INCOMPLETE` | `422` | Không đọc đủ chi phí nguyên vật liệu của lệnh này | Nhập kho thành phẩm mà bảng giá thành **không đọc đủ dòng sổ**: một tờ phiếu của lệnh nằm ngoài phạm vi kho của người gọi, hoặc đã bị xoá. Từ chối chứ **không** cảnh báo, và đó là chỗ khác với bảy mã cảnh báo: giá thành chốt lúc nhập kho là con số **không tính lại được** (ADR-0049 mục 7), nên một cảnh báo chỉ kịp báo sau khi thiệt hại đã vào sổ. Đường **đọc** bảng giá thành và đường **xuất** nguyên vật liệu không bị chặn - chúng còn sửa được |
 | `ERR_INTERNAL` | `500` | Lỗi hệ thống, vui lòng báo lại kèm mã request | Mọi lỗi kỹ thuật và lỗi lập trình |
 
 Quy ước dùng bảng này:
@@ -735,6 +769,25 @@ lỗi PostgreSQL, vì `23505` một mình không nói được ràng buộc nào
 | `ck_stock_items_tinh_chat` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `tinh_chat`\* |
 | `ck_stock_movements_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
 | `ck_stock_movements_kind_sign` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `quantity`\* |
+| `uq_unit_conversions_company_id_stock_item_id_unit_id` | `ERR_INVENTORY_UNIT_CONVERSION_DUPLICATED` | `409` | — |
+| `ck_unit_conversions_phep` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `phep`\* |
+| `ck_unit_conversions_ty_le_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `ty_le`\* |
+| `uq_partners_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `uq_stock_vouchers_company_id_code` | `ERR_INVENTORY_CODE_DUPLICATED` | `409` | — |
+| `ck_partners_it_nhat_mot_vai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `la_nha_cung_cap`, `la_khach_hang`\*\* |
+| `ck_stock_vouchers_kind` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `kind`\* |
+| `ck_stock_vouchers_so_chung_tu_goc` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_chung_tu_goc`\* |
+| `ck_stock_movements_dieu_chinh_khong_phieu` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
+| `ck_stock_movements_gia` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
+| `uq_bom_lines_company_id_stock_item_id_nvl_item_id` | `ERR_PRODUCTION_BOM_LINE_DUPLICATED` | `409` | — |
+| `uq_production_orders_company_id_code` | `ERR_PRODUCTION_CODE_DUPLICATED` | `409` | — |
+| `ck_bom_lines_khong_tu_tro` | `ERR_PRODUCTION_BOM_CYCLE` | `422` | `nvl_item_id` |
+| `ck_bom_lines_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `so_luong`\* |
+| `ck_production_orders_trang_thai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `trang_thai`\* |
+| `ck_production_order_items_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
+| `ck_production_order_materials_so_luong_duong` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `thanh_pham`\* |
+| `ck_production_orders_chi_phi_khong_am` | `ERR_COMMON_VALIDATION_FAILED` | `422` | `chi_phi_nhan_cong`\* |
+| `ck_production_order_vouchers_loai` | `ERR_COMMON_VALIDATION_FAILED` | `422` | — \*\*\* |
 
 \* Các dòng CHECK trên là hàng phòng thủ cuối trong hàm dịch vi phạm CHECK của module sở
 hữu bảng (`dichViPhamCheck` ở `modules/machine/internal/service/errors.go` cho bốn dòng của
@@ -745,9 +798,66 @@ nhất quán với mọi `422` khác, không phải tên đã được xác nh�
 ra lỗi. Comment tại chỗ trong `dichViPhamCheck` phải nói rõ điều này, để người sau không
 tưởng nó chính xác.
 
+\*\* Dòng này trả **hai** FieldError chứ không một, và đó không phải thừa: ràng buộc là
+"phải có ít nhất một vai", nên không ô nào trong hai ô sai hơn ô kia. Tô đỏ một ô là chỉ vào
+nhầm chỗ - người dùng đánh dấu đúng ô còn lại vẫn qua.
+
+\*\*\* Hai dòng này KHÔNG mang FieldError nào, và chúng là ngoại lệ duy nhất của bảng. Ba dòng CHECK
+kia đỏ khi người dùng gõ một giá trị sai; dòng này chỉ đỏ khi một câu INSERT gắn `voucher_id`
+vào một dòng `dieu_chinh` - tức một **lỗi lập trình**, không một ô nào của form ứng với nó.
+Bịa ra một tên ô ở đây là bảo màn hình tô đỏ một chỗ người dùng không sửa được.
+`ck_stock_movements_gia` cùng loại: nó canh cho `don_gia` và `thanh_tien` cùng `NULL` hoặc
+cùng có giá trị, và cho dấu của tiền khớp dấu của số lượng - cả hai đều là bất biến do tầng
+service dựng ra, không phải thứ người dùng gõ.
+
 Constraint chưa có trong bảng ánh xạ thì để lỗi đi tiếp nguyên trạng thành `ERR_INTERNAL`.
 Đoán bừa cho ra thông điệp sai, và thông điệp sai khó gỡ hơn thông điệp chung chung. Bảng
 ánh xạ này dài ra theo từng PR thêm unique index hoặc CHECK có ý nghĩa nghiệp vụ.
+
+#### Cảnh báo — thao tác ĐÃ THÀNH CÔNG nhưng có điều cần nói
+
+Thêm ngày 2026-08-30 cùng giá vốn ([ADR-0049](../03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)
+mục 7).
+
+Cảnh báo **không phải lỗi**: status là `201`, bản ghi đã vào sổ, và không có `error` nào
+trong envelope. Nó nằm ở khoá `canh_bao` trong `data`, luôn là một **mảng** — rỗng thì
+`[]`, không phải `null`:
+
+```json
+"canh_bao": [{ "ma": "CANH_BAO_GHI_LUI_NGAY", "thong_diep": "...", "o": "occurred_at" }]
+```
+
+| Mã | Nghĩa |
+|---|---|
+| `CANH_BAO_GHI_LUI_NGAY` | Dòng này được ghi với thời điểm **trước** dòng mới nhất của cùng cặp (kho, mặt hàng), nên giá vốn của các dòng sau nó đang mang con số cũ. Chữa bằng đường tính lại giá xuất kho — đường đó **chưa có** (ADR-0049 mục 7) |
+| `CANH_BAO_TON_CHUA_CO_GIA` | Tồn của cặp này gồm những dòng ghi trước khi hệ có giá vốn, nên giá trị tồn không phản ánh đủ số lượng đang có |
+| `CANH_BAO_GHI_NGAY_TUONG_LAI` | Chứng từ mang ngày **sau cuối ngày hôm nay** (giờ nghiệp vụ UTC+7). Nó **đã vào sổ** và **đã tính vào giá vốn**, nhưng màn Tồn kho đọc số dư "tính đến bây giờ" nên **không đổi một số nào** — đo được trên máy dev ở rc.86. Không có cảnh báo này thì một tờ phiếu gõ nhầm năm trông y hệt một lần ghi thất bại, và người dùng gõ lại nó lần thứ hai |
+| `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO` | Lệnh sản xuất đã có phiếu nhập kho thành phẩm. Giá thành của những lần nhập đó **đã chốt và không được tính lại** (tiền lệ ADR-0049 mục 7: dòng đó đã đi vào giá vốn bình quân của kho thành phẩm). Chi phí của lần xuất này chỉ đi vào lần nhập kho **tiếp theo** |
+| `CANH_BAO_GIA_THANH_BANG_KHONG` | Dòng nhập kho vào sổ với đơn giá `0` vì toàn bộ chi phí của thành phẩm đó **đã được các lần nhập trước hấp thụ hết**. Muốn hai lô chia nhau chi phí thì xuất nguyên vật liệu theo từng lô |
+| `CANH_BAO_PHAN_BO_CHIA_DEU` | Chi phí NVL của **mọi** thành phẩm bằng 0, nên chi phí nhân công và chi phí chung được chia **ĐỀU** cho từng dòng thành phẩm chứ không theo tỷ lệ. Tiêu thức của ADR-0050 mục 7 có mẫu số bằng 0 ở ca này |
+| `CANH_BAO_CHUA_KHAI_CHI_PHI` | Lệnh chưa khai chi phí nhân công hoặc chi phí chung, nên giá thành đang **thấp hơn thực tế**. ADR-0050 mục Consequences 1 đòi đích danh cảnh báo này |
+| `CANH_BAO_KHAI_CHI_PHI_SAU_KHI_NHAP_KHO` | Khai hoặc sửa hai ô chi phí trên một lệnh **đã có** phiếu nhập kho thành phẩm. Giá thành của những lần nhập đó đã chốt và không tính lại; con số vừa gõ chỉ đi vào lần nhập kho sau. **Không** dùng lại `CANH_BAO_XUAT_SAU_KHI_NHAP_KHO`: thông điệp của mã đó nói về "chi phí của **lần xuất này**", câu sai khi người dùng vừa gõ một ô tiền chứ không xuất gì - và client rẽ nhánh theo mã để chọn câu hiển thị |
+
+Ba luật:
+
+- **Mã cảnh báo là hợp đồng, y như mã lỗi** (P-ERR): client rẽ nhánh theo `ma`, không theo
+  `thong_diep`. Đổi hoặc xoá một mã là breaking change; thêm mã mới thì không.
+- **Cảnh báo KHÔNG được thay một lỗi.** Nếu thao tác phải bị từ chối thì trả `4xx`. Một
+  `201` kèm cảnh báo nghĩa là dữ liệu **đã** vào sổ và người dùng phải biết nó không hoàn
+  hảo — chứ không phải "gần như thất bại".
+- **Màn hình bắt buộc hiện ra.** Nuốt một cảnh báo là để người dùng tin con số họ vừa ghi
+  là đúng trong khi hệ đã biết nó không đúng.
+
+**`canh_bao` là ngoại lệ DUY NHẤT** cho hợp đồng "mọi khoá trong thân `201` của POST cũng
+có mặt trong thân của đường GET tương ứng": đường GET đọc một bản ghi đã nằm trong sổ và
+không có gì để cảnh báo về **hành động vừa rồi**. Hai bài test hợp đồng bên `backend-erp`
+ghi đích danh ngoại lệ này.
+
+Hệ quả đi kèm, ghi ra để người sau không đi tìm: **`don_gia` và `thanh_tien` KHÔNG có trong
+thân `201`** của ba đường ghi kho. [ADR-0018](../03-decisions/ADR-0018-luu-response-cho-idempotency-key.md)
+đòi thân `201` dựng xong **trước** câu claim khoá idempotency, còn ADR-0049 mục 1 đòi phép
+chia bình quân chạy **trong** transaction. Hai ràng buộc đó loại nhau, và hai con số ấy chỉ
+đi ra ở đường đọc.
 
 ---
 

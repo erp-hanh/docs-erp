@@ -66,10 +66,63 @@ Dòng nhập và dòng xuất luôn thuộc về một **phiếu**; dòng **đi�
 chỉnh là việc lẻ, gộp lô làm mờ trách nhiệm.
 _Avoid_: giao dịch kho, bút toán kho
 
+**Định mức nguyên vật liệu**:
+Công thức của một **thành phẩm**: mỗi dòng ghi một nguyên vật liệu, đơn vị tính, và số lượng cần
+để làm ra **MỘT** đơn vị thành phẩm. Khai ngay trên chính thành phẩm trong danh mục vật tư hàng
+hoá, chỉ hiện khi tính chất là `thanh_pham`
+([ADR-0050](03-decisions/ADR-0050-lenh-san-xuat-va-dinh-muc-nguyen-vat-lieu.md)).
+
+Nó là **dự kiến**, không phải hạn mức: xuất thừa hay thiếu so với định mức vẫn ghi được, phần lệch
+được nói ra chứ không bị chặn.
+_Avoid_: BOM, công thức, cấu thành sản phẩm
+
+**Lệnh sản xuất**:
+Một đợt làm hàng: có số, có ngày, và **nhiều dòng thành phẩm**. **Mỗi dòng thành phẩm mang bảng
+định mức riêng của nó** - nguyên liệu của hai thành phẩm không trộn chung, vì trộn rồi thì không
+nói được sản phẩm nào ăn thịt.
+
+Lệnh thuộc module `production`, dù lối vào nằm trong menu Kho vận - đó là cách gom **phân hệ ở
+giao diện**, không phải ranh giới sở hữu dữ liệu (ADR-0017).
+
+Lệnh có **trạng thái tiến độ** (`moi`, `dang_lam`, `xong`, `huy`) chứ **không có bước duyệt**, và
+trạng thái đó không gác đường ghi.
+_Avoid_: đơn sản xuất, phiếu sản xuất, work order
+
+**Giá thành**:
+Số tiền một đơn vị thành phẩm gánh khi nhập kho: **chi phí nguyên vật liệu + chi phí nhân công +
+chi phí chung**, phân bổ cho từng thành phẩm theo **tỷ lệ chi phí nguyên vật liệu** của nó.
+
+Khác **giá vốn**: giá thành là con số được **chốt một lần** lúc nhập kho thành phẩm; giá vốn là
+con số **đổi theo từng lần nhập** của cả một cặp kho + mặt hàng.
+_Avoid_: giá sản xuất, chi phí sản xuất
+
+**Giá vốn**:
+Số tiền một đơn vị hàng đang gánh trên sổ. Tính theo **bình quân tức thời**, phạm vi **từng
+kho**: mỗi lần nhập làm giá bình quân của cặp (kho, mặt hàng) đổi ngay, và mọi lần xuất sau đó
+lấy con số vừa đổi ([ADR-0049](03-decisions/ADR-0049-gia-von-binh-quan-tuc-thoi-theo-tung-kho.md)).
+
+Đơn giá của dòng **nhập** là số người dùng gõ - giá **chưa thuế**. Đơn giá của dòng **xuất** là
+số máy tính, và không ô nào cho gõ đè.
+
+**Cùng một mặt hàng có giá vốn khác nhau ở hai kho.** Đó là tính chất của phương pháp này, không
+phải lỗi dữ liệu.
+_Avoid_: giá nhập, giá mua, đơn giá tồn
+
+**Giá nhập gần nhất**:
+Đơn giá của lần nhập **mới nhất** của một mặt hàng, tính trên **toàn công ty**. Nó **không phải
+giá vốn** và không đi vào một phép tính tồn nào: nó trả lời câu "hôm nay mua vào bao nhiêu", và
+là số điền sẵn khi **báo giá bán**.
+_Avoid_: giá nhập cuối, giá thị trường
+
 **Phiếu**:
-Một chứng từ nhập kho hoặc xuất kho: có số, có ngày, có **đối tác**, và mang **nhiều dòng
-hàng**. Mỗi dòng hàng sinh ra đúng một **chuyển động kho**. Phiếu là thứ người ta cầm trên
-tay và ký; dòng sổ là thứ máy tính tồn từ đó.
+Một chứng từ nhập kho, xuất kho hoặc **chuyển kho**: có số, có ngày, có **đối tác**, và mang
+**nhiều dòng hàng**. Phiếu là thứ người ta cầm trên tay và ký; dòng sổ là thứ máy tính tồn
+từ đó.
+
+Một dòng hàng của phiếu **nhập** hoặc **xuất** sinh ra đúng **một** chuyển động kho. Một dòng
+hàng của phiếu **chuyển** sinh ra **hai** - một dòng xuất ở kho nguồn và một dòng nhập ở kho
+đích, trong cùng một giao dịch
+([ADR-0048](03-decisions/ADR-0048-phieu-chuyen-kho-mot-dong-hai-chuyen-dong.md)).
 
 Phiếu **thuộc `inventory`** kể từ [ADR-0043](03-decisions/ADR-0043-phieu-nhap-xuat-thuoc-inventory.md).
 Trước đó nó bị đặt ở `purchasing` và `sales`, và mục từ này ghi ngược lại điều đang thấy.
@@ -81,6 +134,8 @@ _Avoid_: chứng từ kho, đơn nhập, đơn xuất, hoá đơn
 **Đối tác**:
 Bên kia của một phiếu: **nhà cung cấp** ở phiếu nhập, **khách hàng** ở phiếu xuất. Cùng một
 danh mục, khác vai theo loại phiếu — y như cách MISA dùng một trường "Đối tượng" cho cả hai.
+Phiếu **chuyển kho không có đối tác**: đối tác là bên ngoài công ty, chuyển kho là chuyện
+trong nhà.
 _Avoid_: đối tượng, bên bán, bên mua, NCC
 
 **Tồn**:
