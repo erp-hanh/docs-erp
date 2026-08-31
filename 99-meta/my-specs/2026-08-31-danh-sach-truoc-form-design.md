@@ -131,26 +131,50 @@ plan phải grep lại, vì các phiên khác vẫn đang thêm màn.
 6. Bài test khoá hai điều mà mắt không thấy: `?kind=` trên URL của bốn màn bị bỏ qua, và
    nút quay lại của chi tiết đi đúng đích theo từng loại.
 
-## 10. Soi bản rc.93 bằng tài khoản QA - tám thứ thấy được
+## 10. Soi bản rc.93 - mười hai thứ thấy được
 
 Soi ngày 2026-08-31 trên `http://103.179.172.110` bằng `qa-admin@erp.test`, phân vùng
-`DEFAULT`, bản `v0.1.0-rc.93` (số đọc trên chính màn đăng nhập). Bốn thứ đầu thuộc đúng
-phạm vi đợt này; bốn thứ sau là **sửa kèm** vì cùng chạm vào hai màn danh sách sẽ đụng tới.
+`DEFAULT`, bản `v0.1.0-rc.93`. Chụp **toàn trang** ở hai khung: `1366x768` (laptop phổ
+biến) và `1920x1080`.
 
-| # | Thấy gì | Ở đâu | Trong phạm vi? |
+Lần soi đầu chỉ chụp khung `1264x569` và chỉ nhìn phần đầu mỗi màn, nên bỏ sót toàn bộ
+nhóm A dưới đây. Ghi lại để lần sau không lặp: **soi giao diện thì chụp toàn trang, và ở
+khung hẹp nhất mà người dùng thật dùng**, vì lỗi bố cục hiện ra ở đáy trang và ở khung hẹp.
+
+### A. Vỡ bố cục
+
+| # | Thấy gì | Ở đâu | Nặng |
 |---|---|---|---|
-| 1 | Màn Điều chỉnh tồn in "**0 dòng điều chỉnh tồn trong sổ chuyển động**" - nó BIẾT con số nhưng không có đường nào xem chúng | `/dieu-chinh` | Có - đúng lỗ đợt này vá |
-| 2 | Ba màn phiếu có nút góc phải **"Xem sổ chuyển động"**, tức lối ra duy nhất là một màn khác loại | `/nhap-kho`, `/xuat-kho`, `/chuyen-kho` | Có - nút này thành thừa khi form nằm sau danh sách |
-| 3 | Đường quay lại không nhất quán: "← Kho vận" ở phiếu, "← Tồn kho" ở điều chỉnh | bốn màn ghi | Có - sau đợt này đều phải là "← <tên danh sách>" |
-| 4 | Nút hành động chính của trang chủ Kho vận tên **"Nhập kho"**, trùng đúng chữ với mục nav nhưng dẫn tới form | `/kho-van` | Có - đổi thành "Lập phiếu nhập" |
-| 5 | Ô lọc ngày hiện **`mm/dd/yyyy`** trên giao diện tiếng Việt. Người đọc Việt hiểu `08/31` là ngày 8 tháng 31 | `/phieu`, `/chuyen-dong` | Sửa kèm |
-| 6 | **Mã phiếu trong bảng không phải link**; đường vào chi tiết nằm ở một cột "Xem chi tiết" riêng. Trái luật "mã là nhân vật chính, luôn là link" của skill thiết kế | `/phieu` | Sửa kèm |
-| 7 | **UUID thô** in cạnh tiêu đề màn chi tiết phiếu (`9de9c130-0847-...`) | `/phieu/:id` | Sửa kèm |
-| 8 | Dòng bảng cao khoảng 90px nên một màn 1264×569 chỉ thấy **hai dòng**; kèm theo cột LOẠI và TÊN VTHH bị cắt chữ | `/phieu`, `/chuyen-dong` | Sửa kèm |
+| 1 | **Bảng tràn ngang, đẩy cả trang cuộn ngang.** Ở `1366` các cột phải bị cắt mất khỏi khung, không có vùng cuộn riêng cho bảng | `/chuyen-dong` | Nặng |
+| 2 | **Hàng "thêm dòng mới" không thẳng cột với đầu bảng.** Ô mặt hàng trải hai cột, một dấu `-` cô độc dưới cột ĐVT, một câu chú thích ba dòng nằm trong cột KHO, hai ô số **không có nhãn**, nút `+` tràn ra ngoài mép bảng | ba màn phiếu | Nặng |
+| 3 | **Mọi ô chọn hiện HAI điều khiển chồng nhau**: một ô gõ trống nằm trên một `select` "-- Chọn kho --". Đọc ra là một ô hỏng, không phải một ô tra cứu | ba màn phiếu, `/dieu-chinh` | Nặng |
+| 4 | Form một cột hẹp **dán lệch trái**, bỏ trống nguyên nửa phải màn hình | `/dieu-chinh` | Vừa |
+| 5 | Ba nút chân form **bó chữ xuống hai dòng** ở khung `1366` ("Ghi phiếu nhập / kho") | ba màn phiếu | Vừa |
+| 6 | Ô "Số dòng" **rơi xuống một hàng riêng**, chừa khoảng trắng chết chừng 90px giữa thanh lọc và bảng | `/ton-kho` | Vừa |
+| 7 | Ô Giá trị tồn chứa **số cộng một câu cảnh báo hai dòng**, nên dòng đó cao gấp đôi dòng thường - bảng gợn sóng và cột số mất canh | `/ton-kho` | Vừa |
+| 8 | Dải đầu trang **chỉ có mỗi tiêu đề**: không mô tả, không nút, một băng trắng cao 60px | `/ton-kho` | Nhẹ |
 
-Bốn mục "sửa kèm" là quyết định của người dùng ngày 2026-08-31: sửa một thể vì cùng đụng
-vào hai màn danh sách, thay vì mở một đợt riêng sau này.
+### B. Chữ và số
 
-Ba ô lọc còn một chuyện chưa quyết: mỗi danh mục có **hai ô cạnh nhau** ("Tìm kho" và
-"Kho", "Tìm vật tư hàng hoá" và "Vật tư hàng hoá"). Đợt này **không** đụng vào, vì gộp
-chúng là đổi cách lọc chứ không phải sửa một nhãn - ghi ra đây để không ai tưởng đã bỏ sót.
+| # | Thấy gì | Ở đâu |
+|---|---|---|
+| 9 | Ô lọc ngày hiện **`mm/dd/yyyy`** trên giao diện tiếng Việt. Người đọc Việt hiểu `08/31` là ngày 8 tháng 31 | `/phieu`, `/chuyen-dong` |
+| 10 | Tiền hiện **bốn chữ số thập phân** (`1.794.117,6471`, `14.705,8824`), phá canh cột số | `/ton-kho`, `/chuyen-dong` |
+| 11 | Cắt cụt chữ: tên vật tư (`Thep kiem chung gia ...`), và cả **tiêu đề cột** (`ĐƠN GIÁ BÌNH Q...`) | `/chuyen-dong`, `/ton-kho` |
+| 12 | **Mã phiếu không phải link** (đường vào chi tiết nằm ở một cột riêng), và **UUID thô** in cạnh tiêu đề màn chi tiết | `/phieu`, `/phieu/:id` |
+
+Mục 12 trái đúng dấu ấn thiết kế đã chốt của hệ: mã là nhân vật chính, mã luôn là link.
+
+### C. Một nhận định phải sửa
+
+Màn `/dieu-chinh` **đã có** một bảng danh sách nằm **dưới** form: hai mươi dòng điều chỉnh
+mới nhất, không lọc thêm được, không có trang sau. Nên việc của đợt này ở màn đó là **đảo
+thứ tự và cho lọc**, không phải dựng một màn danh sách từ đầu - rẻ hơn hẳn so với ước
+lượng ban đầu.
+
+### D. Phạm vi
+
+Nhóm A mục 1, 2, 3 và nhóm B **phải sửa trong đợt này**: chúng nằm đúng trên những màn đợt
+này vốn đã phải mở ra sửa, và ba cái đầu là thứ khiến người dùng gọi giao diện là vỡ.
+
+Mục 4, 6, 7, 8 sửa kèm. Mục 5 sửa kèm nếu còn thời gian - nó chỉ xấu, không cản việc.
