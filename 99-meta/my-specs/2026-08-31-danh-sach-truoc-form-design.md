@@ -130,3 +130,27 @@ plan phải grep lại, vì các phiên khác vẫn đang thêm màn.
 5. `npm run lint`, `npx vitest run`, `npm run arch` và `kiem-giao-dien.mjs` đều sạch.
 6. Bài test khoá hai điều mà mắt không thấy: `?kind=` trên URL của bốn màn bị bỏ qua, và
    nút quay lại của chi tiết đi đúng đích theo từng loại.
+
+## 10. Soi bản rc.93 bằng tài khoản QA - tám thứ thấy được
+
+Soi ngày 2026-08-31 trên `http://103.179.172.110` bằng `qa-admin@erp.test`, phân vùng
+`DEFAULT`, bản `v0.1.0-rc.93` (số đọc trên chính màn đăng nhập). Bốn thứ đầu thuộc đúng
+phạm vi đợt này; bốn thứ sau là **sửa kèm** vì cùng chạm vào hai màn danh sách sẽ đụng tới.
+
+| # | Thấy gì | Ở đâu | Trong phạm vi? |
+|---|---|---|---|
+| 1 | Màn Điều chỉnh tồn in "**0 dòng điều chỉnh tồn trong sổ chuyển động**" - nó BIẾT con số nhưng không có đường nào xem chúng | `/dieu-chinh` | Có - đúng lỗ đợt này vá |
+| 2 | Ba màn phiếu có nút góc phải **"Xem sổ chuyển động"**, tức lối ra duy nhất là một màn khác loại | `/nhap-kho`, `/xuat-kho`, `/chuyen-kho` | Có - nút này thành thừa khi form nằm sau danh sách |
+| 3 | Đường quay lại không nhất quán: "← Kho vận" ở phiếu, "← Tồn kho" ở điều chỉnh | bốn màn ghi | Có - sau đợt này đều phải là "← <tên danh sách>" |
+| 4 | Nút hành động chính của trang chủ Kho vận tên **"Nhập kho"**, trùng đúng chữ với mục nav nhưng dẫn tới form | `/kho-van` | Có - đổi thành "Lập phiếu nhập" |
+| 5 | Ô lọc ngày hiện **`mm/dd/yyyy`** trên giao diện tiếng Việt. Người đọc Việt hiểu `08/31` là ngày 8 tháng 31 | `/phieu`, `/chuyen-dong` | Sửa kèm |
+| 6 | **Mã phiếu trong bảng không phải link**; đường vào chi tiết nằm ở một cột "Xem chi tiết" riêng. Trái luật "mã là nhân vật chính, luôn là link" của skill thiết kế | `/phieu` | Sửa kèm |
+| 7 | **UUID thô** in cạnh tiêu đề màn chi tiết phiếu (`9de9c130-0847-...`) | `/phieu/:id` | Sửa kèm |
+| 8 | Dòng bảng cao khoảng 90px nên một màn 1264×569 chỉ thấy **hai dòng**; kèm theo cột LOẠI và TÊN VTHH bị cắt chữ | `/phieu`, `/chuyen-dong` | Sửa kèm |
+
+Bốn mục "sửa kèm" là quyết định của người dùng ngày 2026-08-31: sửa một thể vì cùng đụng
+vào hai màn danh sách, thay vì mở một đợt riêng sau này.
+
+Ba ô lọc còn một chuyện chưa quyết: mỗi danh mục có **hai ô cạnh nhau** ("Tìm kho" và
+"Kho", "Tìm vật tư hàng hoá" và "Vật tư hàng hoá"). Đợt này **không** đụng vào, vì gộp
+chúng là đổi cách lọc chứ không phải sửa một nhãn - ghi ra đây để không ai tưởng đã bỏ sót.
