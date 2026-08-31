@@ -230,3 +230,43 @@ mười màn một lượt là một PR không ai soi nổi.
 
 Ghi rõ để không ai tưởng đã xong: sau đợt này hệ sẽ có **hai kiểu thanh lọc cùng tồn tại**
 trong vài tuần. Đó là cái giá đã biết và chấp nhận, không phải một chỗ sót.
+
+## 12. Đợt C đã làm, và một nhận định của mục 10 phải sửa
+
+Thi công 2026-08-31, chạy trên `v0.1.0-rc.99`.
+
+### Nhận định sai, và sự thật
+
+Mục 10 nhóm A số 1 viết: *"Bảng tràn ngang, đẩy cả trang cuộn ngang. Ở 1366 các cột phải
+bị cắt mất khỏi khung, không có vùng cuộn riêng cho bảng."*
+
+**Sai ở nguyên nhân.** Đo trên dev: `document.scrollWidth === window.innerWidth === 1366` -
+trang không hề cuộn ngang, và `<Bang>` đã có `overflow-x: auto` từ trước.
+
+Sự thật là một lỗi khác hẳn, và nặng hơn: **bảng sổ chuyển động đã lên MƯỜI MỘT cột trong
+khi CSS còn khai bề rộng cho CHÍN.** Với `table-layout: fixed`, hai cột không được cấp bề
+rộng nhận về đúng `0.015625px` - chúng không biến mất mà **bị nghiền nát**, chữ trong chúng
+xuống dòng từng ký tự một và đẩy cả hàng cao lên 92px.
+
+Không phép kiểm tự động nào bắt được: `tsc` và `eslint` đều mù với chuyện này, và bài test
+đọc DOM cũng vậy vì jsdom không dựng layout. Cảnh báo đó nay nằm ngay trong file CSS.
+
+### Đã sửa
+
+| Sửa gì | Đo được |
+|---|---|
+| Khai đủ 11 cột, cân lại bề rộng | Hàng **92px -> 49px**; một màn 768px giờ đọc được 13 hàng thay vì 7 |
+| Cột số rộng hơn cột chữ cùng cỡ | `-2.205.882,3529` (15 ký tự) hết tràn đè lên cột Ghi chú |
+| Câu "Thiếu giá N dòng" nằm **cùng dòng** với con số | Hàng của nó hết cao gấp đôi hàng thường |
+| Câu "Không có ghi chú" không xuống hai dòng | Ghi chú THẬT vẫn xuống dòng được - bài test khoá đúng điều đó |
+| Nút chân phiếu `white-space: nowrap` | Hết "Ghi phiếu nhập / kho" hai dòng ở 1366 |
+| `min-width: max-content` cho bảng trong vùng cuộn | Cột không bị bóp khi bảng hẹp hơn nội dung |
+
+### Hai thứ nhìn như lỗi mà là chủ ý - KHÔNG sửa
+
+- **Dải đầu trang Tồn kho chỉ có tên màn.** Đoạn dẫn đã cố ý chuyển xuống ngay trên bảng,
+  có ghi lý do trong code: nó chống một hiểu nhầm về CON SỐ, nên chỗ đúng của nó là cạnh
+  cái bảng chứ không phải cạnh cái tên.
+- **Form điều chỉnh tồn hẹp 640px, dán lệch trái.** Đó là khuôn form một cột của skill
+  `frontend-design-erp`. Đổi sang căn giữa là một quyết định thiết kế cho CẢ hệ, không phải
+  một sửa lẻ của màn này - cần quyết riêng.
