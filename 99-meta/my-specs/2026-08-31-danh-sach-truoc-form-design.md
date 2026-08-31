@@ -178,3 +178,55 @@ Nhóm A mục 1, 2, 3 và nhóm B **phải sửa trong đợt này**: chúng n�
 này vốn đã phải mở ra sửa, và ba cái đầu là thứ khiến người dùng gọi giao diện là vỡ.
 
 Mục 4, 6, 7, 8 sửa kèm. Mục 5 sửa kèm nếu còn thời gian - nó chỉ xấu, không cản việc.
+
+## 11. Thanh lọc và ô tìm kiếm
+
+Người dùng nói ngày 2026-08-31: các ô lọc và tìm kiếm "trình bày chưa đẹp, nhìn còn thô".
+Soi lại thì lý do là cấu trúc chứ không phải màu:
+
+**Không có component thanh lọc dùng chung.** `src/shared/components/` có mười ba component
+nhưng **không có `ThanhLoc`**, trong khi mười màn danh sách đều tự dựng một thanh lọc:
+`BalanceListPage`, `MovementListPage`, `VoucherListPage`, `StockItemListPage`,
+`WarehouseListPage`, `PartnerListPage`, `LenhSanXuatListPage`, `MachineListPage`,
+`UserListPage`, `CompanyListPage`. Mười bản chép tay thì mười bản lệch nhau, và không bản
+nào chịu trách nhiệm về hình dạng chung.
+
+Ba thứ hỏng cụ thể, đo trên rc.93:
+
+| Thấy gì | Vì sao |
+|---|---|
+| Ô "Số dòng" **rơi xuống một hàng riêng** ở `/ton-kho`, chừa khoảng trắng chết | Hàng ô lọc tự xuống dòng không kiểm soát, và ô cuối bị đẩy sang hàng mới một mình |
+| Mỗi danh mục chiếm **hai ô cạnh nhau** ("Tìm kho" và "Kho") | `ChonDanhMuc` dáng `'loc'` cố ý đặt ô tìm cạnh ô chọn để không cao gấp đôi các ô khác. Đó là một cách né bố cục, và cái giá là người đọc thấy hai trường không liên quan |
+| Cùng hình dạng đó ở **dáng `'form'` xếp dọc** thì đọc ra là một ô hỏng, nhân đôi | Một ô gõ trống nằm trên một hộp thả xuống - xem mục 10 nhóm A số 3 |
+
+### Ba việc
+
+**1. Dựng `ThanhLoc` ở `src/shared/components/`.** Một hàng ngang; mọi ô cao bằng nhau;
+nhãn nhỏ nằm trên ô; khoảng cách theo `--gian-*`. Ô "Số dòng" và nút "Xoá lọc" neo ở đầu
+phải của **chính hàng đó**, không bao giờ rơi xuống một mình. Xuống dòng theo nhóm chứ
+không theo từng ô. Nút "Xoá lọc" chỉ hiện khi có ít nhất một ô đang lọc.
+
+**2. Dựng `OTraCuu` thay cặp ô tìm + ô chọn.** Một ô duy nhất: gõ để lọc, danh sách gợi ý
+thả xuống ngay dưới, chọn xong ô hiện `mã - tên` kèm nút xoá. Hình dạng này thay
+`ChonDanhMuc` ở **cả hai dáng**, nên nó xoá luôn lỗi "ô nhân đôi" ở bốn màn ghi. Sáu trạng
+thái mà `ChonDanhMuc` đang giữ (đang tải, danh mục hỏng, chạm trần một trang, không khớp,
+vừa bỏ chọn, lỗi của ô) phải giữ nguyên - chúng là phần đắt nhất của component cũ, không
+phải phần thừa.
+
+**3. Dựng `ONgay` hiển thị `dd/mm/yyyy`.** `<input type="date">` hiện theo locale của trình
+duyệt chứ không theo `lang` của trang, nên không có cách nào ép nó ra `dd/mm` mà vẫn giữ
+input gốc. Ô mới: gõ tay theo `dd/mm/yyyy`, kèm nút mở lịch. Đây là thứ duy nhất trong ba
+việc phải viết logic mới thay vì gom lại thứ đã có.
+
+### Phạm vi
+
+Đợt này áp cho **sáu màn Kho vận**: ba màn phiếu mới, `/dieu-chinh`, `/ton-kho`,
+`/chuyen-dong`, cộng ba màn danh mục `/vat-tu`, `/kho`, `/doi-tac` nếu chúng dùng chung ô
+tra cứu.
+
+**Bốn màn ngoài Kho vận** (`MachineListPage`, `UserListPage`, `CompanyListPage`,
+`LenhSanXuatListPage`) **để đợt sau**. Chúng không nằm trên đường đi của đợt này, và đổi
+mười màn một lượt là một PR không ai soi nổi.
+
+Ghi rõ để không ai tưởng đã xong: sau đợt này hệ sẽ có **hai kiểu thanh lọc cùng tồn tại**
+trong vài tuần. Đó là cái giá đã biết và chấp nhận, không phải một chỗ sót.
