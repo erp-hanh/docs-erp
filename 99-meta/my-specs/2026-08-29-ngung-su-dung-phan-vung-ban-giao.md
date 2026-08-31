@@ -3,13 +3,26 @@
 Ngày 2026-08-29. Việc số 1 trong ba việc còn nợ của
 [bàn giao 2026-08-28](2026-08-28-quan-tri-phan-vung-ban-giao.md).
 
-Ba nhánh, **chưa push, chưa merge**:
+**Đã vào `main` và đang chạy trên dev.** Cập nhật 2026-09-01.
 
-| Repo | Nhánh | Số commit |
+| Repo | Đã vào `main` | Tag |
 |---|---|---|
-| `backend-erp` | `feat/ngung-su-dung-phan-vung` | 25 (28 file, +2269/−139) |
-| `frontend-erp` | `feat/ngung-su-dung-phan-vung` | 6 |
-| `docs-erp` | `spec/ngung-su-dung-phan-vung` | 10 |
+| `backend-erp` | `7083dca` rồi `397565e` | `v0.1.0-rc.106`, `v0.1.0-rc.107` |
+| `frontend-erp` | `f4f3906` | `v0.1.0-rc.106`, `v0.1.0-rc.107` |
+| `docs-erp` | nhánh `spec/ngung-su-dung-phan-vung`, **chưa merge** | — |
+
+Nhánh mang đợt việc chính đã cũ ba ngày so với `main` trước khi merge (backend 24 commit,
+frontend 43). Hợp nhất bằng `git merge`, không rebase — nhánh đã công bố. Backend có bốn
+file cả hai bên cùng sửa, và cả bốn là ca "hai bên thêm hai thứ khác nhau vào cùng một danh
+sách" nên **giữ cả hai**; frontend chỉ một file golden. Không bài test nào phải sửa vì mâu
+thuẫn hành vi.
+
+**Bài học vận hành, đắt hơn nó đáng:** lần deploy đầu chọn deploy **nhánh** thay vì tag rc.
+Máy dev được nhiều phiên deploy liên tục bằng tag, nên một bản nhánh không tag bị đè mất.
+Cộng thêm ổ đĩa dev đầy 96% — do chính script chạy test trên VPS bung mã nguồn ra thư mục
+tạm mà không dọn, để lại 128 thư mục và 8.1G cache build. Hậu quả: một lần build mất **2 giờ
+32 phút**, lần sau chết hẳn với `no space left on device`. Đã dọn (còn 9.5G trống) và sửa
+script tự dọn bằng `trap` để nó dọn cả khi test đỏ.
 
 Nền: [ADR-0044](../../03-decisions/ADR-0044-ngung-su-dung-phan-vung-tach-khoi-xoa.md),
 [ADR-0045](../../03-decisions/ADR-0045-cua-phan-vung-dang-lam-viec-canh-ca-hai-duong.md),
@@ -181,6 +194,53 @@ module đăng ký **31**; bảng migration ở `Database.md` thiếu năm dòng.
 Ngoài ra: `inventory/hooks/mutation-errors.ts` mang đúng lỗi hụt mà một phép đột biến phơi ra —
 `thongDiep = err.message` nuốt mất tên ô lệch ở nhánh 422, và bảy hook ghi của module kho dùng
 nó. Bản `company` đã chữa; bản `inventory` thì chưa.
+
+## Đợt siết an toàn tiếp theo (2026-09-01)
+
+Sau khi đợt trên vào `main`, làm tiếp hai việc đã duyệt. Nhánh `feat/that-dinh-dang-uuid`,
+đã vào `main`, tag `v0.1.0-rc.107`.
+
+**1. Thắt `laUUID` theo [ADR-0047](../../03-decisions/ADR-0047-lauuid-chi-nhan-dang-uuid-chuan-chu-thuong.md).**
+Nay chỉ nhận dạng chuẩn 36 ký tự chữ thường; từ chối `urn:uuid:`, `{...}`, và 32-hex.
+
+**ADR-0047 có một chỗ đã lạc hậu ngay khi thi công: nó viết "BA bản `laUUID`" ở ba chỗ,
+thực tế có BỐN.** Bản thứ tư ở `modules/production/internal/service/errors.go` với chín chỗ
+gọi. Đã thắt cả bốn. ADR là bất biến nên phép đính chính ghi ở đây; ngày ai mở lại chủ đề
+này thì đó là một ADR mới.
+
+Mã lỗi sau khi thắt được **đo thật**, không suy diễn: `404 / ERR_COMMON_NOT_FOUND`, khớp
+dự đoán của ADR. Chín ca test hồi quy đổi tên từ `_Tra409`/`Tra422` sang `_Tra404` — một
+cái tên khẳng định 409 trong khi đo 404 là đúng loại tên nói dối mà dự án này đã bị đốt
+nhiều lần. Đầu vào và mọi phép kiểm trạng thái database giữ nguyên, vì mệnh đề chịu lực
+của chúng chưa bao giờ là "409" mà là "một id hình dạng lạ trỏ đúng phân vùng đang sống
+thì không được xoá nó".
+
+ADR-0047 tự nhận một cái Mất: thắt `laUUID` sẽ làm mất bằng chứng chạy được cho
+`laCungPhanVung`, *"trừ khi ai đó viết bài gọi thẳng nó với đầu vào chưa qua `laUUID`"*.
+Bài đó **đã được viết** (`la_cung_phan_vung_internal_test.go`), nên lớp phòng thủ thứ hai
+vẫn có bằng chứng.
+
+**2. `CompanyOf` kiểm định dạng — lỗi 500 ở `/auth/refresh`.**
+`token.CompanyOf` chỉ **cắt** chuỗi trước dấu chấm, không **kiểm**, rồi giá trị đó đi thẳng
+vào `WHERE company_id = $1` trên một cột `uuid`. Một tiền tố không parse được làm PostgreSQL
+ném `22P02`, và nó ra tới client thành **500** thay vì **401**. Đắt hơn bình thường một bậc
+vì `POST /auth/refresh` **không cần đăng nhập**.
+
+Lỗi có ở **ba** đường, không một: `Refresh`, `Logout`, và `thuHoiPhienCu` (gọi từ chọn phân
+vùng — ca này nặng nhất, lỗi kiểu làm hỏng cả transaction). Cửa đặt ở `CompanyOf` chứ không
+ở ba chỗ gọi.
+
+Bản vá này **do một phiên khác viết** và để lại trong cây làm việc chung ở dạng chưa commit.
+Phiên này chỉ kiểm chứng rồi đóng gói, vì để một bản vá cho lỗi 500 nằm không commit là để
+mất nó.
+
+**Món nợ chưa trả:** bốn bản `laUUID` phải giữ khớp nhau và **không có checker nào canh**.
+Đó đúng là cách lỗi này sống sót qua hai vòng vá. ADR-0047 phần Nợ để lại ghi việc dựng một
+luật kiến trúc cho nó.
+
+**Ba kênh sẽ gãy sau khi thắt**, đều là ca người dùng dán tay một mã từ công cụ ngoài: ô
+"Người phụ trách" ở form sửa máy, ba bộ lọc đọc thẳng từ URL, và mã dán vào đường dẫn.
+Không đường tự động nào của hệ sinh ra dạng lạ, nên đây là toàn bộ rủi ro.
 
 ## Việc tiếp theo
 
