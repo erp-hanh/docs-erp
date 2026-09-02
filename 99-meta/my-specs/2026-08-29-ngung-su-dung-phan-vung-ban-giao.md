@@ -242,6 +242,56 @@ luật kiến trúc cho nó.
 "Người phụ trách" ở form sửa máy, ba bộ lọc đọc thẳng từ URL, và mã dán vào đường dẫn.
 Không đường tự động nào của hệ sinh ra dạng lạ, nên đây là toàn bộ rủi ro.
 
+## Đợt 2026-09-02: bấm tay, và ba việc còn nợ đã trả
+
+`v0.1.0-rc.108`. Ba việc mà bản bàn giao trước để lại cho phiên sau đều đã làm.
+
+**1. Bấm tay trên dev — bắt được ba lỗi mà 2069 test xanh không thấy.** Cả ba đều là loại
+"chạy đúng nhưng nói sai chỗ", nên một bài test khẳng định "có banner với chữ X" sẽ xanh ở cả
+ba:
+
+- Cùng một luật, hai màn nói hai kiểu: màn danh sách để banner **vàng** ở **đầu trang**, cách
+  nút vừa bấm ~380px; màn chi tiết để banner **đỏ** ngay trong khối. Khác cả vị trí, chữ, lẫn
+  mức nghiêm trọng. Nay thống nhất: thông điệp về **đúng hàng vừa bấm** (một hàng phụ dưới
+  hàng đó), mức **cảnh báo** ở cả hai màn, và chữ lấy từ **một nguồn duy nhất**.
+- **`Mã tra cứu` hiện ở ca không có gì để tra.** Đây là lỗi do một chỉ thị quá rộng của chính
+  đợt trước: "mọi banner đường ghi phải mang mã tra cứu". Mã tra cứu sinh ra cho ca **hệ thống
+  hỏng** - người dùng cầm nó đi hỏi người trực. Ở ca "bạn đang đứng trong phân vùng này" thì
+  không có sự cố nào để tra. Ranh giới nay cắt ở một chỗ: **4xx có mã nghiệp vụ thì giấu, còn
+  lại thì hiện**.
+- **Nút vẫn sáng dù chắc chắn không bấm được.** Nay khoá mềm kèm lý do, đúng lối nút vai trò
+  hệ thống đã có sẵn ở màn Phân quyền.
+
+**2. Ba kênh dán tay không còn gãy.** Frontend chuẩn hoá mã định danh trước khi gửi (bỏ ngoặc,
+bỏ `urn:uuid:`, thêm gạch, hạ chữ thường). Chuẩn hoá ở **frontend** không mâu thuẫn với việc
+ADR-0047 loại chuẩn hoá ở **backend**: lý do ADR loại là "phải rải ra mọi chỗ nhận id", mà ở
+frontend tập đó **đóng** - đúng bốn cửa nhập tay. Danh sách ba kênh của bản bàn giao trước
+**thiếu một**: `voucher-list-params.ts` cũng đọc thẳng mã từ URL.
+
+**3. Đã có checker canh bốn bản `laUUID`.** Luật so **thân hàm** sau khi chuẩn hoá, lấy nhóm
+đông nhất làm bản chuẩn, không dùng danh sách tên file - nên **module thứ năm bị bắt tự động**.
+Template sinh module chỉ *gọi* `laUUID` chứ không *khai* nó, nên module mới không biên dịch
+được cho tới khi có người chép thân hàm vào, và ngay giây đó luật nhìn thấy. Có thêm chặn
+chiều ngược: một bản bị xoá thì luật kêu chứ không im lặng thu hẹp tầm.
+
+## Hai bài học vận hành, ghi để đợt sau khỏi vấp lại
+
+**1. Tách nhánh từ `origin/main`, KHÔNG từ `main`.** Một phiên khác giữ `main` checked out
+trong git worktree, nên git **từ chối** cập nhật con trỏ `main` cục bộ:
+
+```
+fatal: refusing to fetch into branch 'refs/heads/main'
+       checked out at '.../scratchpad/wt-m2'
+```
+
+`main` cục bộ vì thế bị ghim ở bản cũ, và **hai agent liên tiếp** tách nhánh từ đó rồi kết
+luận sai về trạng thái hệ (một con báo "việc thắt chưa vào main" trong khi nó đã vào).
+`origin/main` là con trỏ theo dõi remote, không ai checkout được nên nó luôn đúng sau `fetch`.
+
+**2. Deploy nhánh không tag thì không giữ được.** Máy dev được nhiều phiên deploy liên tục
+bằng tag rc; một bản nhánh sẽ bị đè bất cứ lúc nào. Chuyện này xảy ra **hai lần** trong đợt.
+Muốn soi thứ gì trên dev thì merge vào `main` rồi tag một rc.
+
 ## Việc tiếp theo
 
 Deploy rc lên dev rồi **bấm tay** đủ ba đường: ngừng sử dụng rồi bật lại, xoá một phân vùng
