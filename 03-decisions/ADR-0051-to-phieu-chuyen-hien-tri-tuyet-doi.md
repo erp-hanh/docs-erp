@@ -1,6 +1,7 @@
 # ADR-0051: Tờ phiếu chuyển kho hiện trị tuyệt đối — dấu là chuyện của sổ, không của tờ phiếu
 
-**Status:** Accepted (2026-09-03)
+**Status:** Accepted (2026-09-03), khoản loại trừ phiếu xuất bị lật bởi
+[ADR-0052](ADR-0052-to-phieu-xuat-hien-tri-tuyet-doi.md) — mọi lý lẽ khác của ADR này còn nguyên.
 **Extends:** [ADR-0048](ADR-0048-phieu-chuyen-kho-mot-dong-hai-chuyen-dong.md) — một dòng hàng
 của phiếu chuyển sinh hai dòng `stock_movements` ngược dấu. ADR này không lật lại điều gì của
 ADR-0048; nó quyết cách **hiển thị** hai dòng ấy trên tờ phiếu.
