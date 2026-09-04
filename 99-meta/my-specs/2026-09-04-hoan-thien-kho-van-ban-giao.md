@@ -6,27 +6,30 @@ Kế hoạch của đợt: `2026-09-04-hoan-thien-kho-van-plan.md`.
 Người dùng giao: "làm hoàn thiện màn kho trước", phạm vi chốt là **cả module Kho vận**; hai màn
 `machine` để sau. Phiên này dừng vì người dùng chuyển sang máy khác.
 
-## Trạng thái - CHƯA merge vào main, CHƯA tag
+## Trạng thái - đã merge, đã tag `v0.1.0-rc.113`, đang chạy trên dev
 
-| Repo | Nhánh | Commit |
+| Repo | `main` | Tag rc.113 trỏ vào |
 |---|---|---|
-| frontend-erp | `fe/hoan-thien-man-kho` | `6f4b8f7` (4 commit trên `origin/main` 29177f6) |
-| docs-erp | `spec/hoan-thien-kho-van` | ADR-0052 + kế hoạch + bàn giao này |
-| backend-erp | `fe/hoan-thien-man-kho` | `5dea167` = `origin/main`, không đổi dòng nào |
-| infra-erp | `fe/hoan-thien-man-kho` | `7eb2ed2` = `origin/main`, không đổi dòng nào |
+| frontend-erp | `6f4b8f7` | `6f4b8f7` |
+| docs-erp | `e4ed02d` | (docs không tag) |
+| backend-erp | `5dea167` | `5dea167` - không đổi dòng nào ở đợt này |
+| infra-erp | `7eb2ed2` | `7eb2ed2` - không đổi dòng nào ở đợt này |
 
-Cả bốn nhánh **đã push**. Hai nhánh backend/infra dựng ra chỉ để `deploy-dev.sh` có đủ ba ref
-cùng tên - xem [[deploy-nhanh-khong-tag-de-soi-giao-dien]]. Hai nhánh chính đều là **fast-forward
-sạch** trên `main` (0 commit phía sau), nên merge chỉ là một cú push.
+Hai nhánh `fe/hoan-thien-man-kho` và `spec/hoan-thien-kho-van` đã fast-forward vào `main` và
+vẫn còn trên remote. Ba nhánh cùng tên ở backend/infra dựng ra để deploy nhánh, xoá lúc nào
+cũng được.
 
-**Máy dev đang chạy nhánh này, không phải một tag.** Bundle đang phục vụ
-`assets/index-Ds_M2Yo8.js`, đã đối chiếu bằng mục `5b` của script deploy (`2067d3b` sang
-`6f4b8f7`). Trước đợt này dev chạy bản dựng nhánh `ma-tran-quyen`; trả lại bằng
-`ssh dev-erp "bash /opt/erp/infra-erp/scripts/deploy-dev.sh fe/ma-tran-quyen"`.
+**Máy dev đang chạy `v0.1.0-rc.113`**, bundle `assets/index-Cx8GaQfI.js`, đã đối chiếu bằng mục
+`5b` của script deploy. Kiểm từ máy ngoài: `/health` và `/ready` 200, web 200, preflight trả
+đúng `Allow-Origin`, ba cổng 5433/9090/3000 đều đóng.
+
+**Chưa xác nhận được CI trên `main`** - `gh` không đăng nhập host nào. Tag dựa trên bằng chứng
+cục bộ (2772 bài xanh, tsc/lint/arch/kiem-giao-dien sạch) cộng một lượt soi mắt đầu-cuối trên
+dev. Xem [[github-account-erp-hanh]]. **Việc đầu tiên của phiên sau: đọc CI của `main` và của
+tag rc.113, nếu đỏ thì đó là việc gấp nhất.**
 
 **Số đo:** 2772 bài xanh / 166 file (đầu đợt là 2516). `tsc` 0, `lint` 0 lỗi, `arch` 0,
-`kiem-giao-dien.mjs` sạch 369 file. Chưa xác nhận được CI: `gh` không đăng nhập host nào
-([[github-account-erp-hanh]]) - đó là lý do chưa tag rc.113.
+`kiem-giao-dien.mjs` sạch 369 file.
 
 ## Bốn đợt đã xong
 
@@ -93,14 +96,11 @@ URL. Khối ghi chú đầu `canh-bao-roi-trang.ts` đã viết lại: ba đư�
 
 ## Việc tiếp theo
 
-1. **Merge và tag.** Hai nhánh là fast-forward sạch:
-   `git push origin fe/hoan-thien-man-kho:main` (frontend) và
-   `git push origin spec/hoan-thien-kho-van:main` (docs). Chờ CI xanh trên `main` rồi tag
-   `v0.1.0-rc.113` cùng số trên cả ba repo, rồi `deploy-dev.sh v0.1.0-rc.113`. Skill `deploy-rc`
-   giữ đủ các bước.
-2. **Dọn dữ liệu thử trên dev**: kho `SOI-ENTER-02` ("Kho soi phím Enter 2") do lượt soi này tạo
-   ra. Chưa có chuyển động nào nên xoá được.
-3. **Hai màn `machine`** - đợt thiết kế, người dùng đã chốt để sau.
+1. **Đọc CI** của `main` và của tag `v0.1.0-rc.113` ở cả ba repo - đây là mắt xích duy nhất của
+   đợt này chưa ai nhìn thấy.
+2. **Hai màn `machine`** (`MachineListPage`, `BreakdownReportPage`) - đợt thiết kế, người dùng
+   đã chốt để sau.
+3. Kho thử `SOI-ENTER-02` do lượt soi tạo ra **đã xoá** (`DELETE 204`, danh sách trả về rỗng).
 
 ## Còn nợ
 
